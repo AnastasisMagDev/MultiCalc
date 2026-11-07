@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODULE 04 — Physics Formulas</title>
+<style>
+/* ── SHARED BASE CSS ── */
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+html{background:#0f172a;min-height:100%;}
+body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);min-height:100dvh;min-height:100vh;color:white;overflow-x:hidden;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);top:-80px;left:-80px;}
+body::after{width:360px;height:360px;background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);bottom:40px;right:-60px;}
+.screen{display:none;padding:20px;padding-bottom:170px;min-height:100dvh;min-height:100vh;position:relative;z-index:1;}
+.screen.active{display:block;animation:screenIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;}
+@keyframes screenIn{from{opacity:0;transform:scale3d(0.96,0.96,1) translateY(10px);}to{opacity:1;transform:scale3d(1,1,1) translateY(0);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(15px);}to{opacity:1;transform:translateY(0);}}
+@keyframes resultPop{0%{opacity:0;transform:scale(0.88) translateY(10px);}60%{transform:scale(1.03) translateY(-2px);}100%{opacity:1;transform:scale(1) translateY(0);}}
+.result-display.show{animation:resultPop 0.45s cubic-bezier(0.34,1.56,0.64,1) both !important;}
+.input-field:focus{border-color:rgba(99,102,241,0.7)!important;box-shadow:0 0 0 3px rgba(99,102,241,0.15),0 0 20px rgba(99,102,241,0.1)!important;background:rgba(30,41,59,0.85)!important;}
+.calculate-btn:active{transform:scale(0.95) translateY(0)!important;transition:transform 0.08s ease!important;}
+.header{text-align:center;padding:40px 20px 20px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.8rem;color:#fff;box-shadow:0 8px 24px rgba(99,102,241,0.3);position:relative;overflow:hidden;}
+.logo-icon::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);animation:shimmer 3s infinite;}
+@keyframes shimmer{0%{transform:translate(-100%,-100%);}100%{transform:translate(100%,100%);}}
+.logo-text{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#fff,#e2e8f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo span{background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.subtitle{color:#94a3b8;font-size:0.95rem;margin-top:5px;}
+.back-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#94a3b8;font-size:0.95rem;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+.back-btn:hover{color:#e2e8f0;background:rgba(255,255,255,0.1);transform:translateX(-3px);}
+.input-field{width:100%;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:12px;padding:15px;font-size:1rem;color:white;outline:none;transition:border-color 0.2s;}
+.input-field:focus{border-color:#6366f1;}
+.input-group{margin-bottom:20px;max-width:500px;margin-left:auto;margin-right:auto;}
+.input-label{color:#94a3b8;font-size:0.9rem;margin-bottom:8px;display:block;}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-track{background:rgba(15,23,42,0.3);}::-webkit-scrollbar-thumb{background:rgba(71,85,105,0.5);border-radius:4px;}
+
+/* ── MODULE 04 — Physics CSS ── */
+.physics-categories{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:500px;margin:0 auto 20px;}
+.physics-card{background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:20px;text-align:center;cursor:pointer;transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);}
+.physics-card:hover{background:rgba(51,65,85,0.6);border-color:#6366f1;transform:translateY(-4px) scale(1.04);box-shadow:0 8px 24px rgba(99,102,241,0.2);}
+.physics-card:active{transform:scale(0.95);}
+.physics-card.active        {background:linear-gradient(135deg,#06b6d4,#0891b2);border-color:#06b6d4;box-shadow:0 0 0 2px rgba(6,182,212,0.4);}
+.physics-card.active-orange {background:linear-gradient(135deg,#f97316,#ea580c);border-color:#f97316;box-shadow:0 0 0 2px rgba(249,115,22,0.4);}
+.physics-card.active-red    {background:linear-gradient(135deg,#ec4899,#db2777);border-color:#ec4899;box-shadow:0 0 0 2px rgba(236,72,153,0.4);}
+.physics-card.active-purple {background:linear-gradient(135deg,#a855f7,#9333ea);border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,0.4);}
+.physics-card.active-gray   {background:linear-gradient(135deg,#64748b,#475569);border-color:#64748b;box-shadow:0 0 0 2px rgba(100,116,139,0.4);}
+.physics-card .icon{font-size:1.8rem;margin-bottom:8px;}
+.physics-card .label{font-size:0.85rem;font-weight:600;}
+.formula-selector{background:rgba(15,23,42,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:15px;max-width:500px;margin:0 auto 20px;}
+.formula-dropdown{width:100%;background:transparent;border:none;color:white;font-size:1rem;padding:10px;cursor:pointer;outline:none;}
+.formula-dropdown option{background:#1e293b;}
+.formula-info{background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:20px;max-width:500px;margin:0 auto 20px;}
+.formula-title{font-size:1.1rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.icon-box{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+.icon-box.orange{background:linear-gradient(135deg,#f97316,#ea580c);}
+.icon-box.red   {background:linear-gradient(135deg,#ec4899,#db2777);}
+.icon-box.purple{background:linear-gradient(135deg,#a855f7,#9333ea);}
+.icon-box.gray  {background:linear-gradient(135deg,#64748b,#475569);}
+.formula-equation{background:rgba(15,23,42,0.6);padding:15px;border-radius:10px;margin-bottom:15px;font-family:'Courier New',monospace;font-size:1.1rem;}
+.formula-description{color:#94a3b8;font-size:0.9rem;line-height:1.5;background:rgba(59,130,246,0.1);padding:12px;border-radius:10px;border-left:3px solid #3b82f6;}
+.variable-inputs{max-width:500px;margin:0 auto;}
+.variable-group{margin-bottom:20px;}
+.variable-label{color:#94a3b8;font-size:0.9rem;margin-bottom:8px;display:block;}
+.unc-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 6px;row-gap:10px;}
+.unc-row .input-field{flex:1 1 150px;min-width:0;}
+.unc-sign{color:#64748b;font-size:0.95rem;flex:0 0 auto;}
+.unc-field{flex:0 0 74px!important;width:74px!important;padding:15px 6px!important;text-align:center;}
+.unc-field::placeholder{color:#475569;}
+.chain-panel{background:rgba(15,23,42,0.5);border:1px solid rgba(71,85,105,0.3);border-radius:14px;padding:12px 14px;margin:14px 0;}
+.chain-header{display:flex;justify-content:space-between;align-items:center;font-size:0.9rem;font-weight:700;color:#e2e8f0;margin-bottom:8px;}
+.chain-clear-btn{background:none;border:1px solid rgba(71,85,105,0.4);border-radius:8px;color:#94a3b8;font-size:0.75rem;padding:4px 8px;cursor:pointer;}
+.chain-clear-btn:hover{color:#f87171;border-color:#f87171;}
+.chain-list{display:flex;flex-direction:column;gap:6px;}
+.chain-empty{color:#64748b;font-size:0.82rem;font-style:italic;}
+.chain-item{display:flex;justify-content:space-between;align-items:center;background:rgba(30,41,59,0.5);border-radius:8px;padding:6px 10px;font-size:0.85rem;color:#cbd5e1;}
+.chain-item b{color:#4ade80;}
+.chain-item small{color:#64748b;display:block;font-size:0.72rem;}
+.chain-del{background:none;border:none;color:#64748b;cursor:pointer;font-size:0.9rem;padding:2px 6px;}
+.chain-del:hover{color:#f87171;}
+.chain-picker{width:100%;margin-top:10px;background:rgba(30,41,59,0.4);border:1px solid rgba(71,85,105,0.25);border-radius:8px;padding:6px 8px;font-size:0.76rem;color:#94a3b8;}
+body.theme-light .chain-panel{background:rgba(15,23,42,0.05);}
+body.theme-light .chain-header{color:#0f172a;}
+body.theme-light .chain-item{background:rgba(15,23,42,0.05);color:#334155;}
+body.theme-light .chain-item b{color:#166534;}
+.solve-select{width:100%;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:12px;padding:18px;font-size:1rem;color:white;outline:none;}
+.solve-select option{background:#1e293b;}
+.calculate-btn{width:100%;max-width:500px;background:linear-gradient(135deg,#6366f1,#a855f7);border:none;border-radius:20px;padding:18px;font-size:1.1rem;font-weight:600;color:white;cursor:pointer;transition:all 0.3s ease;margin:20px auto;display:block;}
+.calculate-btn:hover{background:linear-gradient(135deg,#7c3aed,#c026d3);transform:translateY(-2px);box-shadow:0 10px 20px rgba(0,0,0,0.3);}
+.result-display{background:rgba(15,23,42,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:20px;margin:20px auto;max-width:520px;text-align:center;font-size:1.3rem;display:none;animation:fadeIn 0.3s ease;}
+.result-display.show{display:block;}
+.sol-step{margin-bottom:10px;text-align:left;}
+.sol-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px;font-weight:600;}
+.sol-content{font-size:0.95rem;color:#e2e8f0;}
+.sol-eq{font-family:'Courier New',monospace;font-size:1rem;background:rgba(15,23,42,0.4);padding:8px 12px;border-radius:8px;margin:6px 0;text-align:left;color:#cbd5e1;overflow-wrap:break-word;}
+.sol-final{font-family:'Courier New',monospace;font-size:1.3rem;font-weight:700;text-align:center;margin-top:14px;padding-top:10px;color:#4ade80;border-top:1px solid rgba(71,85,105,0.3);}
+.sol-warn{background:rgba(248,113,113,0.12);border-left:3px solid #f87171;color:#fca5a5;padding:10px 12px;border-radius:8px;margin-top:12px;font-size:0.86rem;line-height:1.5;text-align:left;}
+body.theme-light .sol-warn{color:#991b1b;background:rgba(248,113,113,0.08);}
+.viz-panel{background:rgba(15,23,42,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:16px;margin:16px auto;max-width:520px;}
+.viz-header{font-size:1rem;font-weight:700;color:#e2e8f0;margin-bottom:12px;}
+.viz-slider-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.viz-slider-label{color:#94a3b8;font-size:0.9rem;flex:0 0 auto;white-space:nowrap;min-width:18px;}
+.viz-slider-value{color:#4ade80;font-weight:700;font-size:0.95rem;flex:0 0 48px;text-align:right;}
+#viz-slider{flex:1;accent-color:#6366f1;}
+.viz-svg{width:100%;height:auto;border-radius:10px;background:rgba(2,6,23,0.4);display:block;}
+.viz-readout{margin-top:10px;font-size:0.85rem;color:#cbd5e1;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;text-align:center;}
+.viz-readout b{color:#4ade80;}
+body.theme-light .viz-panel{background:rgba(15,23,42,0.06);}
+body.theme-light .viz-header{color:#0f172a;}
+body.theme-light .viz-svg{background:rgba(15,23,42,0.04);}
+body.theme-light .viz-readout{color:#334155;}
+body.theme-light .viz-readout b{color:#166534;}
+body.theme-light .sol-content{color:#1e293b;}
+body.theme-light .sol-eq{background:rgba(15,23,42,0.06);color:#1e293b;}
+@media(max-width:600px){.physics-categories{grid-template-columns:repeat(3,1fr);gap:8px;}.physics-card{padding:12px;}.physics-card .label{font-size:0.75rem;}}
+@media(max-width:480px){.screen{padding:15px;padding-bottom:140px;}.physics-card .icon{font-size:1.4rem;}}
+
+/* ── Light-theme contrast overrides (auto-added) ── */
+body.theme-light .back-btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+body.theme-light .back-btn:hover{background:#334155;border-color:#475569;color:#ffffff;}
+body.theme-light .subtitle{color:#475569;}
+body.theme-light .logo-text{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;}
+body.theme-light .input-field{background:rgba(30,41,59,0.88);}
+body.theme-light .input-field:focus{background:rgba(30,41,59,0.92);}
+body.theme-light .physics-card{background:rgba(30,41,59,0.88);}
+body.theme-light .physics-card:hover{background:rgba(51,65,85,0.92);}
+body.theme-light .formula-selector{background:rgba(15,23,42,0.88);}
+body.theme-light .formula-info{background:rgba(30,41,59,0.88);}
+body.theme-light .formula-equation{background:rgba(15,23,42,0.88);}
+body.theme-light .solve-select{background:rgba(30,41,59,0.88);}
+body.theme-light .result-display{background:rgba(15,23,42,0.88);}
+</style>
+</head>
+<body>
+<div id="scr-physics" class="screen active">
+    <div class="header">
+        <div class="logo"><div class="logo-icon">∑</div><div class="logo-text">Multi<span>Calc</span></div></div>
+        <div class="subtitle t-header-sub">Math • Physics • Units • Currency</div>
+    </div>
+    <button class="back-btn" type="button">← <span class="t-back">Πίσω</span></button>
+
+    <div class="physics-categories">
+        <div class="physics-card active"  id="cat-btn-mechanics" onclick="selectPhysicsCategory('mechanics',this)"><div class="icon">⚙️</div><div class="label" id="cat-lbl-mechanics">Mechanics</div></div>
+        <div class="physics-card" id="cat-btn-electricity" onclick="selectPhysicsCategory('electricity',this)"><div class="icon">⚡</div><div class="label" id="cat-lbl-electricity">Electricity</div></div>
+        <div class="physics-card" id="cat-btn-thermodynamics" onclick="selectPhysicsCategory('thermodynamics',this)"><div class="icon">🌡️</div><div class="label" id="cat-lbl-thermodynamics">Thermodynamics</div></div>
+        <div class="physics-card" id="cat-btn-optics" onclick="selectPhysicsCategory('optics',this)"><div class="icon">👁️</div><div class="label" id="cat-lbl-optics">Optics</div></div>
+        <div class="physics-card" id="cat-btn-general" onclick="selectPhysicsCategory('general',this)"><div class="icon">🔬</div><div class="label" id="cat-lbl-general">General</div></div>
+        <div class="physics-card" id="cat-btn-modern" onclick="selectPhysicsCategory('modern',this)"><div class="icon">⚛️</div><div class="label" id="cat-lbl-modern">Modern</div></div>
+    </div>
+
+    <div id="chain-panel" class="chain-panel">
+        <div class="chain-header">
+            <span>🔗 Αλυσίδα Αποτελεσμάτων</span>
+            <button type="button" class="chain-clear-btn" onclick="clearChainResults()">🗑️ Καθαρισμός</button>
+        </div>
+        <div id="chain-list" class="chain-list">
+            <div class="chain-empty">Δεν υπάρχουν ακόμα αποτελέσματα — λύσε κάτι για να ξεκινήσεις μια αλυσίδα.</div>
+        </div>
+    </div>
+
+    <div class="formula-selector">
+        <select class="formula-dropdown" id="formula-select" onchange="selectFormula()">
+            <option value="velocity">Velocity</option>
+        </select>
+    </div>
+
+    <div class="formula-info">
+        <div class="formula-title">
+            <div class="icon-box orange" id="formula-icon-box">⚙️</div>
+            <span id="formula-name">Velocity</span>
+        </div>
+        <div class="formula-equation" id="formula-eq">v = d / t</div>
+        <div class="formula-description" id="formula-desc">ℹ️ Describes the rate of change of position.</div>
+    </div>
+
+    <div class="input-group">
+        <label class="input-label">💡 <span id="solve-for-label">Solve For</span></label>
+        <select class="solve-select" id="solve-for" onchange="updateSolveFor()">
+            <option value="v">Velocity (v) - m/s</option>
+        </select>
+    </div>
+
+    <div class="variable-inputs" id="variables">
+        <div class="variable-group">
+            <label class="variable-label">Distance (d) [m]</label>
+            <input type="number" class="input-field" id="var-d" value="0" step="any">
+        </div>
+        <div class="variable-group">
+            <label class="variable-label">Time (t) [s]</label>
+            <input type="number" class="input-field" id="var-t" value="0" step="any">
+        </div>
+    </div>
+
+    <button class="calculate-btn" id="calc-btn" onclick="calculatePhysics()">Calculate v</button>
+    <div id="result-physics" class="result-display"></div>
+
+    <div id="physics-viz-panel" class="viz-panel" style="display:none;">
+        <div class="viz-header">🎚️ <span id="viz-title">Ζωντανή Οπτικοποίηση</span></div>
+        <div class="viz-slider-row">
+            <span class="viz-slider-label" id="viz-slider-label">θ</span>
+            <input type="range" id="viz-slider" min="1" max="89" value="45" step="1" oninput="updatePhysicsViz()">
+            <span class="viz-slider-value" id="viz-slider-value">45°</span>
+        </div>
+        <svg id="viz-svg" viewBox="0 0 600 300" class="viz-svg"></svg>
+        <div id="viz-readout" class="viz-readout"></div>
+    </div>
+
+    <div class="fun-facts-slot"></div>
+</div>
+
+<script>
+/* ── Light-theme contrast guard ─────────────────────────────
+   Detects whether the currently active body background is a
+   light color (any theme, present or future) and toggles
+   body.theme-light so panels/text/back-btn switch to a closed,
+   readable palette. getComputedStyle always normalizes colors
+   to rgb()/rgba() — never hex — so we parse that, not hex.
+   Fully-transparent stops (alpha 0, e.g. body's own unset
+   background-color) are skipped so they don't drag the
+   average down as if they were a real black stop.
+   A MutationObserver on body's style attribute acts as the
+   "signal": whenever ANYTHING changes the body background
+   (theme picker, app boot, future code), every already-loaded
+   module reacts instantly, with no fixed timing assumptions. */
+function mcRelLuminanceRGB(r,g,b){
+    const lin=c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+}
+function mcExtractRGB(str){
+    const out=[];
+    (str.match(/rgba?\([^)]+\)/g)||[]).forEach(m=>{
+        const n=m.match(/[\d.]+/g).map(Number);
+        if(n.length>=4 && n[3]===0) return;
+        out.push([n[0],n[1],n[2]]);
+    });
+    (str.match(/#[0-9a-fA-F]{6}/g)||[]).forEach(h=>{
+        out.push([parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+    });
+    return out;
+}
+function mcCheckThemeLightness(){
+    const cs=getComputedStyle(document.body);
+    const str=(cs.backgroundImage&&cs.backgroundImage!=='none'?cs.backgroundImage:'')+' '+cs.backgroundColor;
+    const colors=mcExtractRGB(str);
+    if(!colors.length){document.body.classList.remove('theme-light');return;}
+    const avg=colors.reduce((s,[r,g,b])=>s+mcRelLuminanceRGB(r,g,b),0)/colors.length;
+    document.body.classList.toggle('theme-light',avg>0.18);
+}
+mcCheckThemeLightness();
+window.addEventListener('load',mcCheckThemeLightness);
+setTimeout(mcCheckThemeLightness,300);
+try{
+    new MutationObserver(mcCheckThemeLightness)
+        .observe(document.body,{attributes:true,attributeFilter:['style','class']});
+}catch(e){}
+
+/* ── Minimal namespace ── */
+var MultiCalc = {
+    state: { currentLang:'el', currentPhysicsCategory:'mechanics', currentFormula:null },
+    data:  {}
+};
+
+/* Translation data for MODULE 04 (standalone stub) */
+var _physicsTranslations = {
+    el: {
+        calculate:'Υπολογισμός', errorCalc:'Σφάλμα υπολογισμού',
+        solveFor:'Λύσε για', modern:'Σύγχρονη', physics:'Φυσική',
+        mechanics:'Μηχανική', electricity:'Ηλεκτρισμός',
+        thermodynamics:'Θερμοδυναμική', optics:'Οπτική', general:'Γενικά'
+    },
+    en: {
+        calculate:'Calculate', errorCalc:'Calculation Error',
+        solveFor:'Solve For', modern:'Modern', physics:'Physics',
+        mechanics:'Mechanics', electricity:'Electricity',
+        thermodynamics:'Thermodynamics', optics:'Optics', general:'General'
+    },
+    es: {
+        calculate:'Calcular', errorCalc:'Error de cálculo',
+        solveFor:'Calcular para', modern:'Física Moderna', physics:'Física',
+        mechanics:'Mecánica', electricity:'Electricidad',
+        thermodynamics:'Termodinámica', optics:'Óptica', general:'General'
+    }
+};
+/* ── T() — conditional definition to avoid clobbering the shared
+   runtime T() when this module runs inside MULTICALC-APP.html.
+   See MODULE-02 for the same pattern and rationale. ── */
+if (typeof window.T !== 'function') {
+    window.T = function(key) {
+        var lang = MultiCalc.state.currentLang || 'el';
+        var t = _physicsTranslations[lang] || _physicsTranslations['en'];
+        return (t && t[key] !== undefined) ? t[key] : key;
+    };
+} else {
+    Object.keys(_physicsTranslations).forEach(function(lang) {
+        MultiCalc.data.translations[lang] = MultiCalc.data.translations[lang] || {};
+        var dst = MultiCalc.data.translations[lang];
+        var src = _physicsTranslations[lang];
+        for (var k in src) { if (dst[k] === undefined) dst[k] = src[k]; }
+    });
+}
+
+/* ── varWordI18n (source: lines 6776-6919) ── */
+MultiCalc.data.varWordI18n = {
+    el: {
+        "Distance":"Απόσταση","Time":"Χρόνος","Velocity":"Ταχύτητα","Speed":"Ταχύτητα",
+        "Mass":"Μάζα","Acceleration":"Επιτάχυνση","Force":"Δύναμη","Height":"Ύψος",
+        "Gravity":"Βαρύτητα","Work":"Έργο","Power":"Ισχύς","Radius":"Ακτίνα",
+        "Angle":"Γωνία","Torque":"Ροπή","Momentum":"Ορμή","Kinetic Energy":"Κιν. Ενέργεια",
+        "Potential Energy":"Δυν. Ενέργεια","Coefficient":"Συντελεστής","Normal Force":"Κάθετη Δύναμη",
+        "Change in Velocity":"Μεταβολή Ταχύτητας","Centripetal Force":"Φυγόκεντρος Δύναμη",
+        "Friction Force":"Δύναμη Τριβής","Gravitational Force":"Βαρυτική Δύναμη",
+        "Voltage":"Τάση","Current":"Ένταση Ρεύματος","Resistance":"Αντίσταση",
+        "Charge":"Φορτίο","Capacitance":"Χωρητικότητα","Frequency":"Συχνότητα",
+        "Wavelength":"Μήκος Κύματος","Temperature":"Θερμοκρασία","Pressure":"Πίεση",
+        "Volume":"Όγκος","Energy":"Ενέργεια","Heat":"Θερμότητα","Entropy":"Εντροπία",
+        "Specific Heat":"Ειδική Θερμότητα","Focal Length":"Εστιακή Απόσταση",
+        "Object Distance":"Απόσταση Αντικ.","Image Distance":"Απόσταση Εικόνας",
+        "Density":"Πυκνότητα","Area":"Επιφάνεια","Moles":"Mol","Length":"Μήκος",
+        "Decay Constant":"Σταθερά Αποσύνθεσης","Initial Amount":"Αρχική Ποσότητα",
+        "Remaining Amount":"Εναπομένουσα Ποσότητα","Spring Constant":"Σταθερά Ελατηρίου",
+        "Period":"Περίοδος","Magnetic Field":"Μαγν. Πεδίο","Emissivity":"Εκπεμψιμότητα",
+        "Surface Area":"Εμβαδόν Επιφ.","Radiated Power":"Ακτινοβολούμενη Ισχύς",
+        "Latent Heat":"Λανθάνουσα Θερμότητα","Escape Velocity":"Ταχύτητα Διαφυγής",
+        "Flow Rate":"Παροχή","Source Frequency":"Συχνότητα Πηγής","Wave Speed":"Ταχύτητα Κύματος",
+        "Observer Speed":"Ταχ. Παρατηρητή","Source Speed":"Ταχ. Πηγής","Intensity":"Ένταση",
+        "Conductivity":"Αγωγιμότητα","Thickness":"Πάχος","Heat Rate":"Ρυθμός Θερμ.",
+        "Grating Spacing":"Βήμα Φράγματος","Order":"Τάξη","Sound Level":"Επίπεδο Ήχου",
+        "Observed Frequency":"Παρατηρούμενη Συχνότητα","Magnification":"Μεγέθυνση",
+        "Time Constant":"Σταθερά Χρόνου","Primary Voltage":"Τάση Πρωτεύοντος",
+        "Primary Turns":"Στροφές Πρωτεύοντος","Secondary Turns":"Στροφές Δευτερεύοντος",
+        "Secondary Voltage":"Τάση Δευτερεύοντος","Electric Field":"Ηλεκτρικό Πεδίο",
+        "Critical Angle":"Κρίσιμη Γωνία","Magnetic Force":"Μαγνητική Δύναμη",
+        "Efficiency":"Απόδοση","Cold Temp":"Ψυχρή Θερμ.","Hot Temp":"Θερμή Θερμ.",
+        "Proper Time":"Ίδιος Χρόνος","Dilated Time":"Διασταλμένος Χρόνος",
+        "Rest Length":"Ηρεμούν Μήκος","Contracted Length":"Συσταλμένο Μήκος",
+        "Photon Energy":"Ενέργεια Φωτονίου","Work Function":"Έργο Εξόδου",
+        "Max KE of electron":"Μέγ. ΚΕ Ηλεκτρονίου","Level":"Στάθμη",
+        "Mass Defect":"Έλλειμμα Μάζας","Binding Energy":"Ενέργεια Δεσμού",
+        "Lorentz Factor":"Συντελεστής Lorentz","Fluid Density":"Πυκνότητα Ρευστού",
+        "Mass of body":"Μάζα Σώματος","Heat Energy":"Θερμική Ενέργεια",
+        "Surface Tension":"Επιφανειακή Τάση","Impulse":"Ώθηση",
+        "Horizontal Range":"Οριζόντιο Εύρος","Initial Speed":"Αρχική Ταχύτητα",
+        "Launch Angle":"Γωνία Εκτόξευσης","Spring Extension":"Παραμόρφωση Ελατ.",
+        "Spring Force":"Δύναμη Ελατηρίου","Angular Momentum":"Στροφορμή",
+        "Angular Velocity":"Γωνιακή Ταχύτητα","Angular Displacement":"Γωνιακή Μετατόπιση",
+        "Inertia":"Ροπή Αδράνειας","Dynamic Pressure":"Δυναμική Πίεση",
+        "Original Length":"Αρχικό Μήκος","Length Change":"Μεταβολή Μήκους",
+        "Entropy Change":"Μεταβολή Εντροπίας","Index":"Δείκτης","Refraction":"Διάθλαση",
+        "Spring PE":"Ελαστ. Δυν. Ενέργεια","Buoyancy Force":"Άνωση",
+        "Heat Energy":"Θερμική Ενέργεια"
+    },
+    es: {
+        "Distance":"Distancia","Time":"Tiempo","Velocity":"Velocidad","Speed":"Velocidad",
+        "Mass":"Masa","Acceleration":"Aceleración","Force":"Fuerza","Height":"Altura",
+        "Gravity":"Gravedad","Work":"Trabajo","Power":"Potencia","Radius":"Radio",
+        "Angle":"Ángulo","Torque":"Torque","Momentum":"Momento Lineal",
+        "Kinetic Energy":"Energía Cinética","Potential Energy":"Energía Potencial",
+        "Coefficient":"Coeficiente","Normal Force":"Fuerza Normal",
+        "Change in Velocity":"Cambio de Velocidad","Centripetal Force":"Fuerza Centrípeta",
+        "Friction Force":"Fuerza de Fricción","Gravitational Force":"Fuerza Gravitacional",
+        "Voltage":"Voltaje","Current":"Corriente","Resistance":"Resistencia",
+        "Charge":"Carga","Capacitance":"Capacitancia","Frequency":"Frecuencia",
+        "Wavelength":"Long. de Onda","Temperature":"Temperatura","Pressure":"Presión",
+        "Volume":"Volumen","Energy":"Energía","Heat":"Calor","Entropy":"Entropía",
+        "Specific Heat":"Calor Específico","Focal Length":"Long. Focal",
+        "Object Distance":"Dist. del Objeto","Image Distance":"Dist. de la Imagen",
+        "Density":"Densidad","Area":"Área","Moles":"Moles","Length":"Longitud",
+        "Decay Constant":"Constante de Desintegración","Initial Amount":"Cantidad Inicial",
+        "Remaining Amount":"Cantidad Restante","Spring Constant":"Constante del Resorte",
+        "Period":"Período","Magnetic Field":"Campo Magnético","Emissivity":"Emisividad",
+        "Surface Area":"Área Superficial","Radiated Power":"Potencia Radiada",
+        "Latent Heat":"Calor Latente","Escape Velocity":"Velocidad de Escape",
+        "Flow Rate":"Caudal","Source Frequency":"Frecuencia de la Fuente",
+        "Wave Speed":"Velocidad de Onda","Observer Speed":"Vel. del Observador",
+        "Source Speed":"Vel. de la Fuente","Intensity":"Intensidad",
+        "Conductivity":"Conductividad","Thickness":"Grosor","Heat Rate":"Tasa de Calor",
+        "Grating Spacing":"Espaciado de Red","Order":"Orden","Sound Level":"Nivel de Sonido",
+        "Observed Frequency":"Frecuencia Observada","Magnification":"Magnificación",
+        "Time Constant":"Constante de Tiempo","Primary Voltage":"Voltaje Primario",
+        "Primary Turns":"Espiras Primarias","Secondary Turns":"Espiras Secundarias",
+        "Secondary Voltage":"Voltaje Secundario","Electric Field":"Campo Eléctrico",
+        "Critical Angle":"Ángulo Crítico","Magnetic Force":"Fuerza Magnética",
+        "Efficiency":"Eficiencia","Cold Temp":"Temp. Fría","Hot Temp":"Temp. Caliente",
+        "Proper Time":"Tiempo Propio","Dilated Time":"Tiempo Dilatado",
+        "Rest Length":"Long. en Reposo","Contracted Length":"Long. Contraída",
+        "Photon Energy":"Energía del Fotón","Work Function":"Función de Trabajo",
+        "Max KE of electron":"KE máx. del electrón","Level":"Nivel",
+        "Mass Defect":"Defecto de Masa","Binding Energy":"Energía de Enlace",
+        "Lorentz Factor":"Factor de Lorentz","Fluid Density":"Densidad del Fluido",
+        "Mass of body":"Masa del Cuerpo","Heat Energy":"Energía Calorífica",
+        "Surface Tension":"Tensión Superficial","Impulse":"Impulso",
+        "Horizontal Range":"Alcance Horizontal","Initial Speed":"Velocidad Inicial",
+        "Launch Angle":"Ángulo de Lanzamiento","Spring Extension":"Extensión del Resorte",
+        "Spring Force":"Fuerza del Resorte","Angular Momentum":"Momento Angular",
+        "Angular Velocity":"Velocidad Angular","Angular Displacement":"Desplaz. Angular",
+        "Inertia":"Inercia","Dynamic Pressure":"Presión Dinámica",
+        "Original Length":"Longitud Original","Length Change":"Cambio de Longitud",
+        "Entropy Change":"Cambio de Entropía","Buoyancy Force":"Fuerza de Flotabilidad"
+    }
+};
+
+/* ── physicsConstants (consolidated — single source of truth, CODATA/SI values) ── */
+MultiCalc.data.physicsConstants = {G:6.67430e-11,c:299792458,h:6.62607015e-34,R:8.314462618,k:8.9875517923e9,sigma:5.670374419e-8};
+
+/* ── physicsFormulas (source: lines 6926-7685; extended for full reversibility) ── */
+MultiCalc.data.physicsFormulas = {
+    mechanics: {
+        velocity:    {name:"Velocity",equation:"v = d / t",description:"Describes the rate of change of position.",icon:"⚙️",iconClass:"orange",variables:{v:"Velocity (v) [m/s]",d:"Distance (d) [m]",t:"Time (t) [s]"},solve:{v:"Velocity (v) - m/s",d:"Distance (d) - m",t:"Time (t) - s"},calculate:(v,sf)=>{if(sf==='v')return v.d/v.t;if(sf==='d')return v.v*v.t;if(sf==='t')return v.d/v.v;}},
+        acceleration:{name:"Acceleration",equation:"a = Δv / t",description:"Rate of change of velocity.",icon:"⚙️",iconClass:"orange",variables:{a:"Acceleration (a) [m/s²]",dv:"Change in Velocity (Δv) [m/s]",t:"Time (t) [s]"},solve:{a:"Acceleration (a) - m/s²",dv:"Change in Velocity (Δv) - m/s",t:"Time (t) - s"},calculate:(v,sf)=>{if(sf==='a')return v.dv/v.t;if(sf==='dv')return v.a*v.t;if(sf==='t')return v.dv/v.a;}},
+        newton2:     {name:"Newton's Second Law",equation:"F = m × a",description:"Force equals mass times acceleration.",icon:"⚙️",iconClass:"orange",variables:{F:"Force (F) [N]",m:"Mass (m) [kg]",a:"Acceleration (a) [m/s²]"},solve:{F:"Force (F) - N",m:"Mass (m) - kg",a:"Acceleration (a) - m/s²"},calculate:(v,sf)=>{if(sf==='F')return v.m*v.a;if(sf==='m')return v.F/v.a;if(sf==='a')return v.F/v.m;}},
+        momentum:    {name:"Momentum",equation:"p = m × v",description:"Product of mass and velocity.",icon:"⚙️",iconClass:"orange",variables:{p:"Momentum (p) [kg·m/s]",m:"Mass (m) [kg]",v:"Velocity (v) [m/s]"},solve:{p:"Momentum (p) - kg·m/s",m:"Mass (m) - kg",v:"Velocity (v) - m/s"},calculate:(v,sf)=>{if(sf==='p')return v.m*v.v;if(sf==='m')return v.p/v.v;if(sf==='v')return v.p/v.m;}},
+        kinetic:     {name:"Kinetic Energy",equation:"KE = ½ × m × v²",description:"Energy of motion.",icon:"⚙️",iconClass:"orange",variables:{KE:"Kinetic Energy (KE) [J]",m:"Mass (m) [kg]",v:"Velocity (v) [m/s]"},solve:{KE:"Kinetic Energy (KE) - J",m:"Mass (m) - kg",v:"Velocity (v) - m/s"},calculate:(v,sf)=>{if(sf==='KE')return 0.5*v.m*v.v**2;if(sf==='m')return(2*v.KE)/v.v**2;if(sf==='v')return Math.sqrt((2*v.KE)/v.m);}},
+        potential:   {name:"Gravitational PE",equation:"PE = m × g × h",description:"Energy due to height above ground.",icon:"⚙️",iconClass:"orange",variables:{PE:"Potential Energy (PE) [J]",m:"Mass (m) [kg]",g:"Gravity (g) [m/s²]",h:"Height (h) [m]"},solve:{PE:"Potential Energy (PE) - J",m:"Mass (m) - kg",h:"Height (h) - m",g:"Gravity (g) - m/s²"},calculate:(v,sf)=>{if(sf==='PE')return v.m*v.g*v.h;if(sf==='m')return v.PE/(v.g*v.h);if(sf==='h')return v.PE/(v.m*v.g);if(sf==='g')return v.PE/(v.m*v.h);}},
+        work:        {name:"Work",equation:"W = F × d × cos(θ)",description:"Energy transferred by a force.",icon:"⚙️",iconClass:"orange",variables:{F:"Force (F) [N]",d:"Distance (d) [m]",theta:"Angle (θ) [°]",W:"Work (W) [J]"},solve:{W:"Work (W) - J",F:"Force (F) - N",d:"Distance (d) - m",theta:"Angle (θ) - °"},calculate:(v,sf)=>{if(sf==='W')return v.F*v.d*Math.cos(v.theta*Math.PI/180);if(sf==='F')return v.W/(v.d*Math.cos(v.theta*Math.PI/180));if(sf==='d')return v.W/(v.F*Math.cos(v.theta*Math.PI/180));if(sf==='theta')return Math.acos(v.W/(v.F*v.d))*180/Math.PI;}},
+        power_mech:  {name:"Mechanical Power",equation:"P = W / t",description:"Rate of doing work.",icon:"⚙️",iconClass:"orange",variables:{P:"Power (P) [W]",W:"Work (W) [J]",t:"Time (t) [s]"},solve:{P:"Power (P) - W",W:"Work (W) - J",t:"Time (t) - s"},calculate:(v,sf)=>{if(sf==='P')return v.W/v.t;if(sf==='W')return v.P*v.t;if(sf==='t')return v.W/v.P;}},
+        torque:      {name:"Torque",equation:"τ = F × r × sin(θ)",description:"Rotational force about an axis.",icon:"⚙️",iconClass:"orange",variables:{F:"Force (F) [N]",r:"Radius (r) [m]",theta:"Angle (θ) [°]",tau:"Torque (τ) [N·m]"},solve:{tau:"Torque (τ) - N·m",F:"Force (F) - N",r:"Radius (r) - m",theta:"Angle (θ) - °"},calculate:(v,sf)=>{if(sf==='tau')return v.F*v.r*Math.sin(v.theta*Math.PI/180);if(sf==='F')return v.tau/(v.r*Math.sin(v.theta*Math.PI/180));if(sf==='r')return v.tau/(v.F*Math.sin(v.theta*Math.PI/180));if(sf==='theta')return Math.asin(v.tau/(v.F*v.r))*180/Math.PI;}},
+        circular:    {name:"Centripetal Force",equation:"F = m × v² / r",description:"Force for circular motion.",icon:"⚙️",iconClass:"orange",variables:{F:"Centripetal Force (F) [N]",m:"Mass (m) [kg]",v:"Speed (v) [m/s]",r:"Radius (r) [m]"},solve:{F:"Centripetal Force (F) - N",r:"Radius (r) - m",v:"Speed (v) - m/s",m:"Mass (m) - kg"},calculate:(v,sf)=>{if(sf==='F')return v.m*v.v**2/v.r;if(sf==='r')return v.m*v.v**2/v.F;if(sf==='v')return Math.sqrt(v.F*v.r/v.m);if(sf==='m')return v.F*v.r/v.v**2;}},
+        friction:    {name:"Friction Force",equation:"f = μ × N",description:"Resistance force opposing motion.",icon:"⚙️",iconClass:"orange",variables:{f:"Friction Force (f) [N]",mu:"Coefficient (μ)",N:"Normal Force (N) [N]"},solve:{f:"Friction Force (f) - N",mu:"Coefficient (μ)",N:"Normal Force (N) - N"},calculate:(v,sf)=>{if(sf==='f')return v.mu*v.N;if(sf==='mu')return v.f/v.N;if(sf==='N')return v.f/v.mu;}},
+        gravity:     {name:"Gravitational Force",equation:"F = G × m₁ × m₂ / r²",description:"Attractive force between two masses.",icon:"⚙️",iconClass:"orange",variables:{m1:"Mass 1 (m₁) [kg]",m2:"Mass 2 (m₂) [kg]",r:"Distance (r) [m]",F:"Gravitational Force (F) [N]"},solve:{F:"Gravitational Force (F) - N",m1:"Mass 1 (m₁) - kg",m2:"Mass 2 (m₂) - kg",r:"Distance (r) - m"},calculate:(v,sf)=>{const G=MultiCalc.data.physicsConstants.G;if(sf==='F')return G*v.m1*v.m2/v.r**2;if(sf==='m1')return v.F*v.r**2/(G*v.m2);if(sf==='m2')return v.F*v.r**2/(G*v.m1);if(sf==='r')return Math.sqrt(G*v.m1*v.m2/v.F);}},
+        projectile:  {name:"Projectile Range",equation:"R = v₀² × sin(2θ) / g",description:"Horizontal range of a projectile.",icon:"⚙️",iconClass:"orange",variables:{v0:"Initial Speed (v₀) [m/s]",theta:"Launch Angle (θ) [°]",g:"Gravity (g) [m/s²]",R:"Horizontal Range (R) [m]"},solve:{R:"Horizontal Range (R) - m",v0:"Initial Speed (v₀) - m/s",theta:"Launch Angle (θ) - °",g:"Gravity (g) - m/s²"},calculate:(v,sf)=>{if(sf==='R')return v.v0**2*Math.sin(2*v.theta*Math.PI/180)/v.g;if(sf==='v0')return Math.sqrt(v.R*v.g/Math.sin(2*v.theta*Math.PI/180));if(sf==='theta')return 0.5*Math.asin(v.R*v.g/v.v0**2)*180/Math.PI;if(sf==='g')return v.v0**2*Math.sin(2*v.theta*Math.PI/180)/v.R;}},
+        hooke:       {name:"Hooke's Law",equation:"F = k × x (magnitude)",description:"Spring force proportional to extension.",icon:"⚙️",iconClass:"orange",variables:{F:"Spring Force (F) [N]",k:"Spring Constant (k) [N/m]",x:"Spring Extension (x) [m]"},solve:{F:"Spring Force (F) - N",k:"Spring Constant (k) - N/m",x:"Spring Extension (x) - m"},calculate:(v,sf)=>{if(sf==='F')return v.k*v.x;if(sf==='k')return v.F/v.x;if(sf==='x')return v.F/v.k;}},
+        impulse:     {name:"Impulse",equation:"J = F × Δt",description:"Change in momentum over time.",icon:"⚙️",iconClass:"orange",variables:{J:"Impulse (J) [N·s]",F:"Force (F) [N]",dt:"Time (Δt) [s]"},solve:{J:"Impulse (J) - N·s",F:"Force (F) - N",dt:"Time (Δt) - s"},calculate:(v,sf)=>{if(sf==='J')return v.F*v.dt;if(sf==='F')return v.J/v.dt;if(sf==='dt')return v.J/v.F;}},
+        spring_pe:   {name:"Elastic Potential Energy",equation:"PE = ½ × k × x²",description:"Energy stored in a compressed/stretched spring.",icon:"⚙️",iconClass:"orange",variables:{PE:"Spring PE (PE) [J]",k:"Spring Constant (k) [N/m]",x:"Spring Extension (x) [m]"},solve:{PE:"Spring PE (PE) - J",k:"Spring Constant - N/m",x:"Spring Extension - m"},calculate:(v,sf)=>{if(sf==='PE')return 0.5*v.k*v.x**2;if(sf==='k')return(2*v.PE)/v.x**2;if(sf==='x')return Math.sqrt((2*v.PE)/v.k);}},
+        angular_vel: {name:"Angular Velocity",equation:"ω = θ / t",description:"Rate of angular displacement.",icon:"⚙️",iconClass:"orange",variables:{omega:"Angular Velocity (ω) [rad/s]",theta:"Angular Displacement (θ) [rad]",t:"Time (t) [s]"},solve:{omega:"Angular Velocity (ω) - rad/s",theta:"Angular Displacement (θ) - rad",t:"Time (t) - s"},calculate:(v,sf)=>{if(sf==='omega')return v.theta/v.t;if(sf==='theta')return v.omega*v.t;if(sf==='t')return v.theta/v.omega;}},
+        rot_ke:      {name:"Rotational Kinetic Energy",equation:"KE = ½ × I × ω²",description:"Energy of rotating objects.",icon:"⚙️",iconClass:"orange",variables:{KE:"Rotational KE (KE) [J]",I:"Inertia (I) [kg·m²]",omega:"Angular Velocity (ω) [rad/s]"},solve:{KE:"Rotational KE - J",I:"Inertia - kg·m²",omega:"Angular Velocity (ω) - rad/s"},calculate:(v,sf)=>{if(sf==='KE')return 0.5*v.I*v.omega**2;if(sf==='I')return(2*v.KE)/v.omega**2;if(sf==='omega')return Math.sqrt((2*v.KE)/v.I);}},
+        bernoulli:   {name:"Bernoulli's Equation",equation:"P + ½ρv² = const",description:"Pressure + dynamic pressure = constant along streamline.",icon:"⚙️",iconClass:"orange",variables:{P2:"Pressure 2 (P₂) [Pa]",P1:"Pressure 1 (P₁) [Pa]",rho:"Density (ρ) [kg/m³]",v1:"Speed 1 (v₁) [m/s]",v2:"Speed 2 (v₂) [m/s]"},solve:{P2:"Pressure 2 (P₂) - Pa",P1:"Pressure 1 (P₁) - Pa",rho:"Density (ρ) - kg/m³",v1:"Speed 1 (v₁) - m/s",v2:"Speed 2 (v₂) - m/s"},calculate:(v,sf)=>{if(sf==='P2')return v.P1+0.5*v.rho*(v.v1**2-v.v2**2);if(sf==='P1')return v.P2-0.5*v.rho*(v.v1**2-v.v2**2);if(sf==='rho')return 2*(v.P2-v.P1)/(v.v1**2-v.v2**2);if(sf==='v1')return Math.sqrt(v.v2**2+2*(v.P2-v.P1)/v.rho);if(sf==='v2')return Math.sqrt(v.v1**2-2*(v.P2-v.P1)/v.rho);}}
+    },
+    electricity: {
+        ohm:         {name:"Ohm's Law",equation:"V = I × R",description:"Relationship between voltage, current, and resistance.",icon:"⚡",iconClass:"orange",variables:{V:"Voltage (V) [V]",I:"Current (I) [A]",R:"Resistance (R) [Ω]"},solve:{V:"Voltage (V) - V",I:"Current (I) - A",R:"Resistance (R) - Ω"},calculate:(v,sf)=>{if(sf==='V')return v.I*v.R;if(sf==='I')return v.V/v.R;if(sf==='R')return v.V/v.I;}},
+        power_elec:  {name:"Electrical Power",equation:"P = V × I",description:"Power consumed in a circuit.",icon:"⚡",iconClass:"orange",variables:{P:"Power (P) [W]",V:"Voltage (V) [V]",I:"Current (I) [A]"},solve:{P:"Power (P) - W",V:"Voltage (V) - V",I:"Current (I) - A"},calculate:(v,sf)=>{if(sf==='P')return v.V*v.I;if(sf==='V')return v.P/v.I;if(sf==='I')return v.P/v.V;}},
+        power_r:     {name:"Power from Resistance",equation:"P = I² × R",description:"Power dissipated in a resistor.",icon:"⚡",iconClass:"orange",variables:{P:"Power (P) [W]",I:"Current (I) [A]",R:"Resistance (R) [Ω]"},solve:{P:"Power (P) - W",I:"Current (I) - A",R:"Resistance (R) - Ω"},calculate:(v,sf)=>{if(sf==='P')return v.I**2*v.R;if(sf==='I')return Math.sqrt(v.P/v.R);if(sf==='R')return v.P/v.I**2;}},
+        series_r:    {name:"Series Resistance",equation:"R = R₁ + R₂ + R₃",description:"Total resistance in series circuit.",icon:"⚡",iconClass:"orange",variables:{R1:"R₁ [Ω]",R2:"R₂ [Ω]",R3:"R₃ [Ω]",R:"Total Resistance (R) [Ω]"},solve:{R:"Total Resistance (R) - Ω",R1:"R₁ - Ω",R2:"R₂ - Ω",R3:"R₃ - Ω"},calculate:(v,sf)=>{if(sf==='R')return v.R1+v.R2+v.R3;if(sf==='R1')return v.R-v.R2-v.R3;if(sf==='R2')return v.R-v.R1-v.R3;if(sf==='R3')return v.R-v.R1-v.R2;}},
+        parallel_r:  {name:"Parallel Resistance",equation:"1/R = 1/R₁ + 1/R₂",description:"Total resistance in parallel circuit.",icon:"⚡",iconClass:"orange",variables:{R1:"R₁ [Ω]",R2:"R₂ [Ω]",R:"Total Resistance (R) [Ω]"},solve:{R:"Total Resistance (R) - Ω",R1:"R₁ - Ω",R2:"R₂ - Ω"},calculate:(v,sf)=>{if(sf==='R')return 1/(1/v.R1+1/v.R2);if(sf==='R1')return v.R*v.R2/(v.R2-v.R);if(sf==='R2')return v.R*v.R1/(v.R1-v.R);}},
+        coulomb:     {name:"Coulomb's Law",equation:"F = k × q₁ × q₂ / r²",description:"Electric force between two charges.",icon:"⚡",iconClass:"orange",variables:{q1:"Charge 1 (q₁) [C]",q2:"Charge 2 (q₂) [C]",r:"Distance (r) [m]",F:"Electric Force (F) [N]"},solve:{F:"Electric Force (F) - N",q1:"Charge 1 (q₁) - C",q2:"Charge 2 (q₂) - C",r:"Distance (r) - m"},calculate:(v,sf)=>{const k=MultiCalc.data.physicsConstants.k;if(sf==='F')return k*v.q1*v.q2/v.r**2;if(sf==='q1')return v.F*v.r**2/(k*v.q2);if(sf==='q2')return v.F*v.r**2/(k*v.q1);if(sf==='r')return Math.sqrt(k*v.q1*v.q2/v.F);}},
+        capacitor:   {name:"Capacitor Energy",equation:"E = ½ × C × V²",description:"Energy stored in a capacitor.",icon:"⚡",iconClass:"orange",variables:{E:"Energy (E) [J]",C:"Capacitance (C) [F]",V:"Voltage (V) [V]"},solve:{E:"Energy (E) - J",C:"Capacitance (C) - F",V:"Voltage (V) - V"},calculate:(v,sf)=>{if(sf==='E')return 0.5*v.C*v.V**2;if(sf==='C')return(2*v.E)/v.V**2;if(sf==='V')return Math.sqrt((2*v.E)/v.C);}},
+        magnetic:    {name:"Magnetic Force",equation:"F = q × v × B × sin(θ)",description:"Force on moving charge in magnetic field.",icon:"⚡",iconClass:"orange",variables:{q:"Charge (q) [C]",v:"Velocity (v) [m/s]",B:"Magnetic Field (B) [T]",theta:"Angle (θ) [°]",F:"Magnetic Force (F) [N]"},solve:{F:"Magnetic Force (F) - N",q:"Charge (q) - C",v:"Velocity (v) - m/s",B:"Magnetic Field (B) - T",theta:"Angle (θ) - °"},calculate:(v,sf)=>{if(sf==='F')return v.q*v.v*v.B*Math.sin(v.theta*Math.PI/180);if(sf==='q')return v.F/(v.v*v.B*Math.sin(v.theta*Math.PI/180));if(sf==='v')return v.F/(v.q*v.B*Math.sin(v.theta*Math.PI/180));if(sf==='B')return v.F/(v.q*v.v*Math.sin(v.theta*Math.PI/180));if(sf==='theta')return Math.asin(v.F/(v.q*v.v*v.B))*180/Math.PI;}},
+        rc_time:     {name:"RC Time Constant",equation:"τ = R × C",description:"Time to charge/discharge capacitor to ~63%.",icon:"⚡",iconClass:"orange",variables:{tau:"Time Constant (τ) [s]",R:"Resistance (R) [Ω]",C:"Capacitance (C) [F]"},solve:{tau:"Time Constant (τ) - s",R:"Resistance (R) - Ω",C:"Capacitance (C) - F"},calculate:(v,sf)=>{if(sf==='tau')return v.R*v.C;if(sf==='R')return v.tau/v.C;if(sf==='C')return v.tau/v.R;}},
+        transformer: {name:"Transformer Ratio",equation:"Vs / Vp = Ns / Np",description:"Voltage ratio equals turns ratio.",icon:"⚡",iconClass:"orange",variables:{Vp:"Primary Voltage (Vp) [V]",Np:"Primary Turns (Np)",Ns:"Secondary Turns (Ns)",Vs:"Secondary Voltage (Vs) [V]"},solve:{Vs:"Secondary Voltage (Vs) - V",Vp:"Primary Voltage (Vp) - V",Np:"Primary Turns (Np)",Ns:"Secondary Turns (Ns)"},calculate:(v,sf)=>{if(sf==='Vs')return v.Vp*v.Ns/v.Np;if(sf==='Vp')return v.Vs*v.Np/v.Ns;if(sf==='Np')return v.Vp*v.Ns/v.Vs;if(sf==='Ns')return v.Vs*v.Np/v.Vp;}},
+        elec_field:  {name:"Electric Field",equation:"E = V / d",description:"Field strength between parallel plates.",icon:"⚡",iconClass:"orange",variables:{E:"Electric Field (E) [V/m]",V:"Voltage (V) [V]",d:"Distance (d) [m]"},solve:{E:"Electric Field (E) - V/m",V:"Voltage (V) - V",d:"Distance (d) - m"},calculate:(v,sf)=>{if(sf==='E')return v.V/v.d;if(sf==='V')return v.E*v.d;if(sf==='d')return v.V/v.E;}},
+        charge:      {name:"Electric Charge",equation:"Q = I × t",description:"Total charge transferred by current.",icon:"⚡",iconClass:"orange",variables:{Q:"Charge (Q) [C]",I:"Current (I) [A]",t:"Time (t) [s]"},solve:{Q:"Charge (Q) - C",I:"Current (I) - A",t:"Time (t) - s"},calculate:(v,sf)=>{if(sf==='Q')return v.I*v.t;if(sf==='I')return v.Q/v.t;if(sf==='t')return v.Q/v.I;}}
+    },
+    thermodynamics: {
+        heat:        {name:"Heat Transfer",equation:"Q = m × c × ΔT",description:"Energy required to change temperature.",icon:"🌡️",iconClass:"red",variables:{Q:"Heat Energy (Q) [J]",m:"Mass (m) [kg]",c:"Specific Heat (c) [J/(kg·K)]",dT:"ΔT [K]"},solve:{Q:"Heat Energy (Q) - J",m:"Mass (m) - kg",dT:"ΔT - K",c:"Specific Heat (c) - J/(kg·K)"},calculate:(v,sf)=>{if(sf==='Q')return v.m*v.c*v.dT;if(sf==='m')return v.Q/(v.c*v.dT);if(sf==='dT')return v.Q/(v.m*v.c);if(sf==='c')return v.Q/(v.m*v.dT);}},
+        ideal_gas:   {name:"Ideal Gas Law",equation:"PV = nRT",description:"Pressure, volume, temperature relationship.",icon:"🌡️",iconClass:"red",variables:{P:"Pressure (P) [Pa]",n:"Moles (n) [mol]",T:"Temperature (T) [K]",V:"Volume (V) [m³]"},solve:{P:"Pressure (P) - Pa",V:"Volume (V) - m³",T:"Temperature (T) - K",n:"Moles (n) - mol"},calculate:(v,sf)=>{const R=MultiCalc.data.physicsConstants.R;if(sf==='P')return v.n*R*v.T/v.V;if(sf==='V')return v.n*R*v.T/v.P;if(sf==='T')return v.P*v.V/(v.n*R);if(sf==='n')return v.P*v.V/(R*v.T);}},
+        thermal_exp: {name:"Thermal Expansion",equation:"ΔL = α × L₀ × ΔT",description:"Change in length due to temperature change.",icon:"🌡️",iconClass:"red",variables:{alpha:"Coefficient (α) [1/K]",L0:"Original Length (L₀) [m]",dT:"ΔT [K]",dL:"Length Change (ΔL) [m]"},solve:{dL:"Length Change (ΔL) - m",alpha:"Coefficient (α) - 1/K",L0:"Original Length (L₀) - m",dT:"ΔT - K"},calculate:(v,sf)=>{if(sf==='dL')return v.alpha*v.L0*v.dT;if(sf==='alpha')return v.dL/(v.L0*v.dT);if(sf==='L0')return v.dL/(v.alpha*v.dT);if(sf==='dT')return v.dL/(v.alpha*v.L0);}},
+        entropy:     {name:"Entropy Change",equation:"ΔS = Q / T",description:"Measure of disorder change.",icon:"🌡️",iconClass:"red",variables:{dS:"Entropy Change (ΔS) [J/K]",Q:"Heat (Q) [J]",T:"Temperature (T) [K]"},solve:{dS:"Entropy Change (ΔS) - J/K",Q:"Heat (Q) - J",T:"Temperature (T) - K"},calculate:(v,sf)=>{if(sf==='dS')return v.Q/v.T;if(sf==='Q')return v.dS*v.T;if(sf==='T')return v.Q/v.dS;}},
+        carnot:      {name:"Carnot Efficiency",equation:"η = 1 − Tc / Th",description:"Maximum efficiency of a heat engine.",icon:"🌡️",iconClass:"red",variables:{Tc:"Cold Temp (Tc) [K]",Th:"Hot Temp (Th) [K]",eta:"Efficiency (η) [%]"},solve:{eta:"Efficiency (η) - %",Tc:"Cold Temp (Tc) - K",Th:"Hot Temp (Th) - K"},calculate:(v,sf)=>{if(sf==='eta')return(1-v.Tc/v.Th)*100;if(sf==='Tc')return v.Th*(1-v.eta/100);if(sf==='Th')return v.Tc/(1-v.eta/100);}},
+        boyle:       {name:"Boyle's Law",equation:"P₁V₁ = P₂V₂",description:"Pressure-volume at constant temperature.",icon:"🌡️",iconClass:"red",variables:{P1:"P₁ [Pa]",V1:"V₁ [m³]",P2:"P₂ [Pa]",V2:"V₂ [m³]"},solve:{V2:"Volume 2 (V₂) - m³",P2:"Pressure 2 (P₂) - Pa",P1:"P₁ - Pa",V1:"V₁ - m³"},calculate:(v,sf)=>{if(sf==='V2')return v.P1*v.V1/v.P2;if(sf==='P2')return v.P1*v.V1/v.V2;if(sf==='P1')return v.P2*v.V2/v.V1;if(sf==='V1')return v.P2*v.V2/v.P1;}},
+        charles:     {name:"Charles's Law",equation:"V₁/T₁ = V₂/T₂",description:"Volume-temperature at constant pressure.",icon:"🌡️",iconClass:"red",variables:{V1:"V₁ [m³]",T1:"T₁ [K]",T2:"T₂ [K]",V2:"V₂ [m³]"},solve:{V2:"Volume 2 (V₂) - m³",V1:"V₁ - m³",T1:"T₁ - K",T2:"T₂ - K"},calculate:(v,sf)=>{if(sf==='V2')return v.V1*v.T2/v.T1;if(sf==='V1')return v.V2*v.T1/v.T2;if(sf==='T1')return v.V1*v.T2/v.V2;if(sf==='T2')return v.V2*v.T1/v.V1;}},
+        gay_lussac:  {name:"Gay-Lussac's Law",equation:"P₁/T₁ = P₂/T₂",description:"Pressure-temperature at constant volume.",icon:"🌡️",iconClass:"red",variables:{P1:"P₁ [Pa]",T1:"T₁ [K]",T2:"T₂ [K]",P2:"P₂ [Pa]"},solve:{P2:"Pressure 2 (P₂) - Pa",P1:"P₁ - Pa",T1:"T₁ - K",T2:"T₂ - K"},calculate:(v,sf)=>{if(sf==='P2')return v.P1*v.T2/v.T1;if(sf==='P1')return v.P2*v.T1/v.T2;if(sf==='T1')return v.P1*v.T2/v.P2;if(sf==='T2')return v.P2*v.T1/v.P1;}},
+        latent_heat: {name:"Specific Latent Heat",equation:"Q = m × L",description:"Energy for phase change (melting/boiling).",icon:"🌡️",iconClass:"red",variables:{Q:"Heat (Q) [J]",m:"Mass (m) [kg]",L:"Latent Heat (L) [J/kg]"},solve:{Q:"Heat (Q) - J",m:"Mass (m) - kg",L:"Latent Heat - J/kg"},calculate:(v,sf)=>{if(sf==='Q')return v.m*v.L;if(sf==='m')return v.Q/v.L;if(sf==='L')return v.Q/v.m;}},
+        stefan:      {name:"Stefan-Boltzmann Law",equation:"P = σ × ε × A × T⁴",description:"Power radiated by a blackbody.",icon:"🌡️",iconClass:"red",variables:{eps:"Emissivity (ε) 0–1",A:"Surface Area (A) [m²]",T:"Temperature (T) [K]",P:"Radiated Power (P) [W]"},solve:{P:"Radiated Power (P) - W",eps:"Emissivity (ε)",A:"Surface Area (A) - m²",T:"Temperature (T) - K"},calculate:(v,sf)=>{const sigma=MultiCalc.data.physicsConstants.sigma;if(sf==='P')return sigma*v.eps*v.A*v.T**4;if(sf==='eps')return v.P/(sigma*v.A*v.T**4);if(sf==='A')return v.P/(sigma*v.eps*v.T**4);if(sf==='T')return Math.pow(v.P/(sigma*v.eps*v.A),0.25);}},
+        heat_cond:   {name:"Heat Conduction",equation:"Q/t = k × A × ΔT / d",description:"Rate of heat flow through a material.",icon:"🌡️",iconClass:"red",variables:{k:"Conductivity (k) [W/(m·K)]",A:"Area (A) [m²]",dT:"ΔT [K]",d:"Thickness (d) [m]",Qt:"Heat Rate (Q/t) [W]"},solve:{Qt:"Heat Rate (Q/t) - W",k:"Conductivity (k) - W/(m·K)",A:"Area (A) - m²",dT:"ΔT - K",d:"Thickness (d) - m"},calculate:(v,sf)=>{if(sf==='Qt')return v.k*v.A*v.dT/v.d;if(sf==='k')return v.Qt*v.d/(v.A*v.dT);if(sf==='A')return v.Qt*v.d/(v.k*v.dT);if(sf==='dT')return v.Qt*v.d/(v.k*v.A);if(sf==='d')return v.k*v.A*v.dT/v.Qt;}}
+    },
+    optics: {
+        wave:          {name:"Wave Speed",equation:"v = f × λ",description:"Wave speed, frequency, and wavelength.",icon:"👁️",iconClass:"purple",variables:{v:"Wave Speed (v) [m/s]",f:"Frequency (f) [Hz]",lambda:"Wavelength (λ) [m]"},solve:{v:"Wave Speed (v) - m/s",f:"Frequency (f) - Hz",lambda:"Wavelength (λ) - m"},calculate:(v,sf)=>{if(sf==='v')return v.f*v.lambda;if(sf==='f')return v.v/v.lambda;if(sf==='lambda')return v.v/v.f;}},
+        snell:         {name:"Snell's Law",equation:"n₁ sin(θ₁) = n₂ sin(θ₂)",description:"Refraction at interface of two media.",icon:"👁️",iconClass:"purple",variables:{n1:"Index 1 (n₁)",theta1:"Angle 1 (θ₁) [°]",n2:"Index 2 (n₂)",theta2:"Angle 2 (θ₂) [°]"},solve:{theta2:"Angle 2 (θ₂) - °",n1:"Index 1 (n₁)",theta1:"Angle 1 (θ₁) - °",n2:"Index 2 (n₂)"},calculate:(v,sf)=>{if(sf==='theta2')return Math.asin(v.n1*Math.sin(v.theta1*Math.PI/180)/v.n2)*180/Math.PI;if(sf==='n1')return v.n2*Math.sin(v.theta2*Math.PI/180)/Math.sin(v.theta1*Math.PI/180);if(sf==='theta1')return Math.asin(v.n2*Math.sin(v.theta2*Math.PI/180)/v.n1)*180/Math.PI;if(sf==='n2')return v.n1*Math.sin(v.theta1*Math.PI/180)/Math.sin(v.theta2*Math.PI/180);}},
+        critical_angle:{name:"Critical Angle",equation:"sin(θc) = n₂ / n₁",description:"Angle for total internal reflection.",icon:"👁️",iconClass:"purple",variables:{n1:"Index 1 (n₁)",n2:"Index 2 (n₂)",thetac:"Critical Angle (θc) [°]"},solve:{thetac:"Critical Angle (θc) - °",n1:"Index 1 (n₁)",n2:"Index 2 (n₂)"},calculate:(v,sf)=>{if(sf==='thetac')return Math.asin(v.n2/v.n1)*180/Math.PI;if(sf==='n1')return v.n2/Math.sin(v.thetac*Math.PI/180);if(sf==='n2')return v.n1*Math.sin(v.thetac*Math.PI/180);}},
+        lens:          {name:"Thin Lens Equation",equation:"1/f = 1/do + 1/di",description:"Focal length, object/image distance.",icon:"👁️",iconClass:"purple",variables:{f:"Focal Length (f) [m]",do_:"Object Distance (do) [m]",di:"Image Distance (di) [m]"},solve:{f:"Focal Length (f) - m",do_:"Object Distance - m",di:"Image Distance - m"},calculate:(v,sf)=>{if(sf==='f')return 1/(1/v.do_+1/v.di);if(sf==='do_')return 1/(1/v.f-1/v.di);if(sf==='di')return 1/(1/v.f-1/v.do_);}},
+        lens_power:    {name:"Lens Power",equation:"P = 1 / f",description:"Optical power of a lens in diopters.",icon:"👁️",iconClass:"purple",variables:{P:"Lens Power (P) [diopters]",f:"Focal Length (f) [m]"},solve:{P:"Power (P) - diopters",f:"Focal Length - m"},calculate:(v,sf)=>{if(sf==='P')return 1/v.f;if(sf==='f')return 1/v.P;}},
+        magnification: {name:"Magnification",equation:"m = −di / do",description:"Ratio of image size to object size.",icon:"👁️",iconClass:"purple",variables:{di:"Image Distance (di) [m]",do_:"Object Distance (do) [m]",m:"Magnification (m)"},solve:{m:"Magnification (m)",di:"Image Distance (di) - m",do_:"Object Distance (do) - m"},calculate:(v,sf)=>{if(sf==='m')return -v.di/v.do_;if(sf==='di')return -v.m*v.do_;if(sf==='do_')return -v.di/v.m;}},
+        intensity:     {name:"Light Intensity",equation:"I = P / A",description:"Power per unit area.",icon:"👁️",iconClass:"purple",variables:{I:"Intensity (I) [W/m²]",P:"Power (P) [W]",A:"Area (A) [m²]"},solve:{I:"Intensity (I) - W/m²",P:"Power (P) - W",A:"Area (A) - m²"},calculate:(v,sf)=>{if(sf==='I')return v.P/v.A;if(sf==='P')return v.I*v.A;if(sf==='A')return v.P/v.I;}},
+        doppler:       {name:"Doppler Effect",equation:"f' = f(v + vo)/(v − vs)  — vo, vs are SIGNED (+ approaching, − receding)",description:"Observed frequency due to relative motion. Enter Observer/Source Speed as negative when moving away, positive when approaching.",icon:"👁️",iconClass:"purple",variables:{f:"Source Frequency [Hz]",v:"Wave Speed [m/s]",vo:"Observer Speed (signed, + approaching) [m/s]",vs:"Source Speed (signed, + approaching) [m/s]",fp:"Observed Frequency (f') [Hz]"},solve:{fp:"Observed Frequency (f') - Hz",f:"Source Frequency - Hz",v:"Wave Speed - m/s",vo:"Observer Speed - m/s",vs:"Source Speed - m/s"},calculate:(v,sf)=>{if(sf==='fp')return v.f*(v.v+v.vo)/(v.v-v.vs);if(sf==='f')return v.fp*(v.v-v.vs)/(v.v+v.vo);if(sf==='v')return(v.f*v.vo+v.fp*v.vs)/(v.fp-v.f);if(sf==='vo')return v.fp*(v.v-v.vs)/v.f-v.v;if(sf==='vs')return v.v-v.f*(v.v+v.vo)/v.fp;}},
+        sound_level:   {name:"Sound Intensity Level",equation:"L = 10 log₁₀(I / I₀)",description:"Sound level in decibels (I₀ = 10⁻¹² W/m²).",icon:"👁️",iconClass:"purple",variables:{I:"Intensity (I) [W/m²]",L:"Sound Level (L) [dB]"},solve:{L:"Sound Level (L) - dB",I:"Intensity (I) - W/m²"},calculate:(v,sf)=>{if(sf==='L')return 10*Math.log10(v.I/1e-12);if(sf==='I')return 1e-12*Math.pow(10,v.L/10);}},
+        diffraction:   {name:"Diffraction Grating",equation:"d × sin(θ) = m × λ",description:"Grating equation for diffraction maxima.",icon:"👁️",iconClass:"purple",variables:{theta:"Angle (θ) [°]",d:"Grating Spacing (d) [m]",m_:"Order (m) integer",lambda:"Wavelength (λ) [m]"},solve:{theta:"Angle (θ) - °",lambda:"Wavelength (λ) - m",d:"Grating Spacing (d) - m",m_:"Order (m)"},calculate:(v,sf)=>{if(sf==='theta')return Math.asin(v.m_*v.lambda/v.d)*180/Math.PI;if(sf==='lambda')return v.d*Math.sin(v.theta*Math.PI/180)/v.m_;if(sf==='d')return v.m_*v.lambda/Math.sin(v.theta*Math.PI/180);if(sf==='m_')return v.d*Math.sin(v.theta*Math.PI/180)/v.lambda;}}
+    },
+    general: {
+        density:      {name:"Density",equation:"ρ = m / V",description:"Mass per unit volume.",icon:"🔬",iconClass:"gray",variables:{rho:"Density (ρ) [kg/m³]",m:"Mass (m) [kg]",V:"Volume (V) [m³]"},solve:{rho:"Density (ρ) - kg/m³",m:"Mass (m) - kg",V:"Volume (V) - m³"},calculate:(v,sf)=>{if(sf==='rho')return v.m/v.V;if(sf==='m')return v.rho*v.V;if(sf==='V')return v.m/v.rho;}},
+        pressure_gen: {name:"Pressure",equation:"P = F / A",description:"Force per unit area.",icon:"🔬",iconClass:"gray",variables:{P:"Pressure (P) [Pa]",F:"Force (F) [N]",A:"Area (A) [m²]"},solve:{P:"Pressure (P) - Pa",F:"Force (F) - N",A:"Area (A) - m²"},calculate:(v,sf)=>{if(sf==='P')return v.F/v.A;if(sf==='F')return v.P*v.A;if(sf==='A')return v.F/v.P;}},
+        buoyancy:     {name:"Buoyancy Force",equation:"Fb = ρ × V × g",description:"Upward force on submerged object.",icon:"🔬",iconClass:"gray",variables:{rho:"Fluid Density (ρ) [kg/m³]",V:"Volume (V) [m³]",g:"Gravity (g) [m/s²]",Fb:"Buoyancy Force (Fb) [N]"},solve:{Fb:"Buoyancy Force (Fb) - N",rho:"Fluid Density (ρ) - kg/m³",V:"Volume (V) - m³",g:"Gravity (g) - m/s²"},calculate:(v,sf)=>{if(sf==='Fb')return v.rho*v.V*v.g;if(sf==='rho')return v.Fb/(v.V*v.g);if(sf==='V')return v.Fb/(v.rho*v.g);if(sf==='g')return v.Fb/(v.rho*v.V);}},
+        escape_vel:   {name:"Escape Velocity",equation:"ve = √(2GM/r)",description:"Minimum speed to escape a body's gravity.",icon:"🔬",iconClass:"gray",variables:{M:"Mass of body (M) [kg]",r:"Radius (r) [m]",ve:"Escape Velocity (ve) [m/s]"},solve:{ve:"Escape Velocity (ve) - m/s",M:"Mass of body (M) - kg",r:"Radius (r) - m"},calculate:(v,sf)=>{const G=MultiCalc.data.physicsConstants.G;if(sf==='ve')return Math.sqrt(2*G*v.M/v.r);if(sf==='M')return v.ve**2*v.r/(2*G);if(sf==='r')return 2*G*v.M/v.ve**2;}},
+        flow_rate:    {name:"Flow Rate",equation:"Q = A × v",description:"Volume flow rate through cross-section.",icon:"🔬",iconClass:"gray",variables:{Q:"Flow Rate (Q) [m³/s]",A:"Area (A) [m²]",v:"Velocity (v) [m/s]"},solve:{Q:"Flow Rate (Q) - m³/s",A:"Area (A) - m²",v:"Velocity (v) - m/s"},calculate:(v,sf)=>{if(sf==='Q')return v.A*v.v;if(sf==='A')return v.Q/v.v;if(sf==='v')return v.Q/v.A;}},
+        half_life:    {name:"Radioactive Decay",equation:"N = N₀ × e^(−λt)",description:"Number of remaining radioactive nuclei.",icon:"🔬",iconClass:"gray",variables:{N0:"Initial Amount (N₀)",lambda:"Decay Constant (λ) [1/s]",t:"Time (t) [s]",N:"Remaining Amount (N)"},solve:{N:"Remaining Amount (N)",N0:"Initial Amount (N₀)",lambda:"Decay Constant (λ) - 1/s",t:"Time (t) - s"},calculate:(v,sf)=>{if(sf==='N')return v.N0*Math.exp(-v.lambda*v.t);if(sf==='N0')return v.N*Math.exp(v.lambda*v.t);if(sf==='lambda')return -Math.log(v.N/v.N0)/v.t;if(sf==='t')return -Math.log(v.N/v.N0)/v.lambda;}},
+        simple_harm:  {name:"Spring-Mass Period",equation:"T = 2π × √(m/k)",description:"Period of oscillation of a spring-mass system.",icon:"🔬",iconClass:"gray",variables:{T:"Period (T) [s]",m:"Mass (m) [kg]",k:"Spring Constant (k) [N/m]"},solve:{T:"Period (T) - s",m:"Mass (m) - kg",k:"Spring Constant - N/m"},calculate:(v,sf)=>{if(sf==='T')return 2*Math.PI*Math.sqrt(v.m/v.k);if(sf==='m')return v.k*(v.T/(2*Math.PI))**2;if(sf==='k')return v.m/(v.T/(2*Math.PI))**2;}},
+        pendulum:     {name:"Pendulum Period",equation:"T = 2π × √(L/g)",description:"Period of a simple pendulum.",icon:"🔬",iconClass:"gray",variables:{T:"Period (T) [s]",L:"Length (L) [m]",g:"Gravity (g) [m/s²]"},solve:{T:"Period (T) - s",L:"Length (L) - m",g:"Gravity (g) - m/s²"},calculate:(v,sf)=>{if(sf==='T')return 2*Math.PI*Math.sqrt(v.L/v.g);if(sf==='L')return v.g*(v.T/(2*Math.PI))**2;if(sf==='g')return 4*Math.PI**2*v.L/v.T**2;}},
+        surface_tension:{name:"Surface Tension Force",equation:"F = γ × L",description:"Force due to surface tension along a length.",icon:"🔬",iconClass:"gray",variables:{F:"Surface Tension Force (F) [N]",gamma:"Surface Tension (γ) [N/m]",L:"Length (L) [m]"},solve:{F:"Force (F) - N",gamma:"Surface Tension - N/m",L:"Length (L) - m"},calculate:(v,sf)=>{if(sf==='F')return v.gamma*v.L;if(sf==='gamma')return v.F/v.L;if(sf==='L')return v.F/v.gamma;}}
+    },
+    modern: {
+        mass_energy:     {name:"Mass-Energy Equivalence",equation:"E = m × c²",description:"Einstein's famous energy-mass relation.",icon:"⚛️",iconClass:"purple",variables:{E:"Energy (E) [J]",m:"Mass (m) [kg]"},solve:{E:"Energy (E) - J",m:"Mass (m) - kg"},calculate:(v,sf)=>{const c=MultiCalc.data.physicsConstants.c;if(sf==='E')return v.m*c**2;if(sf==='m')return v.E/c**2;}},
+        lorentz:         {name:"Lorentz Factor",equation:"γ = 1 / √(1 − v²/c²)",description:"Relativistic factor for time dilation & length contraction.",icon:"⚛️",iconClass:"purple",variables:{v:"Velocity (v) [m/s]",gamma:"Lorentz Factor (γ)"},solve:{gamma:"Lorentz Factor (γ)",v:"Velocity (v) - m/s"},calculate:(v,sf)=>{const c=MultiCalc.data.physicsConstants.c;if(sf==='gamma')return 1/Math.sqrt(1-v.v**2/c**2);if(sf==='v')return c*Math.sqrt(1-1/v.gamma**2);}},
+        time_dilation:   {name:"Time Dilation",equation:"Δt' = γ × Δt",description:"Moving clocks tick slower.",icon:"⚛️",iconClass:"purple",variables:{dt:"Proper Time (Δt) [s]",v:"Velocity (v) [m/s]",dtp:"Dilated Time (Δt') [s]"},solve:{dtp:"Dilated Time (Δt') - s",dt:"Proper Time (Δt) - s",v:"Velocity (v) - m/s"},calculate:(v,sf)=>{const c=MultiCalc.data.physicsConstants.c;if(sf==='dtp')return v.dt/Math.sqrt(1-v.v**2/c**2);if(sf==='dt')return v.dtp*Math.sqrt(1-v.v**2/c**2);if(sf==='v')return c*Math.sqrt(1-(v.dt/v.dtp)**2);}},
+        length_contract: {name:"Length Contraction",equation:"L' = L / γ",description:"Moving objects appear shorter.",icon:"⚛️",iconClass:"purple",variables:{L:"Rest Length (L) [m]",v:"Velocity (v) [m/s]",Lp:"Contracted Length (L') [m]"},solve:{Lp:"Contracted Length (L') - m",L:"Rest Length (L) - m",v:"Velocity (v) - m/s"},calculate:(v,sf)=>{const c=MultiCalc.data.physicsConstants.c;if(sf==='Lp')return v.L*Math.sqrt(1-v.v**2/c**2);if(sf==='L')return v.Lp/Math.sqrt(1-v.v**2/c**2);if(sf==='v')return c*Math.sqrt(1-(v.Lp/v.L)**2);}},
+        photon_energy:   {name:"Photon Energy",equation:"E = h × f",description:"Energy of a photon (h = Planck's constant).",icon:"⚛️",iconClass:"purple",variables:{E:"Photon Energy (E) [J]",f:"Frequency (f) [Hz]"},solve:{E:"Photon Energy (E) - J",f:"Frequency (f) - Hz"},calculate:(v,sf)=>{const h=MultiCalc.data.physicsConstants.h;if(sf==='E')return h*v.f;if(sf==='f')return v.E/h;}},
+        de_broglie:      {name:"de Broglie Wavelength",equation:"λ = h / (m × v)",description:"Wave-particle duality wavelength.",icon:"⚛️",iconClass:"purple",variables:{m:"Mass (m) [kg]",v:"Velocity (v) [m/s]",lambda:"Wavelength (λ) [m]"},solve:{lambda:"Wavelength (λ) - m",m:"Mass (m) - kg",v:"Velocity (v) - m/s"},calculate:(v,sf)=>{const h=MultiCalc.data.physicsConstants.h;if(sf==='lambda')return h/(v.m*v.v);if(sf==='m')return h/(v.lambda*v.v);if(sf==='v')return h/(v.lambda*v.m);}},
+        photoelectric:   {name:"Photoelectric Effect",equation:"KE = hf − φ",description:"Maximum kinetic energy of emitted electrons.",icon:"⚛️",iconClass:"purple",variables:{f:"Frequency (f) [Hz]",phi:"Work Function (φ) [J]",KE:"Max KE of electron [J]"},solve:{KE:"Max KE of electron - J",f:"Frequency (f) - Hz",phi:"Work Function (φ) - J"},calculate:(v,sf)=>{const h=MultiCalc.data.physicsConstants.h;if(sf==='KE')return Math.max(0,h*v.f-v.phi);if(sf==='f')return(v.KE+v.phi)/h;if(sf==='phi')return h*v.f-v.KE;}},
+        hydrogen:        {name:"Hydrogen Energy Levels",equation:"En = −13.6 / n² eV",description:"Energy of electron in hydrogen at level n.",icon:"⚛️",iconClass:"purple",variables:{n:"Level (n) integer 1,2,3…",En:"Energy (En) [eV]"},solve:{En:"Energy (En) - eV",n:"Level (n)"},calculate:(v,sf)=>{if(sf==='En')return -13.6/v.n**2;if(sf==='n')return Math.sqrt(-13.6/v.En);}},
+        nuclear_binding: {name:"Nuclear Binding Energy",equation:"BE = Δm × c²",description:"Energy holding the nucleus together.",icon:"⚛️",iconClass:"purple",variables:{dm:"Mass Defect (Δm) [kg]",BE:"Binding Energy (BE) [J]"},solve:{BE:"Binding Energy (BE) - J",dm:"Mass Defect (Δm) - kg"},calculate:(v,sf)=>{const c=MultiCalc.data.physicsConstants.c;if(sf==='BE')return v.dm*c**2;if(sf==='dm')return v.BE/c**2;}}
+    }
+};
+
+/* ── physicsFormulaConstant — which named constant (if any) each formula's calculate() references ── */
+MultiCalc.data.physicsFormulaConstant = {
+    gravity:'G', escape_vel:'G', coulomb:'k', ideal_gas:'R', stefan:'σ',
+    mass_energy:'c', lorentz:'c', time_dilation:'c', length_contract:'c', nuclear_binding:'c',
+    photon_energy:'h', de_broglie:'h', photoelectric:'h'
+};
+
+/* ── physicsSolveTemplates — symbolic RHS per (formula, solve-direction), for the step-by-step solution.
+   {varkey} placeholders are substituted with actual values; bare constant symbols (G,c,h,R,k,σ) are
+   substituted via physicsFormulaConstant + physicsConstants. Mirrors calculate() exactly. ── */
+MultiCalc.data.physicsSolveTemplates = {
+    mechanics: {
+        velocity:{v:"{d}/{t}",d:"{v}·{t}",t:"{d}/{v}"},
+        acceleration:{a:"{dv}/{t}",dv:"{a}·{t}",t:"{dv}/{a}"},
+        newton2:{F:"{m}·{a}",m:"{F}/{a}",a:"{F}/{m}"},
+        momentum:{p:"{m}·{v}",m:"{p}/{v}",v:"{p}/{m}"},
+        kinetic:{KE:"½·{m}·{v}²",m:"2·{KE}/{v}²",v:"√(2·{KE}/{m})"},
+        potential:{PE:"{m}·{g}·{h}",m:"{PE}/({g}·{h})",h:"{PE}/({m}·{g})",g:"{PE}/({m}·{h})"},
+        work:{W:"{F}·{d}·cos({theta}°)",F:"{W}/({d}·cos({theta}°))",d:"{W}/({F}·cos({theta}°))",theta:"cos⁻¹({W}/({F}·{d}))"},
+        power_mech:{P:"{W}/{t}",W:"{P}·{t}",t:"{W}/{P}"},
+        torque:{tau:"{F}·{r}·sin({theta}°)",F:"{tau}/({r}·sin({theta}°))",r:"{tau}/({F}·sin({theta}°))",theta:"sin⁻¹({tau}/({F}·{r}))"},
+        circular:{F:"{m}·{v}²/{r}",r:"{m}·{v}²/{F}",v:"√({F}·{r}/{m})",m:"{F}·{r}/{v}²"},
+        friction:{f:"{mu}·{N}",mu:"{f}/{N}",N:"{f}/{mu}"},
+        gravity:{F:"G·{m1}·{m2}/{r}²",m1:"{F}·{r}²/(G·{m2})",m2:"{F}·{r}²/(G·{m1})",r:"√(G·{m1}·{m2}/{F})"},
+        projectile:{R:"{v0}²·sin(2·{theta}°)/{g}",v0:"√({R}·{g}/sin(2·{theta}°))",theta:"½·sin⁻¹({R}·{g}/{v0}²)",g:"{v0}²·sin(2·{theta}°)/{R}"},
+        hooke:{F:"{k}·{x}",k:"{F}/{x}",x:"{F}/{k}"},
+        impulse:{J:"{F}·{dt}",F:"{J}/{dt}",dt:"{J}/{F}"},
+        spring_pe:{PE:"½·{k}·{x}²",k:"2·{PE}/{x}²",x:"√(2·{PE}/{k})"},
+        angular_vel:{omega:"{theta}/{t}",theta:"{omega}·{t}",t:"{theta}/{omega}"},
+        rot_ke:{KE:"½·{I}·{omega}²",I:"2·{KE}/{omega}²",omega:"√(2·{KE}/{I})"},
+        bernoulli:{P2:"{P1}+½·{rho}·({v1}²−{v2}²)",P1:"{P2}−½·{rho}·({v1}²−{v2}²)",rho:"2·({P2}−{P1})/({v1}²−{v2}²)",v1:"√({v2}²+2·({P2}−{P1})/{rho})",v2:"√({v1}²−2·({P2}−{P1})/{rho})"}
+    },
+    electricity: {
+        ohm:{V:"{I}·{R}",I:"{V}/{R}",R:"{V}/{I}"},
+        power_elec:{P:"{V}·{I}",V:"{P}/{I}",I:"{P}/{V}"},
+        power_r:{P:"{I}²·{R}",I:"√({P}/{R})",R:"{P}/{I}²"},
+        series_r:{R:"{R1}+{R2}+{R3}",R1:"{R}−{R2}−{R3}",R2:"{R}−{R1}−{R3}",R3:"{R}−{R1}−{R2}"},
+        parallel_r:{R:"1/(1/{R1}+1/{R2})",R1:"{R}·{R2}/({R2}−{R})",R2:"{R}·{R1}/({R1}−{R})"},
+        coulomb:{F:"k·{q1}·{q2}/{r}²",q1:"{F}·{r}²/(k·{q2})",q2:"{F}·{r}²/(k·{q1})",r:"√(k·{q1}·{q2}/{F})"},
+        capacitor:{E:"½·{C}·{V}²",C:"2·{E}/{V}²",V:"√(2·{E}/{C})"},
+        magnetic:{F:"{q}·{v}·{B}·sin({theta}°)",q:"{F}/({v}·{B}·sin({theta}°))",v:"{F}/({q}·{B}·sin({theta}°))",B:"{F}/({q}·{v}·sin({theta}°))",theta:"sin⁻¹({F}/({q}·{v}·{B}))"},
+        rc_time:{tau:"{R}·{C}",R:"{tau}/{C}",C:"{tau}/{R}"},
+        transformer:{Vs:"{Vp}·{Ns}/{Np}",Vp:"{Vs}·{Np}/{Ns}",Np:"{Vp}·{Ns}/{Vs}",Ns:"{Vs}·{Np}/{Vp}"},
+        elec_field:{E:"{V}/{d}",V:"{E}·{d}",d:"{V}/{E}"},
+        charge:{Q:"{I}·{t}",I:"{Q}/{t}",t:"{Q}/{I}"}
+    },
+    thermodynamics: {
+        heat:{Q:"{m}·{c}·{dT}",m:"{Q}/({c}·{dT})",dT:"{Q}/({m}·{c})",c:"{Q}/({m}·{dT})"},
+        ideal_gas:{P:"{n}·R·{T}/{V}",V:"{n}·R·{T}/{P}",T:"{P}·{V}/({n}·R)",n:"{P}·{V}/(R·{T})"},
+        thermal_exp:{dL:"{alpha}·{L0}·{dT}",alpha:"{dL}/({L0}·{dT})",L0:"{dL}/({alpha}·{dT})",dT:"{dL}/({alpha}·{L0})"},
+        entropy:{dS:"{Q}/{T}",Q:"{dS}·{T}",T:"{Q}/{dS}"},
+        carnot:{eta:"(1−{Tc}/{Th})·100",Tc:"{Th}·(1−{eta}/100)",Th:"{Tc}/(1−{eta}/100)"},
+        boyle:{V2:"{P1}·{V1}/{P2}",P2:"{P1}·{V1}/{V2}",P1:"{P2}·{V2}/{V1}",V1:"{P2}·{V2}/{P1}"},
+        charles:{V2:"{V1}·{T2}/{T1}",V1:"{V2}·{T1}/{T2}",T1:"{V1}·{T2}/{V2}",T2:"{V2}·{T1}/{V1}"},
+        gay_lussac:{P2:"{P1}·{T2}/{T1}",P1:"{P2}·{T1}/{T2}",T1:"{P1}·{T2}/{P2}",T2:"{P2}·{T1}/{P1}"},
+        latent_heat:{Q:"{m}·{L}",m:"{Q}/{L}",L:"{Q}/{m}"},
+        stefan:{P:"σ·{eps}·{A}·{T}⁴",eps:"{P}/(σ·{A}·{T}⁴)",A:"{P}/(σ·{eps}·{T}⁴)",T:"⁴√({P}/(σ·{eps}·{A}))"},
+        heat_cond:{Qt:"{k}·{A}·{dT}/{d}",k:"{Qt}·{d}/({A}·{dT})",A:"{Qt}·{d}/({k}·{dT})",dT:"{Qt}·{d}/({k}·{A})",d:"{k}·{A}·{dT}/{Qt}"}
+    },
+    optics: {
+        wave:{v:"{f}·{lambda}",f:"{v}/{lambda}",lambda:"{v}/{f}"},
+        snell:{theta2:"sin⁻¹({n1}·sin({theta1}°)/{n2})",n1:"{n2}·sin({theta2}°)/sin({theta1}°)",theta1:"sin⁻¹({n2}·sin({theta2}°)/{n1})",n2:"{n1}·sin({theta1}°)/sin({theta2}°)"},
+        critical_angle:{thetac:"sin⁻¹({n2}/{n1})",n1:"{n2}/sin({thetac}°)",n2:"{n1}·sin({thetac}°)"},
+        lens:{f:"1/(1/{do_}+1/{di})",do_:"1/(1/{f}−1/{di})",di:"1/(1/{f}−1/{do_})"},
+        lens_power:{P:"1/{f}",f:"1/{P}"},
+        magnification:{m:"−{di}/{do_}",di:"−{m}·{do_}",do_:"−{di}/{m}"},
+        intensity:{I:"{P}/{A}",P:"{I}·{A}",A:"{P}/{I}"},
+        doppler:{fp:"{f}·({v}+{vo})/({v}−{vs})",f:"{fp}·({v}−{vs})/({v}+{vo})",v:"({f}·{vo}+{fp}·{vs})/({fp}−{f})",vo:"{fp}·({v}−{vs})/{f}−{v}",vs:"{v}−{f}·({v}+{vo})/{fp}"},
+        sound_level:{L:"10·log₁₀({I}/10⁻¹²)",I:"10⁻¹²·10^({L}/10)"},
+        diffraction:{theta:"sin⁻¹({m_}·{lambda}/{d})",lambda:"{d}·sin({theta}°)/{m_}",d:"{m_}·{lambda}/sin({theta}°)",m_:"{d}·sin({theta}°)/{lambda}"}
+    },
+    general: {
+        density:{rho:"{m}/{V}",m:"{rho}·{V}",V:"{m}/{rho}"},
+        pressure_gen:{P:"{F}/{A}",F:"{P}·{A}",A:"{F}/{P}"},
+        buoyancy:{Fb:"{rho}·{V}·{g}",rho:"{Fb}/({V}·{g})",V:"{Fb}/({rho}·{g})",g:"{Fb}/({rho}·{V})"},
+        escape_vel:{ve:"√(2·G·{M}/{r})",M:"{ve}²·{r}/(2·G)",r:"2·G·{M}/{ve}²"},
+        flow_rate:{Q:"{A}·{v}",A:"{Q}/{v}",v:"{Q}/{A}"},
+        half_life:{N:"{N0}·e^(−{lambda}·{t})",N0:"{N}·e^({lambda}·{t})",lambda:"−ln({N}/{N0})/{t}",t:"−ln({N}/{N0})/{lambda}"},
+        simple_harm:{T:"2π·√({m}/{k})",m:"{k}·({T}/(2π))²",k:"{m}/({T}/(2π))²"},
+        pendulum:{T:"2π·√({L}/{g})",L:"{g}·({T}/(2π))²",g:"4π²·{L}/{T}²"},
+        surface_tension:{F:"{gamma}·{L}",gamma:"{F}/{L}",L:"{F}/{gamma}"}
+    },
+    modern: {
+        mass_energy:{E:"{m}·c²",m:"{E}/c²"},
+        lorentz:{gamma:"1/√(1−{v}²/c²)",v:"c·√(1−1/{gamma}²)"},
+        time_dilation:{dtp:"{dt}/√(1−{v}²/c²)",dt:"{dtp}·√(1−{v}²/c²)",v:"c·√(1−({dt}/{dtp})²)"},
+        length_contract:{Lp:"{L}·√(1−{v}²/c²)",L:"{Lp}/√(1−{v}²/c²)",v:"c·√(1−({Lp}/{L})²)"},
+        photon_energy:{E:"h·{f}",f:"{E}/h"},
+        de_broglie:{lambda:"h/({m}·{v})",m:"h/({lambda}·{v})",v:"h/({lambda}·{m})"},
+        photoelectric:{KE:"h·{f}−{phi}",f:"({KE}+{phi})/h",phi:"h·{f}−{KE}"},
+        hydrogen:{En:"−13.6/{n}²",n:"√(−13.6/{En})"},
+        nuclear_binding:{BE:"{dm}·c²",dm:"{BE}/c²"}
+    }
+};
+
+/* ── physicsSanityRules — physical-plausibility checks run on (given inputs + computed result).
+   These catch cases calculate() computes a finite number for, but that are physically nonsensical
+   (negative mass, v>=c, Carnot efficiency>=100%, etc.) — NaN/Infinity is already handled separately.
+   excludeFormulas guards against a key meaning something different (often signed) in that one formula. ── */
+MultiCalc.data.physicsSanityRules = [
+    {keys:['m','m1','m2','M','dm'], type:'nonneg', excludeFormulas:['magnification'],
+     msg:{el:'Η μάζα δεν μπορεί να είναι αρνητική.',en:'Mass cannot be negative.',es:'La masa no puede ser negativa.'}},
+    {keys:['T','T1','T2','Tc','Th'], type:'nonneg',
+     msg:{el:'Η θερμοκρασία (Kelvin) δεν μπορεί να είναι κάτω από το απόλυτο μηδέν.',en:'Temperature (Kelvin) cannot be below absolute zero.',es:'La temperatura (Kelvin) no puede ser inferior al cero absoluto.'}},
+    {keys:['v','v0','v1','v2','ve'], type:'speedMag',
+     msg:{el:'Καμία ταχύτητα δεν μπορεί να είναι αρνητική ή να φτάσει/ξεπεράσει την ταχύτητα του φωτός (c).',en:'No speed can be negative or reach/exceed the speed of light (c).',es:'Ninguna velocidad puede ser negativa o alcanzar/superar la velocidad de la luz (c).'}},
+    {keys:['vo','vs'], type:'speedAbs',
+     msg:{el:'Καμία ταχύτητα δεν μπορεί να φτάσει ή να ξεπεράσει την ταχύτητα του φωτός (c).',en:'No speed can reach or exceed the speed of light (c).',es:'Ninguna velocidad puede alcanzar o superar la velocidad de la luz (c).'}},
+    {keys:['R','R1','R2','R3','C'], type:'nonneg',
+     msg:{el:'Η αντίσταση/χωρητικότητα δεν μπορεί να είναι αρνητική.',en:'Resistance/capacitance cannot be negative.',es:'La resistencia/capacitancia no puede ser negativa.'}},
+    {keys:['n1','n2'], type:'min1',
+     msg:{el:'Ο δείκτης διάθλασης δεν μπορεί να είναι μικρότερος από 1 (κενό).',en:'Refractive index cannot be less than 1 (vacuum).',es:'El índice de refracción no puede ser menor que 1 (vacío).'}},
+    {keys:['r','d','x','L','L0','Lp','A','h','rho','t','dt','dtp','N','N0','lambda','k','mu','B','g','omega'], type:'nonneg',
+     msg:{el:'Αυτό το μέγεθος δεν μπορεί να είναι αρνητικό.',en:'This quantity cannot be negative.',es:'Esta magnitud no puede ser negativa.'}},
+    {keys:['KE','PE','E'], type:'nonneg', excludeFormulas:['elec_field'],
+     msg:{el:'Αυτή η μορφή ενέργειας δεν μπορεί να είναι αρνητική.',en:'This form of energy cannot be negative.',es:'Esta forma de energía no puede ser negativa.'}},
+    {keys:['eta'], type:'range', min:0, max:100, exclMax:true,
+     msg:{el:'Ο βαθμός απόδοσης Carnot πρέπει να είναι 0% ≤ η < 100%.',en:'Carnot efficiency must be 0% ≤ η < 100%.',es:'La eficiencia de Carnot debe ser 0% ≤ η < 100%.'}},
+    {keys:['eps'], type:'range', min:0, max:1,
+     msg:{el:'Η εκπεμψιμότητα πρέπει να είναι μεταξύ 0 και 1.',en:'Emissivity must be between 0 and 1.',es:'La emisividad debe estar entre 0 y 1.'}},
+    {keys:['En'], type:'neg',
+     msg:{el:'Η ενέργεια δέσμιου ηλεκτρονίου πρέπει να είναι αρνητική.',en:'Bound-electron energy must be negative.',es:'La energía del electrón ligado debe ser negativa.'}},
+    {keys:['gamma'], type:'min1', excludeFormulas:['surface_tension'],
+     msg:{el:'Ο συντελεστής Lorentz δεν μπορεί να είναι μικρότερος από 1.',en:'The Lorentz factor cannot be less than 1.',es:'El factor de Lorentz no puede ser menor que 1.'}},
+    {keys:['m_'], type:'integer',
+     msg:{el:'Η τάξη περίθλασης πρέπει να είναι ακέραιος αριθμός.',en:'Diffraction order must be an integer.',es:'El orden de difracción debe ser un número entero.'}}
+];
+
+/* ── unitDimensions — SI base-dimension vector [L,M,T,I,Θ,N] (length, mass, time, current,
+   temperature, amount) for every unit string used across the physics module. Powers the
+   dimensional-analysis check on the formula-chain picker: catches genuinely incompatible
+   units (the one place in this app's architecture where mismatched quantities can actually
+   meet), same as it not letting you add meters to seconds. Verified offline against a
+   symbolic parse of every solve-template — 227/227 formulas dimensionally consistent
+   (2 documented exceptions: hydrogen's -13.6 implicitly carries eV, sound_level's 10⁻¹²
+   is the I₀ reference in W/m² — both are empirical constants with implicit units, not bugs). ── */
+MultiCalc.data.unitDimensions = {
+    '°':[0,0,0,0,0,0], 'rad':[0,0,0,0,0,0], '%':[0,0,0,0,0,0], 'dB':[0,0,0,0,0,0],
+    'm':[1,0,0,0,0,0], 'kg':[0,1,0,0,0,0], 's':[0,0,1,0,0,0], 'A':[0,0,0,1,0,0], 'K':[0,0,0,0,1,0], 'mol':[0,0,0,0,0,1],
+    'N':[1,1,-2,0,0,0], 'J':[2,1,-2,0,0,0], 'W':[2,1,-3,0,0,0], 'Pa':[-1,1,-2,0,0,0], 'Hz':[0,0,-1,0,0,0],
+    'V':[2,1,-3,-1,0,0], 'Ω':[2,1,-3,-2,0,0], 'F':[-2,-1,4,2,0,0], 'T':[0,1,-2,-1,0,0], 'C':[0,0,1,1,0,0],
+    'J/(kg·K)':[2,0,-2,0,-1,0], 'J/K':[2,1,-2,0,-1,0], 'J/kg':[2,0,-2,0,0,0],
+    'N/m':[0,1,-2,0,0,0], 'N·m':[2,1,-2,0,0,0], 'N·s':[1,1,-1,0,0,0],
+    'V/m':[1,1,-3,-1,0,0], 'W/(m·K)':[1,1,-3,0,-1,0], 'W/m²':[0,1,-3,0,0,0],
+    'eV':[2,1,-2,0,0,0], 'kg/m³':[-3,1,0,0,0,0], 'kg·m/s':[1,1,-1,0,0,0], 'kg·m²':[2,1,0,0,0,0],
+    'm/s':[1,0,-1,0,0,0], 'm/s²':[1,0,-2,0,0,0], 'm²':[2,0,0,0,0,0], 'm³':[3,0,0,0,0,0], 'm³/s':[3,0,-1,0,0,0],
+    '1/K':[0,0,0,0,-1,0], '1/s':[0,0,-1,0,0,0], 'rad/s':[0,0,-1,0,0,0], 'diopters':[-1,0,0,0,0,0]
+};
+
+/* ── physicsVisualizations — registry for the live slider + visualization feature.
+   Built out gradually, one formula at a time (per explicit instruction). Each entry:
+   sliderVar/sliderMin/Max/Step/Default/Unit control the draggable slider;
+   needs/defaults list the other variables the drawing needs (pulled live from the
+   regular input fields when non-zero, else these sensible defaults);
+   render(vars) returns {svg, readout:[[label,value],...]}. ── */
+MultiCalc.data.physicsVisualizations = {
+    projectile: {
+        sliderVar: 'theta', sliderMin: 1, sliderMax: 89, sliderStep: 1, sliderDefault: 45, sliderUnit: '°',
+        needs: ['v0','g'], defaults: {v0: 20, g: 9.8},
+        render: function(vars) {
+            var v0 = vars.v0, g = vars.g, theta = vars.theta;
+            var rad = theta * Math.PI / 180;
+            var R  = MultiCalc.data.physicsFormulas.mechanics.projectile.calculate({v0:v0,theta:theta,g:g}, 'R');
+            var H  = v0*v0*Math.sin(rad)*Math.sin(rad)/(2*g);
+            var Tf = 2*v0*Math.sin(rad)/g;
+            var Rref = v0*v0/g;        // range at 45° — used as the fixed horizontal scale so the view doesn't jump around while dragging
+            var Href = v0*v0/(2*g);    // height at 90° — fixed vertical scale
+            var drawW = 560, drawH = 220, originX = 20, groundY = 260;
+            var scaleX = drawW / Rref, scaleY = drawH / Href;
+            function toX(x){ return originX + x*scaleX; }
+            function toY(y){ return groundY - y*scaleY; }
+            var N = 60, pts = [];
+            for (var i=0;i<=N;i++){
+                var t = Tf*i/N;
+                var x = v0*Math.cos(rad)*t;
+                var y = v0*Math.sin(rad)*t - 0.5*g*t*t;
+                pts.push(toX(x).toFixed(1)+','+toY(y).toFixed(1));
+            }
+            var svg = ''
+                + '<line x1="0" y1="'+groundY+'" x2="600" y2="'+groundY+'" stroke="#475569" stroke-width="2"/>'
+                + '<path d="M'+pts.join(' L')+'" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>'
+                + '<line x1="'+toX(0).toFixed(1)+'" y1="'+groundY+'" x2="'+toX(0).toFixed(1)+'" y2="'+toY(H).toFixed(1)+'" stroke="#475569" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>'
+                + '<circle cx="'+toX(0).toFixed(1)+'" cy="'+toY(0).toFixed(1)+'" r="6" fill="#4ade80"/>'
+                + '<circle cx="'+toX(R).toFixed(1)+'" cy="'+toY(0).toFixed(1)+'" r="5" fill="#f87171"/>';
+            return {
+                svg: svg,
+                readout: [['R', R.toFixed(2)+' m'], ['H', H.toFixed(2)+' m'], ['T', Tf.toFixed(2)+' s']]
+            };
+        }
+    },
+    pendulum: {
+        sliderVar: 'L', sliderMin: 0.1, sliderMax: 2.5, sliderStep: 0.05, sliderDefault: 1.0, sliderUnit: ' m',
+        needs: ['g'], defaults: {g: 9.8},
+        render: function(vars) {
+            var L = vars.L, g = vars.g;
+            var T = MultiCalc.data.physicsFormulas.general.pendulum.calculate({L:L,g:g}, 'T');
+            var f = 1 / T;
+            var pivotX = 300, pivotY = 25, scale = 95;
+            var rodLen = L * scale;
+            var ang = 22 * Math.PI / 180;
+            var bobX = pivotX + rodLen * Math.sin(ang);
+            var bobY = pivotY + rodLen * Math.cos(ang);
+            var vertY = pivotY + rodLen;
+            var svg = ''
+                + '<line x1="'+pivotX+'" y1="'+pivotY+'" x2="'+pivotX+'" y2="'+vertY.toFixed(1)+'" stroke="#475569" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>'
+                + '<circle cx="'+pivotX+'" cy="'+pivotY+'" r="5" fill="#94a3b8"/>'
+                + '<line x1="'+pivotX+'" y1="'+pivotY+'" x2="'+bobX.toFixed(1)+'" y2="'+bobY.toFixed(1)+'" stroke="#6366f1" stroke-width="3"/>'
+                + '<circle cx="'+bobX.toFixed(1)+'" cy="'+bobY.toFixed(1)+'" r="14" fill="#f87171"/>';
+            return { svg: svg, readout: [['T', T.toFixed(3)+' s'], ['f', f.toFixed(3)+' Hz']] };
+        }
+    },
+    snell: {
+        sliderVar: 'theta1', sliderMin: 0, sliderMax: 89, sliderStep: 1, sliderDefault: 30, sliderUnit: '°',
+        needs: ['n1','n2'], defaults: {n1: 1.0, n2: 1.5},
+        render: function(vars) {
+            var n1 = vars.n1, n2 = vars.n2, theta1 = vars.theta1;
+            var theta2 = MultiCalc.data.physicsFormulas.optics.snell.calculate({n1:n1,theta1:theta1,n2:n2}, 'theta2');
+            var cx = 300, cy = 150, len = 130;
+            var rad1 = theta1 * Math.PI / 180;
+            var ix = cx - len * Math.sin(rad1), iy = cy - len * Math.cos(rad1);
+            var svg = ''
+                + '<line x1="0" y1="'+cy+'" x2="600" y2="'+cy+'" stroke="#475569" stroke-width="2"/>'
+                + '<line x1="'+cx+'" y1="'+(cy-140)+'" x2="'+cx+'" y2="'+(cy+140)+'" stroke="#475569" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>'
+                + '<line x1="'+ix.toFixed(1)+'" y1="'+iy.toFixed(1)+'" x2="'+cx+'" y2="'+cy+'" stroke="#4ade80" stroke-width="3"/>';
+            var readout;
+            if (isNaN(theta2)) {
+                var rx = cx + len * Math.sin(rad1), ry = cy - len * Math.cos(rad1);
+                svg += '<line x1="'+cx+'" y1="'+cy+'" x2="'+rx.toFixed(1)+'" y2="'+ry.toFixed(1)+'" stroke="#fbbf24" stroke-width="3" stroke-dasharray="6,3"/>'
+                     + '<text x="'+cx+'" y="'+(cy+45)+'" fill="#f87171" font-size="15" text-anchor="middle">Ολική Ανάκλαση</text>';
+                readout = [['θ₁', theta1+'°'], ['Κατάσταση', 'Ολική Ανάκλαση']];
+            } else {
+                var rad2 = theta2 * Math.PI / 180;
+                var rx2 = cx + len * Math.sin(rad2), ry2 = cy + len * Math.cos(rad2);
+                svg += '<line x1="'+cx+'" y1="'+cy+'" x2="'+rx2.toFixed(1)+'" y2="'+ry2.toFixed(1)+'" stroke="#6366f1" stroke-width="3"/>';
+                readout = [['θ₁', theta1+'°'], ['θ₂', theta2.toFixed(2)+'°']];
+            }
+            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="#e2e8f0"/>';
+            return { svg: svg, readout: readout };
+        }
+    },
+    simple_harm: {
+        sliderVar: 'phase', sliderMin: 0, sliderMax: 360, sliderStep: 5, sliderDefault: 0, sliderUnit: '°',
+        needs: ['m','k'], defaults: {m: 1, k: 20},
+        render: function(vars) {
+            var m = vars.m, k = vars.k, phase = vars.phase;
+            var T = MultiCalc.data.physicsFormulas.general.simple_harm.calculate({m:m,k:k}, 'T');
+            var rad = phase * Math.PI / 180;
+            var A = 90, wallX = 60, cy = 150;
+            var massX = wallX + 130 + A * Math.cos(rad);
+            var eqX = wallX + 130;
+            var t = (phase/360) * T;
+            var n = 8, segH = (massX - wallX) / n, pts = [wallX+',150'];
+            for (var i=1;i<n;i++) pts.push((wallX+i*segH).toFixed(1)+','+(150+(i%2?18:-18)));
+            pts.push(massX.toFixed(1)+',150');
+            var svg = ''
+                + '<rect x="30" y="110" width="30" height="80" fill="#475569"/>'
+                + '<line x1="'+eqX+'" y1="90" x2="'+eqX+'" y2="210" stroke="#475569" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>'
+                + '<polyline points="'+pts.join(' ')+'" fill="none" stroke="#94a3b8" stroke-width="2"/>'
+                + '<rect x="'+(massX-20).toFixed(1)+'" y="130" width="40" height="40" rx="6" fill="#6366f1"/>';
+            return { svg: svg, readout: [['T', T.toFixed(3)+' s'], ['t', t.toFixed(3)+' s']] };
+        }
+    },
+    circular: {
+        sliderVar: 'phase', sliderMin: 0, sliderMax: 360, sliderStep: 5, sliderDefault: 45, sliderUnit: '°',
+        needs: ['m','v','r'], defaults: {m: 2, v: 5, r: 3},
+        render: function(vars) {
+            var m = vars.m, v = vars.v, r = vars.r, phase = vars.phase;
+            var F = MultiCalc.data.physicsFormulas.mechanics.circular.calculate({m:m,v:v,r:r}, 'F');
+            var cx = 300, cy = 150, R = 90;
+            var rad = phase * Math.PI / 180;
+            var px = cx + R * Math.cos(rad), py = cy - R * Math.sin(rad);
+            var tx = px - Math.sin(rad) * 35, ty = py - Math.cos(rad) * 35;
+            var fx = px + (cx - px) / R * 30, fy = py + (cy - py) / R * 30;
+            var svg = ''
+                + '<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>'
+                + '<line x1="'+px.toFixed(1)+'" y1="'+py.toFixed(1)+'" x2="'+fx.toFixed(1)+'" y2="'+fy.toFixed(1)+'" stroke="#f87171" stroke-width="3"/>'
+                + '<line x1="'+px.toFixed(1)+'" y1="'+py.toFixed(1)+'" x2="'+tx.toFixed(1)+'" y2="'+ty.toFixed(1)+'" stroke="#4ade80" stroke-width="3"/>'
+                + '<circle cx="'+cx+'" cy="'+cy+'" r="3" fill="#94a3b8"/>'
+                + '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="9" fill="#6366f1"/>';
+            return { svg: svg, readout: [['F', F.toFixed(2)+' N'], ['πράσινο','v (εφαπτ.)'], ['κόκκινο','F (κέντρο)']] };
+        }
+    },
+    doppler: {
+        sliderVar: 'vs', sliderMin: -300, sliderMax: 300, sliderStep: 5, sliderDefault: 100, sliderUnit: ' m/s',
+        needs: ['f','v'], defaults: {f: 500, v: 340},
+        render: function(vars) {
+            var f = vars.f, v = vars.v, vs = vars.vs;
+            var cx = 300, cy = 150, ratio = vs / v;
+            if (Math.abs(ratio) >= 1) {
+                var svg1 = '<circle cx="'+cx+'" cy="'+cy+'" r="8" fill="#f87171"/>'
+                    + '<text x="'+cx+'" y="'+(cy+50)+'" fill="#f87171" font-size="15" text-anchor="middle">Υπερηχητική πηγή — μη έγκυρο κλασικό μοντέλο</text>';
+                return { svg: svg1, readout: [['vs/v', ratio.toFixed(2)], ['Κατάσταση','μη έγκυρο']] };
+            }
+            var maxR = 130, svg = '', arrowDir = ratio >= 0 ? 1 : -1;
+            for (var k = 5; k >= 0; k--) {
+                var rr = maxR * k / 5;
+                var xc = cx - 28 * k * ratio;
+                svg += '<circle cx="'+xc.toFixed(1)+'" cy="'+cy+'" r="'+rr.toFixed(1)+'" fill="none" stroke="#6366f1" stroke-width="'+(k===0?2:1.3)+'" opacity="'+(0.3+0.7*(5-k)/5).toFixed(2)+'"/>';
+            }
+            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="7" fill="#4ade80"/>'
+                 + '<polygon points="'+(cx+arrowDir*7)+','+(cy-5)+' '+(cx+arrowDir*20)+','+cy+' '+(cx+arrowDir*7)+','+(cy+5)+'" fill="#4ade80"/>';
+            var fp = MultiCalc.data.physicsFormulas.optics.doppler.calculate({f:f,v:v,vo:0,vs:vs}, 'fp');
+            return { svg: svg, readout: [['f', f.toFixed(1)+' Hz'], ["f'", fp.toFixed(1)+' Hz'], ['vs/v', ratio.toFixed(3)]] };
+        }
+    },
+    rc_time: {
+        sliderVar: 'tRatio', sliderMin: 0, sliderMax: 5, sliderStep: 0.1, sliderDefault: 1, sliderUnit: 'τ',
+        needs: ['R','C'], defaults: {R: 1000, C: 0.001},
+        render: function(vars) {
+            var R = vars.R, C = vars.C, tRatio = vars.tRatio;
+            var tau = MultiCalc.data.physicsFormulas.electricity.rc_time.calculate({R:R,C:C}, 'tau');
+            var t = tRatio * tau, V0 = 10;
+            var Vt = V0 * (1 - Math.exp(-tRatio));
+            var W = 555, H = 220, ox = 25, oy = 260;
+            function toX(frac){ return ox + frac/5*W; }
+            function toY(Vv){ return oy - Vv/V0*H; }
+            var N = 60, pts = [];
+            for (var i=0;i<=N;i++){
+                var fr = 5*i/N, Vv = V0*(1-Math.exp(-fr));
+                pts.push(toX(fr).toFixed(1)+','+toY(Vv).toFixed(1));
+            }
+            var curX = toX(tRatio), curY = toY(Vt);
+            var svg = ''
+                + '<line x1="'+ox+'" y1="'+oy+'" x2="'+(ox+W)+'" y2="'+oy+'" stroke="#475569" stroke-width="2"/>'
+                + '<line x1="'+ox+'" y1="'+(oy-H)+'" x2="'+ox+'" y2="'+oy+'" stroke="#475569" stroke-width="2"/>'
+                + '<path d="M'+pts.join(' L')+'" fill="none" stroke="#6366f1" stroke-width="3"/>'
+                + '<line x1="'+curX.toFixed(1)+'" y1="'+curY.toFixed(1)+'" x2="'+curX.toFixed(1)+'" y2="'+oy+'" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>'
+                + '<circle cx="'+curX.toFixed(1)+'" cy="'+curY.toFixed(1)+'" r="6" fill="#f87171"/>';
+            return { svg: svg, readout: [['τ', tau.toFixed(4)+' s'], ['t', t.toFixed(4)+' s'], ['V/V₀', (Vt/V0*100).toFixed(1)+'%']] };
+        }
+    },
+    lens: {
+        sliderVar: 'doRatio', sliderMin: 1.5, sliderMax: 4, sliderStep: 0.1, sliderDefault: 2.5, sliderUnit: '×f',
+        needs: ['f'], defaults: {f: 0.1},
+        render: function(vars) {
+            var f = vars.f, doRatio = vars.doRatio;
+            var do_ = doRatio * f;
+            var di = MultiCalc.data.physicsFormulas.optics.lens.calculate({f:f, do_:do_}, 'di');
+            var m  = MultiCalc.data.physicsFormulas.optics.magnification.calculate({di:di, do_:do_}, 'm');
+            var cx = 300, cy = 150, fScaled = 70, scale = fScaled / f;
+            var doX = cx - do_ * scale, diX = cx + di * scale;
+            var ho = 50, hi = m * ho;
+            var objTopY = cy - ho, imgTopY = cy - hi;
+            var svg = ''
+                + '<line x1="20" y1="'+cy+'" x2="580" y2="'+cy+'" stroke="#475569" stroke-width="1" opacity="0.4"/>'
+                + '<line x1="'+cx+'" y1="40" x2="'+cx+'" y2="260" stroke="#94a3b8" stroke-width="3"/>'
+                + '<circle cx="'+(cx-fScaled).toFixed(1)+'" cy="'+cy+'" r="3" fill="#64748b"/>'
+                + '<circle cx="'+(cx+fScaled).toFixed(1)+'" cy="'+cy+'" r="3" fill="#64748b"/>'
+                + '<line x1="'+doX.toFixed(1)+'" y1="'+cy+'" x2="'+doX.toFixed(1)+'" y2="'+objTopY.toFixed(1)+'" stroke="#4ade80" stroke-width="3"/>'
+                + '<polygon points="'+(doX-5).toFixed(1)+','+(objTopY+8).toFixed(1)+' '+(doX+5).toFixed(1)+','+(objTopY+8).toFixed(1)+' '+doX.toFixed(1)+','+objTopY.toFixed(1)+'" fill="#4ade80"/>'
+                + '<line x1="'+doX.toFixed(1)+'" y1="'+objTopY.toFixed(1)+'" x2="'+cx+'" y2="'+objTopY.toFixed(1)+'" stroke="#fbbf24" stroke-width="1.5"/>'
+                + '<line x1="'+cx+'" y1="'+objTopY.toFixed(1)+'" x2="'+diX.toFixed(1)+'" y2="'+imgTopY.toFixed(1)+'" stroke="#fbbf24" stroke-width="1.5"/>'
+                + '<line x1="'+doX.toFixed(1)+'" y1="'+objTopY.toFixed(1)+'" x2="'+diX.toFixed(1)+'" y2="'+imgTopY.toFixed(1)+'" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,2"/>'
+                + '<line x1="'+diX.toFixed(1)+'" y1="'+cy+'" x2="'+diX.toFixed(1)+'" y2="'+imgTopY.toFixed(1)+'" stroke="#818cf8" stroke-width="3"/>';
+            return { svg: svg, readout: [['dᵢ', di.toFixed(3)+' m'], ['m', m.toFixed(2)]] };
+        }
+    }
+};
+
+/* ── physicsFormulaI18n (source: lines 7690-7823) ── */
+MultiCalc.data.physicsFormulaI18n = {
+    velocity:{el:{name:"Ταχύτητα",desc:"Περιγράφει τον ρυθμό μεταβολής της θέσης."},es:{name:"Velocidad",desc:"Describe la tasa de cambio de posición."}},
+    acceleration:{el:{name:"Επιτάχυνση",desc:"Ρυθμός μεταβολής της ταχύτητας."},es:{name:"Aceleración",desc:"Tasa de cambio de la velocidad."}},
+    newton2:{el:{name:"2ος Νόμος Νεύτωνα",desc:"Δύναμη ίση με μάζα επί επιτάχυνση."},es:{name:"2ª Ley de Newton",desc:"Fuerza igual a masa por aceleración."}},
+    momentum:{el:{name:"Ορμή",desc:"Γινόμενο μάζας και ταχύτητας."},es:{name:"Momento Lineal",desc:"Producto de masa y velocidad."}},
+    kinetic:{el:{name:"Κινητική Ενέργεια",desc:"Ενέργεια κίνησης."},es:{name:"Energía Cinética",desc:"Energía del movimiento."}},
+    potential:{el:{name:"Βαρυτική Δυν. Ενέργεια",desc:"Ενέργεια λόγω ύψους από το έδαφος."},es:{name:"Energía Potencial Grav.",desc:"Energía debida a la altura sobre el suelo."}},
+    work:{el:{name:"Έργο",desc:"Ενέργεια που μεταφέρεται από δύναμη."},es:{name:"Trabajo",desc:"Energía transferida por una fuerza."}},
+    power_mech:{el:{name:"Μηχανική Ισχύς",desc:"Ρυθμός εκτέλεσης έργου."},es:{name:"Potencia Mecánica",desc:"Tasa de realización de trabajo."}},
+    torque:{el:{name:"Ροπή",desc:"Δύναμη περιστροφής γύρω από άξονα."},es:{name:"Torque",desc:"Fuerza rotacional alrededor de un eje."}},
+    circular:{el:{name:"Φυγόκεντρος Δύναμη",desc:"Δύναμη για κυκλική κίνηση."},es:{name:"Fuerza Centrípeta",desc:"Fuerza para el movimiento circular."}},
+    friction:{el:{name:"Δύναμη Τριβής",desc:"Δύναμη αντίστασης."},es:{name:"Fuerza de Fricción",desc:"Fuerza de resistencia al movimiento."}},
+    gravity:{el:{name:"Βαρυτική Δύναμη",desc:"Ελκτική δύναμη μεταξύ δύο μαζών."},es:{name:"Fuerza Gravitacional",desc:"Fuerza atractiva entre dos masas."}},
+    projectile:{el:{name:"Βεληνεκές Βλήματος",desc:"Οριζόντια εμβέλεια βλήματος."},es:{name:"Alcance del Proyectil",desc:"Alcance horizontal de un proyectil."}},
+    hooke:{el:{name:"Νόμος Hooke",desc:"Δύναμη ελατηρίου ανάλογη της επιμήκυνσης."},es:{name:"Ley de Hooke",desc:"Fuerza del resorte proporcional a la extensión."}},
+    impulse:{el:{name:"Ώθηση",desc:"Μεταβολή ορμής στο χρόνο."},es:{name:"Impulso",desc:"Cambio en el momento lineal."}},
+    spring_pe:{el:{name:"Ελαστική Δυν. Ενέργεια",desc:"Ενέργεια αποθηκευμένη σε ελατήριο."},es:{name:"Energía Potencial Elástica",desc:"Energía almacenada en un resorte."}},
+    angular_vel:{el:{name:"Γωνιακή Ταχύτητα",desc:"Ρυθμός γωνιακής μετατόπισης."},es:{name:"Velocidad Angular",desc:"Tasa de desplazamiento angular."}},
+    rot_ke:{el:{name:"Κιν. Ενέργεια Περιστ.",desc:"Ενέργεια περιστρεφόμενων αντικειμένων."},es:{name:"Energía Cinética Rot.",desc:"Energía de los objetos en rotación."}},
+    bernoulli:{el:{name:"Εξίσωση Bernoulli",desc:"Πίεση + δυναμική πίεση = σταθερή."},es:{name:"Ecuación de Bernoulli",desc:"Presión + presión dinámica = constante."}},
+    ohm:{el:{name:"Νόμος Ohm",desc:"Σχέση τάσης, έντασης και αντίστασης."},es:{name:"Ley de Ohm",desc:"Relación entre tensión, corriente y resistencia."}},
+    power_elec:{el:{name:"Ηλεκτρική Ισχύς",desc:"Ισχύς που καταναλώνεται σε κύκλωμα."},es:{name:"Potencia Eléctrica",desc:"Potencia consumida en un circuito."}},
+    power_r:{el:{name:"Ισχύς από Αντίσταση",desc:"Ισχύς που διαχέεται σε αντιστάτη."},es:{name:"Potencia por Resistencia",desc:"Potencia disipada en una resistencia."}},
+    series_r:{el:{name:"Αντιστάσεις σε Σειρά",desc:"Συνολική αντίσταση σε σειριακό κύκλωμα."},es:{name:"Resistencias en Serie",desc:"Resistencia total en circuito serie."}},
+    parallel_r:{el:{name:"Αντιστάσεις παράλληλα",desc:"Συνολική αντίσταση παράλληλου κυκλώματος."},es:{name:"Resistencias en Paralelo",desc:"Resistencia total en circuito paralelo."}},
+    coulomb:{el:{name:"Νόμος Coulomb",desc:"Ηλεκτρική δύναμη μεταξύ δύο φορτίων."},es:{name:"Ley de Coulomb",desc:"Fuerza eléctrica entre dos cargas."}},
+    capacitor:{el:{name:"Ενέργεια Πυκνωτή",desc:"Ενέργεια αποθηκευμένη σε πυκνωτή."},es:{name:"Energía del Condensador",desc:"Energía almacenada en un condensador."}},
+    magnetic:{el:{name:"Μαγνητική Δύναμη",desc:"Δύναμη σε κινούμενο φορτίο σε μαγνητικό πεδίο."},es:{name:"Fuerza Magnética",desc:"Fuerza sobre carga en movimiento."}},
+    rc_time:{el:{name:"Σταθερά Χρόνου RC",desc:"Χρόνος φόρτισης/εκφόρτισης πυκνωτή ~63%."},es:{name:"Constante de Tiempo RC",desc:"Tiempo de carga/descarga ~63%."}},
+    transformer:{el:{name:"Αναλογία Μετασχ/στή",desc:"Αναλογία τάσης ίση με αναλογία σπειρών."},es:{name:"Relación del Transformador",desc:"Relación de tensión = relación de espiras."}},
+    elec_field:{el:{name:"Ηλεκτρικό Πεδίο",desc:"Ένταση πεδίου μεταξύ παράλληλων πλακών."},es:{name:"Campo Eléctrico",desc:"Intensidad del campo entre placas paralelas."}},
+    charge:{el:{name:"Ηλεκτρικό Φορτίο",desc:"Συνολικό φορτίο που μεταφέρει ρεύμα."},es:{name:"Carga Eléctrica",desc:"Carga total transferida por una corriente."}},
+    heat:{el:{name:"Μεταφορά Θερμότητας",desc:"Ενέργεια για μεταβολή θερμοκρασίας."},es:{name:"Transferencia de Calor",desc:"Energía para cambiar la temperatura."}},
+    ideal_gas:{el:{name:"Νόμος Ιδανικού Αερίου",desc:"Σχέση πίεσης, όγκου, θερμοκρασίας."},es:{name:"Ley del Gas Ideal",desc:"Relación presión, volumen, temperatura."}},
+    thermal_exp:{el:{name:"Θερμική Διαστολή",desc:"Μεταβολή μήκους λόγω θερμοκρασίας."},es:{name:"Expansión Térmica",desc:"Cambio en longitud por temperatura."}},
+    entropy:{el:{name:"Μεταβολή Εντροπίας",desc:"Μέτρο μεταβολής αταξίας."},es:{name:"Cambio de Entropía",desc:"Medida del cambio en desorden."}},
+    carnot:{el:{name:"Απόδοση Carnot",desc:"Μέγιστη απόδοση θερμικής μηχανής."},es:{name:"Eficiencia de Carnot",desc:"Eficiencia máxima de un motor térmico."}},
+    boyle:{el:{name:"Νόμος Boyle",desc:"Πίεση–όγκος σε σταθερή θερμοκρασία."},es:{name:"Ley de Boyle",desc:"Presión–volumen a temperatura constante."}},
+    charles:{el:{name:"Νόμος Charles",desc:"Όγκος–θερμοκρασία σε σταθερή πίεση."},es:{name:"Ley de Charles",desc:"Volumen–temperatura a presión constante."}},
+    gay_lussac:{el:{name:"Νόμος Gay-Lussac",desc:"Πίεση–θερμοκρασία σε σταθερό όγκο."},es:{name:"Ley de Gay-Lussac",desc:"Presión–temperatura a volumen constante."}},
+    latent_heat:{el:{name:"Λανθάνουσα Θερμότητα",desc:"Ενέργεια για αλλαγή φάσης."},es:{name:"Calor Latente",desc:"Energía para cambio de fase."}},
+    stefan:{el:{name:"Νόμος Stefan-Boltzmann",desc:"Ισχύς ακτινοβολίας μέλανος σώματος."},es:{name:"Ley de Stefan-Boltzmann",desc:"Potencia irradiada por un cuerpo negro."}},
+    heat_cond:{el:{name:"Αγωγή Θερμότητας",desc:"Ρυθμός ροής θερμότητας μέσα από υλικό."},es:{name:"Conducción de Calor",desc:"Tasa de flujo de calor a través de un material."}},
+    wave:{el:{name:"Ταχύτητα Κύματος",desc:"Ταχύτητα κύματος, συχνότητα και μήκος κύματος."},es:{name:"Velocidad de Onda",desc:"Velocidad, frecuencia y longitud de onda."}},
+    snell:{el:{name:"Νόμος Snell",desc:"Διάθλαση στη διεπιφάνεια δύο μέσων."},es:{name:"Ley de Snell",desc:"Refracción en la interfaz de dos medios."}},
+    critical_angle:{el:{name:"Κρίσιμη Γωνία",desc:"Γωνία για ολική εσωτερική ανάκλαση."},es:{name:"Ángulo Crítico",desc:"Ángulo para reflexión total interna."}},
+    lens:{el:{name:"Εξίσωση Λεπτού Φακού",desc:"Εστιακή απόσταση, αποστάσεις αντικειμένου/εικόνας."},es:{name:"Ecuación de Lente Delgada",desc:"Distancia focal, objeto e imagen."}},
+    lens_power:{el:{name:"Ισχύς Φακού",desc:"Οπτική ισχύς φακού σε διόπτρες."},es:{name:"Potencia de Lente",desc:"Potencia óptica de una lente en dioptrías."}},
+    magnification:{el:{name:"Μεγέθυνση",desc:"Αναλογία μεγέθους εικόνας προς αντικείμενο."},es:{name:"Magnificación",desc:"Relación del tamaño de la imagen al objeto."}},
+    intensity:{el:{name:"Ένταση Κύματος",desc:"Ισχύς ανά μονάδα επιφάνειας κύματος."},es:{name:"Intensidad de Onda",desc:"Potencia por unidad de área."}},
+    doppler:{el:{name:"Φαινόμενο Doppler",desc:"Μεταβολή συχνότητας λόγω κίνησης πηγής."},es:{name:"Efecto Doppler",desc:"Cambio de frecuencia por movimiento."}},
+    sound_level:{el:{name:"Επίπεδο Ήχου",desc:"Ηχητική στάθμη σε decibels."},es:{name:"Nivel de Sonido",desc:"Nivel sonoro en decibeles."}},
+    diffraction:{el:{name:"Φράγμα Περίθλασης",desc:"Εξίσωση φράγματος για μέγιστα περίθλασης."},es:{name:"Red de Difracción",desc:"Ecuación de la red para máximos de difracción."}},
+    density:{el:{name:"Πυκνότητα",desc:"Μάζα ανά μονάδα όγκου."},es:{name:"Densidad",desc:"Masa por unidad de volumen."}},
+    pressure_gen:{el:{name:"Πίεση",desc:"Δύναμη ανά μονάδα επιφάνειας."},es:{name:"Presión",desc:"Fuerza por unidad de área."}},
+    buoyancy:{el:{name:"Άνωση (Αρχιμήδης)",desc:"Ανωστική δύναμη σε βυθισμένο αντικείμενο."},es:{name:"Flotabilidad (Arquímedes)",desc:"Fuerza de flotabilidad en objeto sumergido."}},
+    escape_vel:{el:{name:"Ταχύτητα Διαφυγής",desc:"Ελάχιστη ταχύτητα για διαφυγή από βαρύτητα."},es:{name:"Velocidad de Escape",desc:"Velocidad mínima para escapar de la gravedad."}},
+    flow_rate:{el:{name:"Παροχή Ρευστού",desc:"Ρυθμός ροής ρευστού."},es:{name:"Caudal",desc:"Tasa de flujo de fluido."}},
+    half_life:{el:{name:"Ραδιενεργός Αποσύνθεση",desc:"Αριθμός εναπομεινάντων ραδιενεργών πυρήνων."},es:{name:"Desintegración Radiactiva",desc:"Número de núcleos radiactivos restantes."}},
+    simple_harm:{el:{name:"Περίοδος Ελατηρίου-Μάζας",desc:"Περίοδος ταλάντωσης συστήματος ελατηρίου-μάζας."},es:{name:"Período Masa-Resorte",desc:"Período de oscilación del sistema masa-resorte."}},
+    pendulum:{el:{name:"Περίοδος Εκκρεμούς",desc:"Περίοδος απλού εκκρεμούς."},es:{name:"Período del Péndulo",desc:"Período de un péndulo simple."}},
+    surface_tension:{el:{name:"Δύναμη Επιφανειακής Τάσης",desc:"Δύναμη λόγω επιφανειακής τάσης κατά μήκος."},es:{name:"Tensión Superficial",desc:"Fuerza por tensión superficial a lo largo de una longitud."}},
+    mass_energy:{el:{name:"Ισοδυναμία Μάζας-Ενέργειας",desc:"Η διάσημη σχέση ενέργειας-μάζας του Einstein."},es:{name:"Equivalencia Masa-Energía",desc:"La famosa relación energía-masa de Einstein."}},
+    lorentz:{el:{name:"Συντελεστής Lorentz",desc:"Σχετικιστικός συντελεστής για διαστολή χρόνου."},es:{name:"Factor de Lorentz",desc:"Factor relativista para dilatación temporal."}},
+    time_dilation:{el:{name:"Διαστολή Χρόνου",desc:"Κινούμενα ρολόγια βαδίζουν πιο αργά."},es:{name:"Dilatación del Tiempo",desc:"Los relojes en movimiento van más lento."}},
+    length_contract:{el:{name:"Συστολή Μήκους",desc:"Κινούμενα αντικείμενα φαίνονται πιο κοντά."},es:{name:"Contracción de Longitud",desc:"Los objetos en movimiento parecen más cortos."}},
+    photon_energy:{el:{name:"Ενέργεια Φωτονίου",desc:"Ενέργεια φωτονίου (h = σταθερά Planck)."},es:{name:"Energía del Fotón",desc:"Energía de un fotón (h = constante de Planck)."}},
+    de_broglie:{el:{name:"Μήκος Κύματος de Broglie",desc:"Μήκος κύματος σωματιδίου–κύματος."},es:{name:"Long. de Onda de Broglie",desc:"Longitud de onda de la dualidad onda–partícula."}},
+    photoelectric:{el:{name:"Φωτοηλεκτρικό Φαινόμενο",desc:"Μέγ. κινητική ενέργεια εκπεμπόμενων ηλεκτρονίων."},es:{name:"Efecto Fotoeléctrico",desc:"Energía cinética máxima de los electrones emitidos."}},
+    hydrogen:{el:{name:"Ενεργ. Στάθμες Υδρογόνου",desc:"Ενέργεια ηλεκτρονίου υδρογόνου σε στάθμη n."},es:{name:"Niveles Energ. del Hidrógeno",desc:"Energía del electrón en hidrógeno en nivel n."}},
+    nuclear_binding:{el:{name:"Ενέργεια Δεσμού Πυρήνα",desc:"Ενέργεια που συγκρατεί τον πυρήνα."},es:{name:"Energía de Enlace Nuclear",desc:"Energía que mantiene unido el núcleo."}}
+};
+
+/* ── JS functions (source: lines 9825-9898, 11126-11233) ── */
+
+function translateVarLabel(label) {
+    if (MultiCalc.state.currentLang === 'en') return label;
+    var dict = MultiCalc.data.varWordI18n[MultiCalc.state.currentLang];
+    if (!dict) return label;
+    var keys = Object.keys(dict).sort(function(a,b){ return b.length-a.length; });
+    for (var i=0; i<keys.length; i++) {
+        if (label.includes(keys[i])) return label.replace(keys[i], dict[keys[i]]);
+    }
+    return label;
+}
+
+function getFormulaName(key) {
+    var lang = MultiCalc.state.currentLang;
+    if (lang !== 'en' && MultiCalc.data.physicsFormulaI18n[key] && MultiCalc.data.physicsFormulaI18n[key][lang]) {
+        return MultiCalc.data.physicsFormulaI18n[key][lang].name;
+    }
+    var cats = Object.values(MultiCalc.data.physicsFormulas);
+    for (var i=0; i<cats.length; i++) { if (cats[i][key]) return cats[i][key].name; }
+    return key;
+}
+
+function getFormulaDesc(formula, key) {
+    var lang = MultiCalc.state.currentLang;
+    if (lang !== 'en' && MultiCalc.data.physicsFormulaI18n[key] && MultiCalc.data.physicsFormulaI18n[key][lang]) {
+        return MultiCalc.data.physicsFormulaI18n[key][lang].desc;
+    }
+    return formula.description;
+}
+
+function updatePhysicsStaticUI() {
+    /* Translate static labels that are not dynamically generated */
+    var sfLabel = document.getElementById('solve-for-label');
+    if (sfLabel) sfLabel.innerText = T('solveFor');
+    /* Translate category button labels */
+    var cats = ['mechanics','electricity','thermodynamics','optics','general','modern'];
+    cats.forEach(function(cat) {
+        var lbl = document.getElementById('cat-lbl-' + cat);
+        if (lbl) lbl.innerText = T(cat);
+    });
+}
+
+function selectPhysicsCategory(category, element) {
+    MultiCalc.state.currentPhysicsCategory = category;
+    document.querySelectorAll('.physics-card').forEach(function(c) {
+        c.classList.remove('active','active-orange','active-red','active-purple','active-gray');
+    });
+    var activeClass = category==='mechanics'      ? 'active' :
+                      category==='electricity'    ? 'active-orange' :
+                      category==='thermodynamics' ? 'active-red' :
+                      category==='optics'         ? 'active-purple' :
+                      category==='modern'         ? 'active-purple' : 'active-gray';
+    if (element) element.classList.add(activeClass);
+    loadPhysicsFormulas(category);
+}
+
+function loadPhysicsFormulas(category) {
+    var formulas = MultiCalc.data.physicsFormulas[category];
+    if (!formulas) return;
+    var select = document.getElementById('formula-select');
+    if (!select) return;
+    select.innerHTML = '';
+    Object.keys(formulas).forEach(function(key) {
+        var opt = document.createElement('option');
+        opt.value = key;
+        opt.text  = getFormulaName(key) || formulas[key].name;
+        select.appendChild(opt);
+    });
+    selectFormula();
+}
+
+function selectFormula() {
+    var selectEl = document.getElementById('formula-select');
+    if (!selectEl) return;
+    var key = selectEl.value;
+    var cat = MultiCalc.state.currentPhysicsCategory;
+    if (!key || !MultiCalc.data.physicsFormulas[cat]) return;
+    var formula = MultiCalc.data.physicsFormulas[cat][key];
+    if (!formula) return;
+
+    MultiCalc.state.currentFormula = {
+        calculate: formula.calculate,
+        icon: formula.icon, iconClass: formula.iconClass,
+        equation: formula.equation,
+        variables: Object.assign({}, formula.variables),
+        solve:     Object.assign({}, formula.solve),
+        category: cat, key: key
+    };
+
+    var nameEl   = document.getElementById('formula-name');
+    var eqEl     = document.getElementById('formula-eq');
+    var descEl   = document.getElementById('formula-desc');
+    var iconBox  = document.getElementById('formula-icon-box');
+    var sfEl     = document.getElementById('solve-for');
+    var varsDiv  = document.getElementById('variables');
+    var resultEl = document.getElementById('result-physics');
+
+    if (nameEl)   nameEl.innerText = getFormulaName(key) || formula.name;
+    if (eqEl)     eqEl.innerText   = formula.equation;
+    if (descEl)   descEl.innerText = 'ℹ️ ' + getFormulaDesc(formula, key);
+    if (iconBox)  { iconBox.innerText = formula.icon; iconBox.className = 'icon-box ' + formula.iconClass; }
+
+    if (sfEl) {
+        sfEl.innerHTML = '';
+        Object.keys(formula.solve).forEach(function(k) {
+            var opt = document.createElement('option');
+            opt.value = k;
+            opt.text  = translateVarLabel(formula.solve[k]);
+            sfEl.appendChild(opt);
+        });
+    }
+
+    if (varsDiv) {
+        varsDiv.innerHTML = '';
+        Object.keys(formula.variables).forEach(function(k) {
+            var div = document.createElement('div');
+            div.className = 'variable-group';
+            div.innerHTML = '<label class="variable-label">'+translateVarLabel(formula.variables[k])+'</label>'
+                          + '<div class="unc-row">'
+                          + '<input type="number" class="input-field" id="var-'+k+'" value="0" step="any">'
+                          + '<span class="unc-sign">±</span>'
+                          + '<input type="number" class="input-field unc-field" id="var-'+k+'-unc" placeholder="0" step="any" title="αβεβαιότητα (προαιρετικό)">'
+                          + '</div>'
+                          + '<select class="chain-picker" data-var="'+k+'" onchange="applyChainValue(\''+k+'\',this)"></select>';
+            varsDiv.appendChild(div);
+        });
+        refreshChainPickers();
+    }
+
+    updateSolveFor();
+    if (resultEl) resultEl.classList.remove('show');
+    initPhysicsViz(key);
+}
+
+function initPhysicsViz(key) {
+    var panel = document.getElementById('physics-viz-panel');
+    if (!panel) return;
+    var vizDef = MultiCalc.data.physicsVisualizations[key];
+    if (!vizDef) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    var slider = document.getElementById('viz-slider');
+    slider.min = vizDef.sliderMin; slider.max = vizDef.sliderMax; slider.step = vizDef.sliderStep;
+    slider.value = vizDef.sliderDefault;
+    var lbl = document.getElementById('viz-slider-label');
+    if (lbl) lbl.innerText = prettySym(vizDef.sliderVar);
+    updatePhysicsViz();
+}
+
+function updatePhysicsViz() {
+    var key = MultiCalc.state.currentFormula && MultiCalc.state.currentFormula.key;
+    var vizDef = key && MultiCalc.data.physicsVisualizations[key];
+    if (!vizDef) return;
+    var slider = document.getElementById('viz-slider');
+    var sliderVal = parseFloat(slider.value);
+    var valEl = document.getElementById('viz-slider-value');
+    if (valEl) valEl.innerText = sliderVal + (vizDef.sliderUnit || '');
+    var vars = {};
+    vars[vizDef.sliderVar] = sliderVal;
+    (vizDef.needs || []).forEach(function(k) {
+        var input = document.getElementById('var-' + k);
+        var val = input ? parseFloat(input.value) : NaN;
+        vars[k] = (val && val > 0) ? val : vizDef.defaults[k];
+    });
+    var out = vizDef.render(vars);
+    var svgEl = document.getElementById('viz-svg');
+    if (svgEl) svgEl.innerHTML = out.svg;
+    var readoutEl = document.getElementById('viz-readout');
+    if (readoutEl) readoutEl.innerHTML = out.readout.map(function(pair){ return '<span>'+pair[0]+' = <b>'+pair[1]+'</b></span>'; }).join('');
+}
+
+function updateSolveFor() {
+    if (!MultiCalc.state.currentFormula) return;
+    var sfEl = document.getElementById('solve-for');
+    if (!sfEl) return;
+    var solveFor = sfEl.value;
+    var label = MultiCalc.state.currentFormula.solve[solveFor] || solveFor;
+    var varName = label.split(' - ')[0].replace(/.*\(/, '').replace(')', '').trim();
+    var calcBtn = document.getElementById('calc-btn');
+    if (calcBtn) calcBtn.innerText = 'Υπολογισμός ' + varName;
+    Object.keys(MultiCalc.state.currentFormula.variables).forEach(function(k) {
+        var el = document.getElementById('var-' + k);
+        if (el && el.parentElement) el.parentElement.style.display = 'block';
+    });
+    var solveEl = document.getElementById('var-' + solveFor);
+    if (solveEl && solveEl.parentElement) solveEl.parentElement.style.display = 'none';
+}
+
+var STEP_LABELS = {
+    el: {given:'Δεδομένα', find:'Ζητείται', law:'Νόμος'},
+    en: {given:'Given', find:'Find', law:'Law'},
+    es: {given:'Datos', find:'Buscar', law:'Ley'}
+};
+function stepLabel(k) {
+    var lang = MultiCalc.state.currentLang;
+    return (STEP_LABELS[lang] && STEP_LABELS[lang][k]) || STEP_LABELS.en[k];
+}
+
+function prettySym(key) {
+    var special = {dv:'Δv',dT:'ΔT',dL:'ΔL',dS:'ΔS',dt:'Δt',dtp:"Δt'",Lp:"L'",fp:"f'",m_:'m',do_:'d₀',thetac:'θc',eps:'ε'};
+    if (special[key]) return special[key];
+    var greek = {theta:'θ',omega:'ω',tau:'τ',mu:'μ',rho:'ρ',lambda:'λ',alpha:'α',gamma:'γ',eta:'η',phi:'φ'};
+    var subMap = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄'};
+    var m = key.match(/^([A-Za-z]+)(\d)$/);
+    if (m) {
+        var base = greek[m[1]] || m[1];
+        var sub  = subMap[m[2]] || m[2];
+        return base + sub;
+    }
+    return greek[key] || key;
+}
+
+function symbolicize(template) {
+    return template.replace(/\{(\w+)\}/g, function(_, key) { return prettySym(key); });
+}
+
+function fmtStepNum(n) {
+    if (n === 0) return '0';
+    var a = Math.abs(n);
+    if (a >= 1e-3 && a < 1e7) return parseFloat(n.toPrecision(6)).toString();
+    var parts = n.toExponential(4).split('e');
+    var mant  = parseFloat(parts[0]).toString();
+    var exp   = parseInt(parts[1], 10);
+    var supMap = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+    var expStr = String(exp).split('').map(function(c){ return supMap[c]!==undefined?supMap[c]:c; }).join('');
+    return mant + '×10' + expStr;
+}
+function fmtStepNumEq(n) {
+    var s = fmtStepNum(n);
+    return (n < 0 || s.indexOf('×10') !== -1) ? '(' + s + ')' : s;
+}
+
+function substituteNumeric(template, vars, constSym) {
+    var out = template;
+    Object.keys(vars).forEach(function(k) {
+        out = out.split('{'+k+'}').join(fmtStepNumEq(vars[k]));
+    });
+    if (constSym) {
+        var constKeyMap = {G:'G',c:'c',h:'h',R:'R',k:'k','σ':'sigma'};
+        var val = MultiCalc.data.physicsConstants[constKeyMap[constSym]];
+        out = out.split(constSym).join(fmtStepNumEq(val));
+    }
+    return out;
+}
+
+function fmtFinal(n) {
+    return Math.abs(n) > 0.0001 && Math.abs(n) < 1e12 ? parseFloat(n.toPrecision(12)).toString() : n.toExponential(6);
+}
+
+function computeErrorPropagation(calcFn, vars, uncertainties, solveFor) {
+    var sumSq = 0;
+    Object.keys(vars).forEach(function(k) {
+        var sigma = uncertainties[k];
+        if (!sigma) return;
+        var x = vars[k];
+        var h = Math.abs(x) > 1e-12 ? Math.abs(x) * 1e-5 : 1e-8;
+        var varsPlus  = Object.assign({}, vars); varsPlus[k]  = x + h;
+        var varsMinus = Object.assign({}, vars); varsMinus[k] = x - h;
+        var fPlus  = calcFn(varsPlus, solveFor);
+        var fMinus = calcFn(varsMinus, solveFor);
+        if (!isFinite(fPlus) || !isFinite(fMinus)) return;
+        var deriv = (fPlus - fMinus) / (2 * h);
+        sumSq += (deriv * sigma) * (deriv * sigma);
+    });
+    return Math.sqrt(sumSq);
+}
+
+function fmtWithUncertainty(value, unc) {
+    if (!unc || !isFinite(unc) || unc <= 0) return fmtFinal(value);
+    var r1     = parseFloat(unc.toPrecision(1));
+    var exp1   = Math.floor(Math.log10(Math.abs(r1)));
+    var lead1  = Math.round(r1 / Math.pow(10, exp1));
+    var sigFigs  = (lead1 === 1) ? 2 : 1;
+    var rFinal   = parseFloat(unc.toPrecision(sigFigs));
+    var expFinal = Math.floor(Math.log10(Math.abs(rFinal)));
+
+    var absVal = Math.abs(value);
+    var useSci = absVal !== 0 ? (absVal >= 1e7 || absVal < 1e-3) : (unc >= 1e7 || unc < 1e-3);
+    var supMap = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+    if (useSci) {
+        var expV = (value === 0) ? expFinal : Math.floor(Math.log10(absVal));
+        var scaledVal = value / Math.pow(10, expV);
+        var scaledUnc = unc / Math.pow(10, expV);
+        var decimals  = Math.max(0, sigFigs - 1 - (expFinal - expV));
+        var expStr = String(expV).split('').map(function(c){ return supMap[c]!==undefined?supMap[c]:c; }).join('');
+        return '(' + scaledVal.toFixed(decimals) + ' ± ' + scaledUnc.toFixed(decimals) + ')×10' + expStr;
+    }
+    var decimals2 = Math.min(15, Math.max(0, sigFigs - 1 - expFinal));
+    return value.toFixed(decimals2) + ' ± ' + unc.toFixed(decimals2);
+}
+
+function checkPhysicsSanity(allVars, formulaKey) {
+    var c = MultiCalc.data.physicsConstants.c;
+    var lang = MultiCalc.state.currentLang;
+    var warnings = [];
+    MultiCalc.data.physicsSanityRules.forEach(function(rule) {
+        if (rule.excludeFormulas && rule.excludeFormulas.indexOf(formulaKey) !== -1) return;
+        rule.keys.forEach(function(k) {
+            if (!(k in allVars)) return;
+            var x = allVars[k], bad = false;
+            switch (rule.type) {
+                case 'nonneg':   bad = x < 0; break;
+                case 'neg':      bad = x >= 0; break;
+                case 'min1':     bad = x < 1; break;
+                case 'speedMag': bad = x < 0 || Math.abs(x) >= c; break;
+                case 'speedAbs': bad = Math.abs(x) >= c; break;
+                case 'range':    bad = x < rule.min || (rule.exclMax ? x >= rule.max : x > rule.max); break;
+                case 'integer':  bad = Math.abs(x - Math.round(x)) > 0.01; break;
+            }
+            if (bad) {
+                var msg = rule.msg[lang] || rule.msg.en;
+                if (warnings.indexOf(msg) === -1) warnings.push(msg);
+            }
+        });
+    });
+    return warnings;
+}
+
+function buildSolutionSteps(cat, key, formula, vars, solveFor, result, uncertainties, resultUnc) {
+    uncertainties = uncertainties || {};
+    var givenParts = [];
+    Object.keys(formula.variables).forEach(function(k) {
+        if (k === solveFor) return;
+        var lbl = translateVarLabel(formula.variables[k]);
+        var m = lbl.match(/^(.*?)(?:\s*\[([^\]]+)\])?$/);
+        var text = (m && m[1]) ? m[1].trim() : lbl;
+        var unit = (m && m[2]) ? m[2] : '';
+        var sigma = uncertainties[k];
+        var valStr = (sigma && sigma > 0) ? fmtWithUncertainty(vars[k], sigma) : fmtStepNum(vars[k]);
+        givenParts.push(text + ' = ' + valStr + (unit ? ' ' + unit : ''));
+    });
+
+    var solveLabel = translateVarLabel(formula.solve[solveFor] || solveFor);
+    var solveParts = solveLabel.split(' - ');
+    var askText = solveParts[0];
+    var askUnit = solveParts[1] || '';
+
+    var tplGroup = MultiCalc.data.physicsSolveTemplates[cat] && MultiCalc.data.physicsSolveTemplates[cat][key];
+    var tpl      = tplGroup ? tplGroup[solveFor] : null;
+    var constSym = MultiCalc.data.physicsFormulaConstant[key];
+    var lhsSym   = prettySym(solveFor);
+
+    var html = '<div class="sol-step"><div class="sol-label">📋 ' + stepLabel('given') + '</div><div class="sol-content">' + (givenParts.join('  •  ') || '—') + '</div></div>'
+             + '<div class="sol-step"><div class="sol-label">❓ ' + stepLabel('find') + '</div><div class="sol-content">' + askText + '</div></div>'
+             + '<div class="sol-step"><div class="sol-label">📐 ' + stepLabel('law') + '</div><div class="sol-content">' + (getFormulaName(key) || formula.name) + ' — ' + getFormulaDesc(formula, key) + '</div></div>';
+
+    if (tpl) {
+        html += '<div class="sol-eq">' + lhsSym + ' = ' + symbolicize(tpl) + '</div>'
+              + '<div class="sol-eq">' + lhsSym + ' = ' + substituteNumeric(tpl, vars, constSym) + '</div>';
+    }
+    html += '<div class="sol-final">' + lhsSym + ' = ' + (resultUnc > 0 ? fmtWithUncertainty(result, resultUnc) : fmtFinal(result)) + (askUnit ? ' ' + askUnit : '') + '</div>';
+
+    var allVars = Object.assign({}, vars);
+    allVars[solveFor] = result;
+    var warnings = checkPhysicsSanity(allVars, key);
+    if (warnings.length) {
+        html += '<div class="sol-warn">⚠️ ' + warnings.join('<br>⚠️ ') + '</div>';
+    }
+    return html;
+}
+
+function addChainResult(symbol, label, value, unit, uncertainty) {
+    MultiCalc.state.chainResults = MultiCalc.state.chainResults || [];
+    MultiCalc.state.chainResults.unshift({symbol: symbol, label: label, value: value, unit: unit, uncertainty: uncertainty || 0});
+    if (MultiCalc.state.chainResults.length > 8) MultiCalc.state.chainResults.length = 8;
+    renderChainPanel();
+    refreshChainPickers();
+}
+
+function clearChainResults() {
+    MultiCalc.state.chainResults = [];
+    renderChainPanel();
+    refreshChainPickers();
+}
+
+function removeChainResult(idx) {
+    MultiCalc.state.chainResults = MultiCalc.state.chainResults || [];
+    MultiCalc.state.chainResults.splice(idx, 1);
+    renderChainPanel();
+    refreshChainPickers();
+}
+
+function renderChainPanel() {
+    MultiCalc.state.chainResults = MultiCalc.state.chainResults || [];
+    var listEl = document.getElementById('chain-list');
+    if (!listEl) return;
+    if (MultiCalc.state.chainResults.length === 0) {
+        listEl.innerHTML = '<div class="chain-empty">Δεν υπάρχουν ακόμα αποτελέσματα — λύσε κάτι για να ξεκινήσεις μια αλυσίδα.</div>';
+        return;
+    }
+    listEl.innerHTML = MultiCalc.state.chainResults.map(function(r, i) {
+        var valStr = r.uncertainty > 0 ? fmtWithUncertainty(r.value, r.uncertainty) : fmtFinal(r.value);
+        return '<div class="chain-item"><span>' + r.symbol + ' = <b>' + valStr + '</b> ' + (r.unit||'') + '<small>' + r.label + '</small></span>'
+             + '<button type="button" class="chain-del" onclick="removeChainResult(' + i + ')">✕</button></div>';
+    }).join('');
+}
+
+function dimsEqual(a, b) {
+    for (var i = 0; i < 6; i++) if (Math.abs(a[i] - b[i]) > 1e-9) return false;
+    return true;
+}
+
+function unitDimOf(unitStr) {
+    return (unitStr && MultiCalc.data.unitDimensions[unitStr.trim()]) || [0,0,0,0,0,0];
+}
+
+function refreshChainPickers() {
+    MultiCalc.state.chainResults = MultiCalc.state.chainResults || [];
+    var pickers = document.querySelectorAll('.chain-picker');
+    pickers.forEach(function(sel) {
+        var varKey = sel.getAttribute('data-var');
+        var targetDim = null;
+        if (varKey && MultiCalc.state.currentFormula && MultiCalc.state.currentFormula.variables[varKey]) {
+            var m = MultiCalc.state.currentFormula.variables[varKey].match(/\[([^\]]+)\]/);
+            targetDim = unitDimOf(m ? m[1] : '');
+        }
+        var opts = '<option value="">🔗 Χρήση αποτελέσματος…</option>';
+        MultiCalc.state.chainResults.forEach(function(r, i) {
+            var valStr = r.uncertainty > 0 ? fmtWithUncertainty(r.value, r.uncertainty) : fmtFinal(r.value);
+            var mismatch = targetDim && !dimsEqual(unitDimOf(r.unit), targetDim);
+            opts += '<option value="'+i+'">'+(mismatch?'⚠️ ':'')+r.symbol+' = '+valStr+' '+(r.unit||'')+' ('+r.label+')'+(mismatch?' — ασύμβατη μονάδα':'')+'</option>';
+        });
+        sel.innerHTML = opts;
+    });
+}
+
+function applyChainValue(varKey, selectEl) {
+    var idx = selectEl.value;
+    if (idx === '') return;
+    MultiCalc.state.chainResults = MultiCalc.state.chainResults || [];
+    var r = MultiCalc.state.chainResults[parseInt(idx,10)];
+    if (!r) return;
+    var input = document.getElementById('var-' + varKey);
+    if (input) input.value = r.value;
+    if (r.uncertainty > 0) {
+        var uncInput = document.getElementById('var-' + varKey + '-unc');
+        if (uncInput) uncInput.value = r.uncertainty;
+    }
+    selectEl.value = '';
+}
+
+function calculatePhysics() {
+    if (!MultiCalc.state.currentFormula) return;
+    var vars = {}, uncertainties = {};
+    var sfEl = document.getElementById('solve-for');
+    if (!sfEl) return;
+    var solveFor = sfEl.value;
+
+    Object.keys(MultiCalc.state.currentFormula.variables).forEach(function(k) {
+        var input = document.getElementById('var-' + k);
+        if (input && input.parentElement && input.parentElement.style.display !== 'none') {
+            vars[k] = parseFloat(input.value) || 0;
+            var uncInput = document.getElementById('var-' + k + '-unc');
+            var uncVal = uncInput ? parseFloat(uncInput.value) : NaN;
+            uncertainties[k] = (uncVal > 0) ? uncVal : 0;
+        }
+    });
+    Object.keys(MultiCalc.state.currentFormula.variables).forEach(function(k) {
+        if (vars[k] === undefined) { vars[k] = 0; uncertainties[k] = 0; }
+    });
+
+    var resultDiv = document.getElementById('result-physics');
+    if (!resultDiv) return;
+
+    try {
+        var result = MultiCalc.state.currentFormula.calculate(vars, solveFor);
+        if (result === undefined || result === null || isNaN(result)) {
+            resultDiv.innerText = T('errorCalc') + ': Check input values.';
+        } else if (!isFinite(result)) {
+            resultDiv.innerText = T('errorCalc') + ': Division by zero or undefined.';
+        } else {
+            var cat = MultiCalc.state.currentFormula.category;
+            var key = MultiCalc.state.currentFormula.key;
+            var formula = MultiCalc.data.physicsFormulas[cat][key];
+            var hasUnc = Object.keys(uncertainties).some(function(k) { return uncertainties[k] > 0; });
+            var resultUnc = hasUnc ? computeErrorPropagation(formula.calculate, vars, uncertainties, solveFor) : 0;
+            resultDiv.innerHTML = buildSolutionSteps(cat, key, formula, vars, solveFor, result, uncertainties, resultUnc);
+
+            var askLbl = translateVarLabel(formula.solve[solveFor] || solveFor).split(' - ');
+            addChainResult(prettySym(solveFor), getFormulaName(key) || formula.name, result, askLbl[1] || '', resultUnc);
+        }
+        resultDiv.classList.add('show');
+    } catch(e) {
+        resultDiv.innerText = T('errorCalc');
+        resultDiv.classList.add('show');
+    }
+}
+
+/* ── Init — load mechanics on start ── */
+selectPhysicsCategory('mechanics', document.querySelector('.physics-card.active'));
+updatePhysicsStaticUI();
+
+/* Register with the App's translation refresh system (no-op if standalone).
+   Keeps 'Solve For' label + 'Modern' category name in sync on language change. */
+window.__mcExtraTranslators = window.__mcExtraTranslators || [];
+window.__mcExtraTranslators.push(updatePhysicsStaticUI);
+</script>
+</body>
+</html>

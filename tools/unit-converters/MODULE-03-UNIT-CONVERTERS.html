@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODULE 03 — Unit Converters</title>
+<style>
+/* ── SHARED BASE CSS ── */
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+html{background:#0f172a;min-height:100%;}
+body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);min-height:100dvh;min-height:100vh;color:white;overflow-x:hidden;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);top:-80px;left:-80px;}
+body::after{width:360px;height:360px;background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);bottom:40px;right:-60px;}
+.screen{display:none;padding:20px;padding-bottom:170px;min-height:100dvh;min-height:100vh;position:relative;z-index:1;}
+.screen.active{display:block;animation:screenIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;}
+@keyframes screenIn{from{opacity:0;transform:scale3d(0.96,0.96,1) translateY(10px);}to{opacity:1;transform:scale3d(1,1,1) translateY(0);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(15px);}to{opacity:1;transform:translateY(0);}}
+.header{text-align:center;padding:40px 20px 20px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.8rem;color:#fff;box-shadow:0 8px 24px rgba(99,102,241,0.3);position:relative;overflow:hidden;}
+.logo-icon::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);animation:shimmer 3s infinite;}
+@keyframes shimmer{0%{transform:translate(-100%,-100%);}100%{transform:translate(100%,100%);}}
+.logo-text{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#fff,#e2e8f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo span{background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.subtitle{color:#94a3b8;font-size:0.95rem;margin-top:5px;}
+.back-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#94a3b8;font-size:0.95rem;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+.back-btn:hover{color:#e2e8f0;background:rgba(255,255,255,0.1);transform:translateX(-3px);}
+.input-field{width:100%;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:18px;font-size:1.1rem;color:white;outline:none;transition:border-color 0.25s ease,box-shadow 0.25s ease;}
+.input-field:focus{border-color:rgba(99,102,241,0.7)!important;box-shadow:0 0 0 3px rgba(99,102,241,0.15)!important;background:rgba(30,41,59,0.85)!important;}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-track{background:rgba(15,23,42,0.3);}::-webkit-scrollbar-thumb{background:rgba(71,85,105,0.5);border-radius:4px;}
+
+/* ── Unit Categories Hub ── */
+/* One card per row, all the same height: icon · full name · one-line description · chevron.
+   Nothing is ever truncated — long names/descriptions simply wrap onto a second line. */
+.unit-categories{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:1fr;gap:12px;max-width:620px;margin:0 auto;}
+.unit-card{position:relative;display:flex;align-items:center;gap:16px;min-height:88px;padding:16px 16px 16px 18px;border-radius:20px;text-align:left;color:#fff;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.18);transition:transform 0.25s cubic-bezier(0.2,0.8,0.2,1),box-shadow 0.25s ease;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.unit-card::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,rgba(0,0,0,0.26),rgba(0,0,0,0.04) 75%);pointer-events:none;}
+.unit-card>*{position:relative;}
+.unit-card .icon{width:50px;height:50px;flex:0 0 50px;display:flex;align-items:center;justify-content:center;}
+.unit-card .icon svg{width:100%;height:100%;display:block;}
+.uc-text{flex:1;min-width:0;}
+.unit-card .label{font-size:1.1rem;font-weight:700;line-height:1.25;overflow-wrap:break-word;text-shadow:0 1px 2px rgba(0,0,0,0.25);}
+.uc-desc{margin-top:4px;font-size:0.86rem;line-height:1.4;color:rgba(255,255,255,0.92);overflow-wrap:break-word;text-shadow:0 1px 2px rgba(0,0,0,0.25);}
+.uc-chev{flex:0 0 auto;width:20px;height:20px;color:rgba(255,255,255,0.75);transition:transform 0.25s cubic-bezier(0.2,0.8,0.2,1),color 0.2s ease;}
+.unit-card:active{transform:scale(0.98);}
+.unit-card:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+@media(hover:hover){.unit-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,0.38),inset 0 1px 0 rgba(255,255,255,0.18);}.unit-card:hover .uc-chev{transform:translateX(4px);color:#fff;}.unit-card:hover:active{transform:scale(0.98);}}
+
+/* Card colours */
+.card-blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8)!important;}
+.card-purple{background:linear-gradient(135deg,#a855f7,#7e22ce)!important;}
+.card-green{background:linear-gradient(135deg,#10b981,#047857)!important;}
+.card-orange{background:linear-gradient(135deg,#f59e0b,#b45309)!important;}
+.card-teal{background:linear-gradient(135deg,#14b8a6,#0f766e)!important;}
+.card-indigo{background:linear-gradient(135deg,#6366f1,#4338ca)!important;}
+.card-cyan{background:linear-gradient(135deg,#06b6d4,#0e7490)!important;}
+.card-rose{background:linear-gradient(135deg,#f43f5e,#be123c)!important;}
+.card-emerald{background:linear-gradient(135deg,#10b981,#047857)!important;}
+.card-amber{background:linear-gradient(135deg,#f59e0b,#b45309)!important;}
+.card-red{background:linear-gradient(135deg,#ef4444,#991b1b)!important;}
+.card-yellow{background:linear-gradient(135deg,#eab308,#854d0e)!important;}
+.card-pink{background:linear-gradient(135deg,#ec4899,#9d174d)!important;}
+.card-lime{background:linear-gradient(135deg,#84cc16,#3f6212)!important;}
+.card-gray{background:linear-gradient(135deg,#64748b,#334155)!important;}
+
+/* ── Generic Converter Screen ── */
+#scr-converter{--ucv-a:#6366f1;--ucv-b:#4338ca;--ucv-a-rgb:99,102,241;}
+.unit-converter-container{max-width:500px;margin:0 auto;background:rgba(15,23,42,0.4);border:1px solid rgba(71,85,105,0.3);border-radius:25px;padding:30px;}
+.ucv-title-row{display:flex;align-items:center;gap:14px;margin-bottom:26px;}
+.ucv-badge{width:46px;height:46px;flex:0 0 46px;padding:7px;border-radius:14px;background:linear-gradient(135deg,var(--ucv-a),var(--ucv-b));box-shadow:0 8px 22px rgba(var(--ucv-a-rgb),0.35);display:flex;align-items:center;justify-content:center;}
+.ucv-badge svg{width:100%;height:100%;display:block;}
+.ucv-badge:empty{display:none;}
+.unit-title{font-size:1.5rem;font-weight:600;line-height:1.2;min-width:0;overflow-wrap:anywhere;}
+.converter-group{margin:0;}
+.converter-label{color:#94a3b8;font-size:0.9rem;margin-bottom:10px;display:block;}
+.converter-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,42%);gap:12px;align-items:stretch;}
+
+/* number fields */
+#scr-converter .input-field{min-width:0;padding:16px 18px;font-size:1.35rem;font-weight:500;font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield;}
+#scr-converter .input-field::-webkit-outer-spin-button,#scr-converter .input-field::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+#scr-converter .input-field:focus{border-color:rgba(var(--ucv-a-rgb),0.8)!important;box-shadow:0 0 0 3px rgba(var(--ucv-a-rgb),0.2)!important;}
+
+/* ── Custom unit picker (replaces the browser <select> panel) ── */
+.ucv-native{display:none;}
+.ucv-picker{position:relative;min-width:0;}
+.ucv-picker.is-open{z-index:40;}
+.ucv-btn{width:100%;height:100%;min-height:58px;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;text-align:left;font-size:1rem;font-weight:500;color:#fff;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .25s ease,background .25s ease,box-shadow .25s ease,transform .15s ease;}
+.ucv-btn,.ucv-opt,.swap-icon,.ucv-result{touch-action:manipulation;}
+.ucv-btn-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ucv-sym{flex:0 0 auto;font-size:.78rem;font-weight:600;line-height:1;color:#cbd5e1;background:rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;font-variant-numeric:tabular-nums;}
+.ucv-chev{flex:0 0 auto;width:18px;height:18px;color:#94a3b8;transition:transform .35s cubic-bezier(.2,.8,.2,1),color .25s ease;}
+.ucv-btn:active{transform:scale(.985);}
+.ucv-btn:focus-visible,.ucv-picker.is-open .ucv-btn{outline:none;border-color:rgba(var(--ucv-a-rgb),0.8);background:rgba(30,41,59,0.85);box-shadow:0 0 0 3px rgba(var(--ucv-a-rgb),0.2);}
+.ucv-picker.is-open .ucv-chev{transform:rotate(180deg);color:#fff;}
+@media(hover:hover){.ucv-btn:hover{border-color:rgba(var(--ucv-a-rgb),0.5);background:rgba(30,41,59,0.8);}}
+
+.ucv-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:50;min-width:100%;width:max-content;max-width:min(380px,calc(100vw - 32px));padding:6px;background:#151d30;border:1px solid rgba(148,163,184,0.2);border-radius:18px;box-shadow:0 28px 60px -12px rgba(0,0,0,0.65);outline:none;
+  opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-10px) scale(.96);transform-origin:top right;
+  transition:opacity .2s ease,transform .32s cubic-bezier(.2,.9,.25,1),visibility 0s linear .32s;}
+.ucv-panel.is-up{top:auto;bottom:calc(100% + 8px);transform:translateY(10px) scale(.96);transform-origin:bottom right;}
+.ucv-picker.is-open .ucv-panel{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .2s ease,transform .32s cubic-bezier(.2,.9,.25,1),visibility 0s;}
+.ucv-list{position:relative;max-height:320px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(100,116,139,0.5) transparent;}
+.ucv-list::-webkit-scrollbar{width:6px;}
+.ucv-list::-webkit-scrollbar-thumb{background:rgba(100,116,139,0.5);border-radius:3px;}
+.ucv-opt{position:relative;display:flex;align-items:center;gap:10px;padding:11px 12px 11px 14px;border-radius:12px;font-size:.97rem;line-height:1.3;color:#e2e8f0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s ease,color .15s ease;}
+.ucv-opt-name{flex:1;min-width:0;}
+.ucv-opt.is-active{background:rgba(255,255,255,0.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.16);}
+.ucv-opt:active{background:rgba(255,255,255,0.12);}
+.ucv-opt[aria-selected="true"]{background:rgba(var(--ucv-a-rgb),0.22);color:#fff;font-weight:600;}
+.ucv-opt[aria-selected="true"]::before{content:'';position:absolute;left:4px;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--ucv-a);}
+.ucv-opt[aria-selected="true"] .ucv-sym{background:rgba(var(--ucv-a-rgb),0.4);color:#fff;}
+@media(hover:hover){.ucv-opt:hover{background:rgba(255,255,255,0.07);}.ucv-opt[aria-selected="true"]:hover{background:rgba(var(--ucv-a-rgb),0.28);}}
+
+/* ── Swap button: rotation is driven from JS (+180deg every press), never by :hover ── */
+.ucv-swap-row{position:relative;display:flex;align-items:center;justify-content:center;height:60px;margin:4px 0;}
+.ucv-swap-row::before,.ucv-swap-row::after{content:'';position:absolute;top:50%;height:1px;width:calc(50% - 40px);}
+.ucv-swap-row::before{left:0;background:linear-gradient(90deg,transparent,rgba(148,163,184,0.25));}
+.ucv-swap-row::after{right:0;background:linear-gradient(270deg,transparent,rgba(148,163,184,0.25));}
+.swap-icon{position:relative;z-index:1;width:48px;height:48px;padding:0;border:none;border-radius:50%;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--ucv-a),var(--ucv-b));box-shadow:0 6px 18px rgba(var(--ucv-a-rgb),0.38);-webkit-tap-highlight-color:transparent;transition:transform .18s ease,box-shadow .25s ease;}
+.swap-icon svg{width:24px;height:24px;display:block;transition:transform .55s cubic-bezier(.34,1.35,.5,1);}
+.swap-icon:active{transform:scale(.9);}
+.swap-icon:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+@media(hover:hover){.swap-icon:hover{transform:scale(1.07);box-shadow:0 8px 26px rgba(var(--ucv-a-rgb),0.55);}.swap-icon:hover:active{transform:scale(.9);}}
+@keyframes ucvFromDrop{0%{opacity:.25;transform:translateY(-16px);}100%{opacity:1;transform:none;}}
+@keyframes ucvToRise{0%{opacity:.25;transform:translateY(16px);}100%{opacity:1;transform:none;}}
+.ucv-group-from.is-swapping{animation:ucvFromDrop .42s cubic-bezier(.2,.8,.2,1);}
+.ucv-group-to.is-swapping{animation:ucvToRise .42s cubic-bezier(.2,.8,.2,1);}
+
+/* ── Result card ── */
+.result-box{background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:20px;padding:18px 20px 14px;text-align:center;font-size:1.1rem;margin-top:22px;animation:resultPop 0.45s cubic-bezier(0.34,1.56,0.64,1) backwards;}
+@keyframes resultPop{0%{opacity:0;transform:scale(0.88) translateY(10px);}60%{transform:scale(1.03) translateY(-2px);}100%{opacity:1;transform:scale(1) translateY(0);}}
+.ucv-result{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s ease,box-shadow .25s ease;}
+.ucv-result:active{transform:scale(.99);}
+.ucv-result:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+.ucv-res-main{font-size:1.2rem;font-weight:600;line-height:1.35;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.ucv-res-sub{margin-top:6px;font-size:.92rem;color:rgba(255,255,255,0.78);overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.ucv-res-sub:empty{display:none;}
+.ucv-res-hint{margin-top:10px;font-size:.78rem;color:rgba(255,255,255,0.6);transition:color .2s ease;}
+.ucv-res-hint.is-ok{color:#fff;font-weight:600;}
+
+@media(max-width:520px){
+  .unit-converter-container{padding:22px 18px;border-radius:22px;}
+  .converter-row{grid-template-columns:minmax(0,1fr);gap:10px;}
+  .ucv-panel{left:0;right:0;width:auto;max-width:none;}
+}
+@media(prefers-reduced-motion:reduce){
+  .ucv-panel,.ucv-chev,.ucv-btn,.ucv-opt,.swap-icon,.swap-icon svg,.ucv-result{transition-duration:.01ms!important;transition-delay:0s!important;}
+  .ucv-group-from.is-swapping,.ucv-group-to.is-swapping{animation:none;}
+}
+
+/* Stagger animations for hub */
+/* 'backwards' (not 'both'): the animation lets go of transform afterwards, so press/hover feedback works */
+.screen.active .unit-categories>*{animation:fadeIn 0.5s cubic-bezier(0.2,0.8,0.2,1) backwards;animation-delay:0.28s;}
+.screen.active .unit-categories>*:nth-child(1){animation-delay:0.03s;}
+.screen.active .unit-categories>*:nth-child(2){animation-delay:0.06s;}
+.screen.active .unit-categories>*:nth-child(3){animation-delay:0.09s;}
+.screen.active .unit-categories>*:nth-child(4){animation-delay:0.12s;}
+.screen.active .unit-categories>*:nth-child(5){animation-delay:0.15s;}
+.screen.active .unit-categories>*:nth-child(6){animation-delay:0.18s;}
+.screen.active .unit-categories>*:nth-child(7){animation-delay:0.21s;}
+.screen.active .unit-categories>*:nth-child(8){animation-delay:0.24s;}
+
+@media(min-width:601px){.unit-converter-container{max-width:700px!important;}}
+@media(max-width:480px){.screen{padding:15px;padding-bottom:140px;}.unit-card{gap:12px;min-height:84px;padding:14px 12px 14px 14px;}.unit-card .icon{width:44px;height:44px;flex-basis:44px;}.unit-card .label{font-size:1.05rem;}.uc-desc{font-size:0.82rem;}}
+@media(prefers-reduced-motion:reduce){.unit-card,.uc-chev{transition-duration:0.01ms!important;}.screen.active .unit-categories>*{animation:none;}}
+/* ── Light-theme contrast overrides (auto-added) ── */
+body.theme-light .back-btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+body.theme-light .back-btn:hover{background:#334155;border-color:#475569;color:#ffffff;}
+body.theme-light .subtitle{color:#475569;}
+body.theme-light .logo-text{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;}
+body.theme-light .unit-converter-container{background:rgba(15,23,42,0.88);}
+body.theme-light .input-field{background:rgba(30,41,59,0.88);}
+body.theme-light .input-field:focus{background:rgba(30,41,59,0.92);}
+body.theme-light .ucv-btn{background:rgba(30,41,59,0.88);}
+body.theme-light .ucv-btn:hover,body.theme-light .ucv-picker.is-open .ucv-btn{background:rgba(30,41,59,0.92);}
+</style>
+</head>
+<body>
+
+<!-- ═══ HUB SCREEN ═══════════════════════════════════════════════════════════ -->
+<div id="scr-units" class="screen active">
+    <div class="header">
+        <div class="logo"><div class="logo-icon">∑</div><div class="logo-text">Multi<span>Calc</span></div></div>
+        <div class="subtitle t-header-sub">Math • Physics • Units • Currency</div>
+    </div>
+    <button class="back-btn" type="button">← <span class="t-back">Πίσω</span></button>
+    <div class="unit-categories">
+        <div class="unit-card card-cyan" role="button" tabindex="0" onclick="openConverter('length')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('length');}">
+            <div class="icon" data-icon="length"></div>
+            <div class="uc-text"><div class="label" data-cat="length">Length</div><div class="uc-desc" data-desc="length">Meters, kilometers, miles, inches, light years and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-pink" role="button" tabindex="0" onclick="openConverter('area')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('area');}">
+            <div class="icon" data-icon="area"></div>
+            <div class="uc-text"><div class="label" data-cat="area">Area</div><div class="uc-desc" data-desc="area">Square meters, hectares, acres, square feet and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-green" role="button" tabindex="0" onclick="openConverter('volume')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('volume');}">
+            <div class="icon" data-icon="volume"></div>
+            <div class="uc-text"><div class="label" data-cat="volume">Volume</div><div class="uc-desc" data-desc="volume">Liters, gallons, cups, cubic meters, barrels and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-orange" role="button" tabindex="0" onclick="openConverter('mass')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('mass');}">
+            <div class="icon" data-icon="mass"></div>
+            <div class="uc-text"><div class="label" data-cat="mass">Mass</div><div class="uc-desc" data-desc="mass">Grams, kilograms, pounds, ounces, tons and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-red" role="button" tabindex="0" onclick="openConverter('temp')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('temp');}">
+            <div class="icon" data-icon="temp"></div>
+            <div class="uc-text"><div class="label" data-cat="temp">Temperature</div><div class="uc-desc" data-desc="temp">Celsius, Fahrenheit, Kelvin, Rankine and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-indigo" role="button" tabindex="0" onclick="openConverter('speed')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('speed');}">
+            <div class="icon" data-icon="speed"></div>
+            <div class="uc-text"><div class="label" data-cat="speed">Speed</div><div class="uc-desc" data-desc="speed">Meters per second, km/h, mph, knots and Mach.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-yellow" role="button" tabindex="0" onclick="openConverter('time')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('time');}">
+            <div class="icon" data-icon="time"></div>
+            <div class="uc-text"><div class="label" data-cat="time">Time</div><div class="uc-desc" data-desc="time">Nanoseconds to decades: seconds, hours, days, years.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-purple" role="button" tabindex="0" onclick="openConverter('energy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('energy');}">
+            <div class="icon" data-icon="energy"></div>
+            <div class="uc-text"><div class="label" data-cat="energy">Energy</div><div class="uc-desc" data-desc="energy">Joules, kWh, calories, BTU, tons of TNT and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-gray" role="button" tabindex="0" onclick="openConverter('pressure')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('pressure');}">
+            <div class="icon" data-icon="pressure"></div>
+            <div class="uc-text"><div class="label" data-cat="pressure">Pressure</div><div class="uc-desc" data-desc="pressure">Pascals, bar, atmospheres, psi, mmHg and Torr.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-purple" role="button" tabindex="0" onclick="openConverter('data')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('data');}">
+            <div class="icon" data-icon="data"></div>
+            <div class="uc-text"><div class="label" data-cat="data">Data Storage</div><div class="uc-desc" data-desc="data">Bits, bytes, kilobytes up to yottabytes.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-lime" role="button" tabindex="0" onclick="openConverter('angle')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('angle');}">
+            <div class="icon" data-icon="angle"></div>
+            <div class="uc-text"><div class="label" data-cat="angle">Angle</div><div class="uc-desc" data-desc="angle">Degrees, radians, gradians, arcminutes and turns.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-blue" role="button" tabindex="0" onclick="openConverter('frequency')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('frequency');}">
+            <div class="icon" data-icon="frequency"></div>
+            <div class="uc-text"><div class="label" data-cat="frequency">Frequency</div><div class="uc-desc" data-desc="frequency">Hertz, kilohertz, megahertz, gigahertz and rpm.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-amber" role="button" tabindex="0" onclick="openConverter('force')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('force');}">
+            <div class="icon" data-icon="force"></div>
+            <div class="uc-text"><div class="label" data-cat="force">Force</div><div class="uc-desc" data-desc="force">Newtons, kilonewtons, pound-force, dynes and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-emerald" role="button" tabindex="0" onclick="openConverter('power')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('power');}">
+            <div class="icon" data-icon="power"></div>
+            <div class="uc-text"><div class="label" data-cat="power">Power</div><div class="uc-desc" data-desc="power">Watts, kilowatts, horsepower, BTU per hour and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-rose" role="button" tabindex="0" onclick="openConverter('fuel')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('fuel');}">
+            <div class="icon" data-icon="fuel"></div>
+            <div class="uc-text"><div class="label" data-cat="fuel">Fuel Economy</div><div class="uc-desc" data-desc="fuel">km/L, L/100 km and miles per gallon (US and UK).</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-teal" role="button" tabindex="0" onclick="openConverter('accel')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('accel');}">
+            <div class="icon" data-icon="accel"></div>
+            <div class="uc-text"><div class="label" data-cat="accel">Acceleration</div><div class="uc-desc" data-desc="accel">m/s², g, Gal and km/h per second.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-cyan" role="button" tabindex="0" onclick="openConverter('datarate')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('datarate');}">
+            <div class="icon" data-icon="datarate"></div>
+            <div class="uc-text"><div class="label" data-cat="datarate">Data Transfer Rate</div><div class="uc-desc" data-desc="datarate">Mbps, Gbps, MB/s and other network and disk speeds.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-blue" role="button" tabindex="0" onclick="openConverter('flow')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('flow');}">
+            <div class="icon" data-icon="flow"></div>
+            <div class="uc-text"><div class="label" data-cat="flow">Flow Rate</div><div class="uc-desc" data-desc="flow">Liters per minute, m³/h, GPM, CFM and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-purple" role="button" tabindex="0" onclick="openConverter('viscosity')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('viscosity');}">
+            <div class="icon" data-icon="viscosity"></div>
+            <div class="uc-text"><div class="label" data-cat="viscosity">Viscosity</div><div class="uc-desc" data-desc="viscosity">Pascal-seconds, poise, centipoise and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-yellow" role="button" tabindex="0" onclick="openConverter('illuminance')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('illuminance');}">
+            <div class="icon" data-icon="illuminance"></div>
+            <div class="uc-text"><div class="label" data-cat="illuminance">Illuminance</div><div class="uc-desc" data-desc="illuminance">Lux, foot-candles, phot, nox and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-rose" role="button" tabindex="0" onclick="openConverter('radiation')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('radiation');}">
+            <div class="icon" data-icon="radiation"></div>
+            <div class="uc-text"><div class="label" data-cat="radiation">Radiation Dose</div><div class="uc-desc" data-desc="radiation">Gray, sievert, rad, rem and their subunits.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-indigo" role="button" tabindex="0" onclick="openConverter('magflux')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('magflux');}">
+            <div class="icon" data-icon="magflux"></div>
+            <div class="uc-text"><div class="label" data-cat="magflux">Magnetic Flux</div><div class="uc-desc" data-desc="magflux">Weber, maxwell, volt-seconds and their multiples.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-teal" role="button" tabindex="0" onclick="openConverter('magdensity')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('magdensity');}">
+            <div class="icon" data-icon="magdensity"></div>
+            <div class="uc-text"><div class="label" data-cat="magdensity">Magnetic Flux Density</div><div class="uc-desc" data-desc="magdensity">Tesla, gauss, gamma and their subunits.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-cyan" role="button" tabindex="0" onclick="openConverter('magfield')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('magfield');}">
+            <div class="icon" data-icon="magfield"></div>
+            <div class="uc-text"><div class="label" data-cat="magfield">Magnetic Field Strength</div><div class="uc-desc" data-desc="magfield">Amperes per meter, oersted and their multiples.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-amber" role="button" tabindex="0" onclick="openConverter('magmmf')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('magmmf');}">
+            <div class="icon" data-icon="magmmf"></div>
+            <div class="uc-text"><div class="label" data-cat="magmmf">Magnetomotive Force</div><div class="uc-desc" data-desc="magmmf">Ampere-turns, gilbert and their subunits.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-orange" role="button" tabindex="0" onclick="openConverter('luminance')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('luminance');}">
+            <div class="icon" data-icon="luminance"></div>
+            <div class="uc-text"><div class="label" data-cat="luminance">Luminance</div><div class="uc-desc" data-desc="luminance">Candelas per m² (nit), stilb, lambert and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-lime" role="button" tabindex="0" onclick="openConverter('lumflux')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('lumflux');}">
+            <div class="icon" data-icon="lumflux"></div>
+            <div class="uc-text"><div class="label" data-cat="lumflux">Luminous Flux</div><div class="uc-desc" data-desc="lumflux">Lumens, kilolumens and candela-steradians.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+        <div class="unit-card card-emerald" role="button" tabindex="0" onclick="openConverter('lumintensity')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openConverter('lumintensity');}">
+            <div class="icon" data-icon="lumintensity"></div>
+            <div class="uc-text"><div class="label" data-cat="lumintensity">Luminous Intensity</div><div class="uc-desc" data-desc="lumintensity">Candelas, millicandelas, international candles and more.</div></div>
+            <svg class="uc-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5"/></svg>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ GENERIC CONVERTER SCREEN ═══════════════════════════════════════════ -->
+<div id="scr-converter" class="screen">
+    <div class="header">
+        <div class="logo"><div class="logo-icon">∑</div><div class="logo-text">Multi<span>Calc</span></div></div>
+        <div class="subtitle t-header-sub">Math • Physics • Units • Currency</div>
+    </div>
+    <button class="back-btn" type="button" onclick="showHub()">← <span id="lbl-back-to-units">Back to Units</span></button>
+    <div class="unit-converter-container">
+        <div class="ucv-title-row">
+            <div class="ucv-badge" id="conv-badge" aria-hidden="true"></div>
+            <div class="unit-title" id="conv-title">Length</div>
+        </div>
+
+        <div class="converter-group ucv-group-from" id="ucv-group-from">
+            <label class="converter-label" id="lbl-conv-from" for="conv-from-val">From</label>
+            <div class="converter-row">
+                <input type="number" id="conv-from-val" class="input-field" value="1" step="any" autocomplete="off" oninput="doConvert()" onkeydown="if(event.key==='Enter')this.blur()">
+                <div class="ucv-picker" id="ucv-pick-from">
+                    <select id="conv-from-unit" class="ucv-native" tabindex="-1" aria-hidden="true"></select>
+                    <button type="button" class="ucv-btn" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="ucv-btn-name"></span><span class="ucv-sym"></span>
+                        <svg class="ucv-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5l5 5 5-5"/></svg>
+                    </button>
+                    <div class="ucv-panel" role="listbox" tabindex="-1" aria-labelledby="lbl-conv-from"><div class="ucv-list"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ucv-swap-row">
+            <button class="swap-icon" id="ucv-swap" type="button" onclick="doSwap()" aria-label="Swap units">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/></svg>
+            </button>
+        </div>
+
+        <div class="converter-group ucv-group-to" id="ucv-group-to">
+            <label class="converter-label" id="lbl-conv-to" for="conv-to-val">To</label>
+            <div class="converter-row">
+                <input type="number" id="conv-to-val" class="input-field" step="any" autocomplete="off" oninput="doConvert('to')" onkeydown="if(event.key==='Enter')this.blur()">
+                <div class="ucv-picker" id="ucv-pick-to">
+                    <select id="conv-to-unit" class="ucv-native" tabindex="-1" aria-hidden="true"></select>
+                    <button type="button" class="ucv-btn" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="ucv-btn-name"></span><span class="ucv-sym"></span>
+                        <svg class="ucv-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5l5 5 5-5"/></svg>
+                    </button>
+                    <div class="ucv-panel" role="listbox" tabindex="-1" aria-labelledby="lbl-conv-to"><div class="ucv-list"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-box ucv-result" id="conv-result-box" role="button" tabindex="0" onclick="ucvCopy()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ucvCopy();}">
+            <div class="ucv-res-main" id="conv-result" aria-live="polite">–</div>
+            <div class="ucv-res-sub" id="conv-result-sub"></div>
+            <div class="ucv-res-hint" id="conv-result-hint">Tap to copy</div>
+        </div>
+    </div>
+</div>
+
+
+<script src="convert-icons.js"></script>
+<script>
+/* ── Light-theme contrast guard ─────────────────────────────
+   Detects whether the currently active body background is a
+   light color (any theme, present or future) and toggles
+   body.theme-light so panels/text/back-btn switch to a closed,
+   readable palette. getComputedStyle always normalizes colors
+   to rgb()/rgba() — never hex — so we parse that, not hex.
+   Fully-transparent stops (alpha 0, e.g. body's own unset
+   background-color) are skipped so they don't drag the
+   average down as if they were a real black stop.
+   A MutationObserver on body's style attribute acts as the
+   "signal": whenever ANYTHING changes the body background
+   (theme picker, app boot, future code), every already-loaded
+   module reacts instantly, with no fixed timing assumptions. */
+function mcRelLuminanceRGB(r,g,b){
+    const lin=c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+}
+function mcExtractRGB(str){
+    const out=[];
+    (str.match(/rgba?\([^)]+\)/g)||[]).forEach(m=>{
+        const n=m.match(/[\d.]+/g).map(Number);
+        if(n.length>=4 && n[3]===0) return;
+        out.push([n[0],n[1],n[2]]);
+    });
+    (str.match(/#[0-9a-fA-F]{6}/g)||[]).forEach(h=>{
+        out.push([parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+    });
+    return out;
+}
+function mcCheckThemeLightness(){
+    const cs=getComputedStyle(document.body);
+    const str=(cs.backgroundImage&&cs.backgroundImage!=='none'?cs.backgroundImage:'')+' '+cs.backgroundColor;
+    const colors=mcExtractRGB(str);
+    if(!colors.length){document.body.classList.remove('theme-light');return;}
+    const avg=colors.reduce((s,[r,g,b])=>s+mcRelLuminanceRGB(r,g,b),0)/colors.length;
+    document.body.classList.toggle('theme-light',avg>0.18);
+}
+mcCheckThemeLightness();
+window.addEventListener('load',mcCheckThemeLightness);
+setTimeout(mcCheckThemeLightness,300);
+try{
+    new MutationObserver(mcCheckThemeLightness)
+        .observe(document.body,{attributes:true,attributeFilter:['style','class']});
+}catch(e){}
+
+/* ═══════════════════════════════════════════════════════
+   MODULE 03: UNIT CONVERTERS — JAVASCRIPT
+   ═══════════════════════════════════════════════════════ */
+
+/* ── conversionFactors (source: lines 6591-6771) ── */
+var conversionFactors = {
+    length:   { mm:1, cm:10, m:1000, km:1000000, in:25.4, ft:304.8, yd:914.4, mi:1609344, nm:0.000001, um:0.001, dm:100, hm:100000, nmi:1852000, ly:9.461e18, pc:3.086e19, au:1.496e14 },
+    area:     { mm2:1, cm2:100, m2:1000000, km2:1e12, in2:645.16, ft2:92903.04, yd2:836127.36, ac:4046856422.4, ha:1e10, mi2:2.59e12 },
+    volume:   { ml:1, l:1000, m3:1000000, gal:3785.41, qt:946.353, pt:473.176, cup:236.588, floz:29.5735, tbsp:14.7868, tsp:4.92892, bbl:158987, ft3:28316.8, in3:16.3871, cm3:1 },
+    mass:     { mg:1, g:1000, kg:1000000, t:1e9, oz:28349.5, lb:453592, st:6350293, ug:0.001, ton_us:907185000, ton_uk:1016046909 },
+    speed:    { ms:1, kmh:0.277778, mph:0.44704, fps:0.3048, kn:0.514444, mach:340.29, c:299792458 },
+    time:     { ns:0.000001, us:0.001, ms:1, s:1000, min:60000, h:3600000, d:86400000, wk:604800000, mo:2592000000, y:31536000000, dec:315360000000 },
+    energy:   { j:1, kj:1000, mj:1000000, gj:1e9, cal:4.184, kcal:4184, wh:3600, kwh:3600000, mwh:3.6e9, ev:1.60218e-19, btu:1055.06, therm:1.055e8, ftlb:1.35582, tj:1e12, pj:1e15, ej_e:1e18, tnt:4.184e9, ktnt:4.184e12, mtnt:4.184e15, gtnt:4.184e18, ttnt:4.184e21, toe:4.1868e10, tce:2.931e10, boe:6.117e9 },
+    pressure: { pa:1, kpa:1000, mpa:1000000, bar:100000, mbar:100, atm:101325, psi:6894.76, torr:133.322, mmhg:133.322, inhg:3386.39 },
+    data:     { b:1, kb:1024, mb:1048576, gb:1073741824, tb:1099511627776, pb:1.126e15, eb:1.153e18, bit:0.125, kbit:128, mbit:131072, gbit:1.342e8, tbit:1.374e11, eb_si:1e18, zb:1e21, yb:1e24, bb:1e27, gbb:1e30 },
+    angle:    { deg:1, rad:57.2957795, grad:0.9, arcmin:0.016666667, arcsec:0.000277778, turn:360, mil:0.0572957795 },
+    frequency:{ hz:1, khz:1000, mhz:1000000, ghz:1e9, rpm:0.016666667, rps:1, rads:0.159154943 },
+    force:    { n:1, kn:1000, lbf:4.44822, kgf:9.80665, dyn:0.00001, ozf:0.278014, pdl:0.138255, mn:0.001 },
+    power:    { w:1, kw:1000, mw:1000000, gw:1e9, hp:745.7, btu:0.293071, cal_s:4.184, ft_lb_s:1.35582, ps:735.499 },
+    accel:    { m_s2:1, cm_s2:0.01, ft_s2:0.3048, in_s2:0.0254, g0:9.80665, gal:0.01, kmh_s:0.277778, mph_s:0.44704 },
+    datarate: { bps:1, kbps:1000, mbps:1e6, gbps:1e9, tbps:1e12, KBps:8000, MBps:8e6, GBps:8e9, TBps:8e12 },
+    flow:     { m3_s:1, m3_min:0.016666667, m3_h:0.000277778, l_s:0.001, l_min:0.000016667, l_h:0.000000277778, ml_s:0.000001, gpm:0.0000630902, cfm:0.000471947, ft3_s:0.0283168, svd:1e6, km3_d:11574.074, km3_y:31.6888, gl_s:1e6, gl_min:16666.6667, gl_d:11.5740741 },
+    viscosity:{ pa_s:1, cp:0.001, p:0.1, mp:0.0001, mpa_s:0.001, lbf_s_ft2:47.8803, lbm_ft_s:1.48816 },
+    illuminance:{ lux:1, mlux:0.001, klux:1000, fc:10.7639, phot:10000, nx:0.001, ulux:0.000001, megalux:1e6, gilux:1e9 },
+    radiation:{ gy:1, mgy:0.001, ugy:0.000001, kgy:1000, rad_d:0.01, erg_g:0.0001, sv:1, msv:0.001, usv:0.000001, rem:0.01, mrem:0.00001 },
+    magflux:  { wb:1, mwb:0.001, uwb:1e-6, nwb:1e-9, kwb:1000, mxw:1e-8, vs:1 },
+    magdensity:{ t:1, mt:0.001, ut:1e-6, nt:1e-9, pt:1e-12, g:1e-4, mg_d:1e-7, ug_d:1e-10, gamma:1e-9 },
+    magfield: { a_m:1, ka_m:1000, ma_m:0.001, ga_m:1e9, oe:79.5775, moe:0.0795775, koe:79577.5 },
+    magmmf:   { at:1, kat:1000, mat:0.001, uat:1e-6, gb:0.79577472 },
+    luminance:{ cd_m2:1, mcd_m2:0.001, kcd_m2:1000, Mcd_m2:1e6, fL:3.42626, sb:10000, la:3183.099, asb:0.31831, mla:3.18310, cd_ft2:10.7639, cd_in2:1550.003 },
+    lumflux:  { lm:1, klm:1000, Mlm:1e6, ulm:1e-6, cd_sr:1, cp:12.56637 },
+    lumintensity:{ cd:1, mcd:0.001, kcd:1000, Mcd:1e6, ucd:1e-6, cp_i:1.00002, hk:0.903 }
+};
+
+/* Factor corrections (2026-10-20), each one checked against the unit's definition:
+   • angle.mil      was 0.05625 (NATO mil, 1/6400 turn) but is labelled Milliradians → 0.0572957795° (= 1 mrad)
+   • frequency.rps  was 0.159155 (that is rad/s) but is labelled "revolutions per second" → 1 Hz;
+                    the old value is kept as its own correctly-labelled unit: rads (rad/s)
+   • illuminance.nx 1 nox = 1 millilux = 0.001 lx (was 0.0001)
+   • flow.gl_*      1 GL (gigaliter) = 1e9 L = 1e6 m³ (the three GL rates were 1000× too small) */
+
+/* ── Unit names ──────────────────────────────────────────────
+   One row per unit:  [ key, symbol, English, Ελληνικά, Español ]
+   • The symbol is international and identical in every language.
+   • The row order is the order shown in the picker panel.
+   • Names that have no established word in a language (e.g. BTU, Torr,
+     Therm, Acres in Greek) are deliberately kept in their original form. */
+var UCV_TABLE = {
+    length: [
+        ['nm','nm','Nanometers','Νανόμετρα','Nanómetros'],
+        ['um','μm','Micrometers','Μικρόμετρα','Micrómetros'],
+        ['mm','mm','Millimeters','Χιλιοστά','Milímetros'],
+        ['cm','cm','Centimeters','Εκατοστά','Centímetros'],
+        ['dm','dm','Decimeters','Δεκατόμετρα','Decímetros'],
+        ['m','m','Meters','Μέτρα','Metros'],
+        ['km','km','Kilometers','Χιλιόμετρα','Kilómetros'],
+        ['in','in','Inches','Ίντσες','Pulgadas'],
+        ['ft','ft','Feet','Πόδια','Pies'],
+        ['yd','yd','Yards','Γιάρδες','Yardas'],
+        ['mi','mi','Miles','Μίλια','Millas'],
+        ['nmi','nmi','Nautical Miles','Ναυτικά μίλια','Millas náuticas'],
+        ['ly','ly','Light Years','Έτη φωτός','Años luz'],
+        ['au','AU','Astronomical Units','Αστρονομικές μονάδες','Unidades astronómicas']
+    ],
+    area: [
+        ['mm2','mm²','Square Millimeters','Τετραγωνικά χιλιοστά','Milímetros cuadrados'],
+        ['cm2','cm²','Square Centimeters','Τετραγωνικά εκατοστά','Centímetros cuadrados'],
+        ['m2','m²','Square Meters','Τετραγωνικά μέτρα','Metros cuadrados'],
+        ['km2','km²','Square Kilometers','Τετραγωνικά χιλιόμετρα','Kilómetros cuadrados'],
+        ['in2','in²','Square Inches','Τετραγωνικές ίντσες','Pulgadas cuadradas'],
+        ['ft2','ft²','Square Feet','Τετραγωνικά πόδια','Pies cuadrados'],
+        ['yd2','yd²','Square Yards','Τετραγωνικές γιάρδες','Yardas cuadradas'],
+        ['ac','ac','Acres','Acres','Acres'],
+        ['ha','ha','Hectares','Εκτάρια','Hectáreas'],
+        ['mi2','mi²','Square Miles','Τετραγωνικά μίλια','Millas cuadradas']
+    ],
+    volume: [
+        ['ml','ml','Milliliters','Χιλιοστόλιτρα','Mililitros'],
+        ['l','L','Liters','Λίτρα','Litros'],
+        ['m3','m³','Cubic Meters','Κυβικά μέτρα','Metros cúbicos'],
+        ['cm3','cm³','Cubic Centimeters','Κυβικά εκατοστά','Centímetros cúbicos'],
+        ['gal','gal','US Gallons','Γαλόνια (ΗΠΑ)','Galones (EE. UU.)'],
+        ['qt','qt','US Quarts','Κουάρτ (ΗΠΑ)','Cuartos de galón (EE. UU.)'],
+        ['pt','pt','US Pints','Πάιντ (ΗΠΑ)','Pintas (EE. UU.)'],
+        ['cup','cup','Cups','Φλιτζάνια','Tazas'],
+        ['floz','fl oz','Fluid Ounces','Υγρές ουγγιές','Onzas líquidas'],
+        ['tbsp','tbsp','Tablespoons','Κουταλιές της σούπας','Cucharadas'],
+        ['tsp','tsp','Teaspoons','Κουταλιές του γλυκού','Cucharaditas'],
+        ['bbl','bbl','Barrels','Βαρέλια','Barriles'],
+        ['ft3','ft³','Cubic Feet','Κυβικά πόδια','Pies cúbicos'],
+        ['in3','in³','Cubic Inches','Κυβικές ίντσες','Pulgadas cúbicas']
+    ],
+    mass: [
+        ['ug','μg','Micrograms','Μικρογραμμάρια','Microgramos'],
+        ['mg','mg','Milligrams','Χιλιοστόγραμμα','Miligramos'],
+        ['g','g','Grams','Γραμμάρια','Gramos'],
+        ['kg','kg','Kilograms','Χιλιόγραμμα','Kilogramos'],
+        ['t','t','Metric Tons','Μετρικοί τόνοι','Toneladas métricas'],
+        ['oz','oz','Ounces','Ουγγιές','Onzas'],
+        ['lb','lb','Pounds','Λίβρες','Libras'],
+        ['st','st','Stone','Στόουν','Stone'],
+        ['ton_us','sh tn','US Short Tons','Αμερικανικοί τόνοι','Toneladas cortas (EE. UU.)'],
+        ['ton_uk','lg tn','UK Long Tons','Βρετανικοί τόνοι','Toneladas largas (Reino Unido)']
+    ],
+    temp: [
+        ['c','°C','Celsius','Βαθμοί Κελσίου','Grados Celsius'],
+        ['f','°F','Fahrenheit','Βαθμοί Φαρενάιτ','Grados Fahrenheit'],
+        ['k','K','Kelvin','Κέλβιν','Kelvin'],
+        ['r','°R','Rankine','Βαθμοί Ράνκιν','Grados Rankine'],
+        ['re','°Ré','Réaumur','Βαθμοί Ρεωμύρου','Grados Réaumur'],
+        ['n','°N','Newton','Βαθμοί Νεύτωνα','Grados Newton']
+    ],
+    speed: [
+        ['ms','m/s','Meters per second','Μέτρα ανά δευτερόλεπτο','Metros por segundo'],
+        ['kmh','km/h','Kilometers per hour','Χιλιόμετρα ανά ώρα','Kilómetros por hora'],
+        ['mph','mph','Miles per hour','Μίλια ανά ώρα','Millas por hora'],
+        ['fps','ft/s','Feet per second','Πόδια ανά δευτερόλεπτο','Pies por segundo'],
+        ['kn','kn','Knots','Κόμβοι','Nudos'],
+        ['mach','','Mach','Μαχ','Mach'],
+        ['c','c','Speed of Light','Ταχύτητα του φωτός','Velocidad de la luz']
+    ],
+    time: [
+        ['ns','ns','Nanoseconds','Νανοδευτερόλεπτα','Nanosegundos'],
+        ['us','μs','Microseconds','Μικροδευτερόλεπτα','Microsegundos'],
+        ['ms','ms','Milliseconds','Χιλιοστά του δευτερολέπτου','Milisegundos'],
+        ['s','s','Seconds','Δευτερόλεπτα','Segundos'],
+        ['min','min','Minutes','Λεπτά','Minutos'],
+        ['h','h','Hours','Ώρες','Horas'],
+        ['d','d','Days','Ημέρες','Días'],
+        ['wk','wk','Weeks','Εβδομάδες','Semanas'],
+        ['mo','mo','Months','Μήνες','Meses'],
+        ['y','y','Years','Χρόνια','Años'],
+        ['dec','dec','Decades','Δεκαετίες','Décadas']
+    ],
+    energy: [
+        ['j','J','Joules','Τζάουλ','Julios'],
+        ['kj','kJ','Kilojoules','Κιλοτζάουλ','Kilojulios'],
+        ['mj','MJ','Megajoules','Μεγατζάουλ','Megajulios'],
+        ['gj','GJ','Gigajoules','Γιγατζάουλ','Gigajulios'],
+        ['cal','cal','Calories','Θερμίδες','Calorías'],
+        ['kcal','kcal','Kilocalories','Χιλιοθερμίδες','Kilocalorías'],
+        ['wh','Wh','Watt-hours','Βατώρες','Vatios-hora'],
+        ['kwh','kWh','Kilowatt-hours','Κιλοβατώρες','Kilovatios-hora'],
+        ['mwh','MWh','Megawatt-hours','Μεγαβατώρες','Megavatios-hora'],
+        ['ev','eV','Electronvolts','Ηλεκτρονιοβόλτ','Electronvoltios'],
+        ['btu','BTU','British Thermal Units','Βρετανικές θερμικές μονάδες','Unidades térmicas británicas'],
+        ['therm','thm','Therms','Therm','Therm'],
+        ['ftlb','ft·lb','Foot-pounds','Πόδι-λίβρα','Libras-pie'],
+        ['tj','TJ','Terajoules','Τερατζάουλ','Terajulios'],
+        ['pj','PJ','Petajoules','Πετατζάουλ','Petajulios'],
+        ['ej_e','EJ','Exajoules','Εξατζάουλ','Exajulios'],
+        ['tnt','t TNT','Tons of TNT','Τόνοι TNT','Toneladas de TNT'],
+        ['ktnt','kt TNT','Kilotons of TNT','Κιλοτόνοι TNT','Kilotones de TNT'],
+        ['mtnt','Mt TNT','Megatons of TNT','Μεγατόνοι TNT','Megatones de TNT'],
+        ['gtnt','Gt TNT','Gigatons of TNT','Γιγατόνοι TNT','Gigatones de TNT'],
+        ['ttnt','Tt TNT','Teratons of TNT','Τερατόνοι TNT','Teratones de TNT'],
+        ['toe','toe','Tons of Oil Equivalent','Τόνοι ισοδύναμου πετρελαίου','Toneladas equivalentes de petróleo'],
+        ['tce','tce','Tons of Coal Equivalent','Τόνοι ισοδύναμου άνθρακα','Toneladas equivalentes de carbón'],
+        ['boe','boe','Barrels of Oil Equivalent','Βαρέλια ισοδύναμου πετρελαίου','Barriles equivalentes de petróleo']
+    ],
+    pressure: [
+        ['pa','Pa','Pascals','Πασκάλ','Pascales'],
+        ['kpa','kPa','Kilopascals','Κιλοπασκάλ','Kilopascales'],
+        ['mpa','MPa','Megapascals','Μεγαπασκάλ','Megapascales'],
+        ['bar','bar','Bar','Μπαρ','Bar'],
+        ['mbar','mbar','Millibar','Μιλιμπάρ','Milibares'],
+        ['atm','atm','Atmospheres','Ατμόσφαιρες','Atmósferas'],
+        ['psi','psi','Pounds per square inch','Λίβρες ανά τετραγωνική ίντσα','Libras por pulgada cuadrada'],
+        ['torr','Torr','Torr','Τορ','Torr'],
+        ['mmhg','mmHg','Millimeters of mercury','Χιλιοστά στήλης υδραργύρου','Milímetros de mercurio'],
+        ['inhg','inHg','Inches of mercury','Ίντσες στήλης υδραργύρου','Pulgadas de mercurio']
+    ],
+    data: [
+        ['bit','bit','Bits','Μπιτ','Bits'],
+        ['b','B','Bytes','Μπάιτ','Bytes'],
+        ['kbit','Kbit','Kilobits','Κιλομπίτ','Kilobits'],
+        ['kb','KB','Kilobytes','Κιλομπάιτ','Kilobytes'],
+        ['mbit','Mbit','Megabits','Μεγαμπίτ','Megabits'],
+        ['mb','MB','Megabytes','Μεγαμπάιτ','Megabytes'],
+        ['gbit','Gbit','Gigabits','Γιγαμπίτ','Gigabits'],
+        ['gb','GB','Gigabytes','Γιγαμπάιτ','Gigabytes'],
+        ['tbit','Tbit','Terabits','Τεραμπίτ','Terabits'],
+        ['tb','TB','Terabytes','Τεραμπάιτ','Terabytes'],
+        ['pb','PB','Petabytes','Πεταμπάιτ','Petabytes'],
+        ['eb','EB','Exabytes','Εξαμπάιτ','Exabytes'],
+        ['eb_si','EB (SI)','Exabytes (SI)','Εξαμπάιτ (SI)','Exabytes (SI)'],
+        ['zb','ZB','Zettabytes','Ζεταμπάιτ','Zettabytes'],
+        ['yb','YB','Yottabytes','Γιοταμπάιτ','Yottabytes'],
+        ['bb','BB','Brontobytes','Βροντομπάιτ','Brontobytes'],
+        ['gbb','','Geopbytes','Γεοπμπάιτ','Geopbytes']
+    ],
+    angle: [
+        ['deg','°','Degrees','Μοίρες','Grados'],
+        ['rad','rad','Radians','Ακτίνια','Radianes'],
+        ['grad','grad','Gradians','Γκραντ','Gradianes'],
+        ['arcmin','′','Arcminutes','Λεπτά τόξου','Minutos de arco'],
+        ['arcsec','″','Arcseconds','Δευτερόλεπτα τόξου','Segundos de arco'],
+        ['turn','turn','Turns','Στροφές','Vueltas'],
+        ['mil','mrad','Milliradians','Χιλιοστά του ακτινίου','Milirradianes']
+    ],
+    frequency: [
+        ['hz','Hz','Hertz','Χερτζ','Hercios'],
+        ['khz','kHz','Kilohertz','Κιλοχέρτζ','Kilohercios'],
+        ['mhz','MHz','Megahertz','Μεγαχέρτζ','Megahercios'],
+        ['ghz','GHz','Gigahertz','Γιγαχέρτζ','Gigahercios'],
+        ['rpm','rpm','Revolutions per minute','Στροφές ανά λεπτό','Revoluciones por minuto'],
+        ['rps','rps','Revolutions per second','Στροφές ανά δευτερόλεπτο','Revoluciones por segundo'],
+        ['rads','rad/s','Radians per second','Ακτίνια ανά δευτερόλεπτο','Radianes por segundo']
+    ],
+    force: [
+        ['n','N','Newtons','Νιούτον','Newtons'],
+        ['kn','kN','Kilonewtons','Κιλονιούτον','Kilonewtons'],
+        ['mn','mN','Millinewtons','Μιλινιούτον','Milinewtons'],
+        ['lbf','lbf','Pound-force','Λίβρες δύναμης','Libras-fuerza'],
+        ['kgf','kgf','Kilogram-force','Χιλιόγραμμα δύναμης','Kilogramos-fuerza'],
+        ['dyn','dyn','Dynes','Δύνες','Dinas'],
+        ['ozf','ozf','Ounce-force','Ουγγιές δύναμης','Onzas-fuerza'],
+        ['pdl','pdl','Poundals','Πάουνταλ','Poundals']
+    ],
+    power: [
+        ['w','W','Watts','Βατ','Vatios'],
+        ['kw','kW','Kilowatts','Κιλοβάτ','Kilovatios'],
+        ['mw','MW','Megawatts','Μεγαβάτ','Megavatios'],
+        ['gw','GW','Gigawatts','Γιγαβάτ','Gigavatios'],
+        ['hp','hp','Horsepower','Ίπποι','Caballos de fuerza'],
+        ['ps','PS','Metric Horsepower','Μετρικοί ίπποι','Caballos de vapor'],
+        ['btu','BTU/h','BTU per hour','BTU ανά ώρα','BTU por hora'],
+        ['cal_s','cal/s','Calories per second','Θερμίδες ανά δευτερόλεπτο','Calorías por segundo'],
+        ['ft_lb_s','ft·lb/s','Foot-pounds per second','Πόδι-λίβρα ανά δευτερόλεπτο','Libras-pie por segundo']
+    ],
+    fuel: [
+        ['kml','km/L','Kilometers per liter','Χιλιόμετρα ανά λίτρο','Kilómetros por litro'],
+        ['mpg_us','mpg (US)','Miles per gallon (US)','Μίλια ανά γαλόνι (ΗΠΑ)','Millas por galón (EE. UU.)'],
+        ['mpg_uk','mpg (UK)','Miles per gallon (UK)','Μίλια ανά γαλόνι (ΗΒ)','Millas por galón (Reino Unido)'],
+        ['l100km','L/100km','Liters per 100 km','Λίτρα ανά 100 χιλιόμετρα','Litros cada 100 km']
+    ],
+    accel: [
+        ['m_s2','m/s²','Meters per second squared','Μέτρα ανά δευτερόλεπτο στο τετράγωνο','Metros por segundo al cuadrado'],
+        ['cm_s2','cm/s²','Centimeters per second squared','Εκατοστά ανά δευτερόλεπτο στο τετράγωνο','Centímetros por segundo al cuadrado'],
+        ['ft_s2','ft/s²','Feet per second squared','Πόδια ανά δευτερόλεπτο στο τετράγωνο','Pies por segundo al cuadrado'],
+        ['in_s2','in/s²','Inches per second squared','Ίντσες ανά δευτερόλεπτο στο τετράγωνο','Pulgadas por segundo al cuadrado'],
+        ['g0','g','Standard gravity (9.81 m/s²)','Επιτάχυνση βαρύτητας (9,81 m/s²)','Gravedad estándar (9,81 m/s²)'],
+        ['gal','Gal','Gal','Γκαλ','Galileos'],
+        ['kmh_s','km/h/s','Kilometers per hour per second','Χιλιόμετρα ανά ώρα ανά δευτερόλεπτο','Kilómetros por hora por segundo'],
+        ['mph_s','mph/s','Miles per hour per second','Μίλια ανά ώρα ανά δευτερόλεπτο','Millas por hora por segundo']
+    ],
+    datarate: [
+        ['bps','bps','Bits per second','Μπιτ ανά δευτερόλεπτο','Bits por segundo'],
+        ['kbps','Kbps','Kilobits per second','Κιλομπίτ ανά δευτερόλεπτο','Kilobits por segundo'],
+        ['mbps','Mbps','Megabits per second','Μεγαμπίτ ανά δευτερόλεπτο','Megabits por segundo'],
+        ['gbps','Gbps','Gigabits per second','Γιγαμπίτ ανά δευτερόλεπτο','Gigabits por segundo'],
+        ['tbps','Tbps','Terabits per second','Τεραμπίτ ανά δευτερόλεπτο','Terabits por segundo'],
+        ['KBps','KB/s','Kilobytes per second','Κιλομπάιτ ανά δευτερόλεπτο','Kilobytes por segundo'],
+        ['MBps','MB/s','Megabytes per second','Μεγαμπάιτ ανά δευτερόλεπτο','Megabytes por segundo'],
+        ['GBps','GB/s','Gigabytes per second','Γιγαμπάιτ ανά δευτερόλεπτο','Gigabytes por segundo'],
+        ['TBps','TB/s','Terabytes per second','Τεραμπάιτ ανά δευτερόλεπτο','Terabytes por segundo']
+    ],
+    flow: [
+        ['m3_s','m³/s','Cubic meters per second','Κυβικά μέτρα ανά δευτερόλεπτο','Metros cúbicos por segundo'],
+        ['m3_min','m³/min','Cubic meters per minute','Κυβικά μέτρα ανά λεπτό','Metros cúbicos por minuto'],
+        ['m3_h','m³/h','Cubic meters per hour','Κυβικά μέτρα ανά ώρα','Metros cúbicos por hora'],
+        ['l_s','L/s','Liters per second','Λίτρα ανά δευτερόλεπτο','Litros por segundo'],
+        ['l_min','L/min','Liters per minute','Λίτρα ανά λεπτό','Litros por minuto'],
+        ['l_h','L/h','Liters per hour','Λίτρα ανά ώρα','Litros por hora'],
+        ['ml_s','ml/s','Milliliters per second','Χιλιοστόλιτρα ανά δευτερόλεπτο','Mililitros por segundo'],
+        ['gpm','GPM','US Gallons per minute','Γαλόνια ανά λεπτό (ΗΠΑ)','Galones por minuto (EE. UU.)'],
+        ['cfm','CFM','Cubic feet per minute','Κυβικά πόδια ανά λεπτό','Pies cúbicos por minuto'],
+        ['ft3_s','ft³/s','Cubic feet per second','Κυβικά πόδια ανά δευτερόλεπτο','Pies cúbicos por segundo'],
+        ['svd','Sv','Sverdrup','Σβέρντρουπ','Sverdrup'],
+        ['km3_d','km³/day','Cubic kilometers per day','Κυβικά χιλιόμετρα ανά ημέρα','Kilómetros cúbicos por día'],
+        ['km3_y','km³/year','Cubic kilometers per year','Κυβικά χιλιόμετρα ανά έτος','Kilómetros cúbicos por año'],
+        ['gl_s','GL/s','Gigaliters per second','Γιγαλίτρα ανά δευτερόλεπτο','Gigalitros por segundo'],
+        ['gl_min','GL/min','Gigaliters per minute','Γιγαλίτρα ανά λεπτό','Gigalitros por minuto'],
+        ['gl_d','GL/day','Gigaliters per day','Γιγαλίτρα ανά ημέρα','Gigalitros por día']
+    ],
+    viscosity: [
+        ['pa_s','Pa·s','Pascal-seconds','Πασκάλ-δευτερόλεπτο','Pascal-segundos'],
+        ['cp','cP','Centipoise','Εκατοστοπουάζ','Centipoise'],
+        ['p','P','Poise','Πουάζ','Poise'],
+        ['mp','mP','Millipoise','Χιλιοστοπουάζ','Milipoise'],
+        ['mpa_s','mPa·s','Millipascal-seconds','Μιλιπασκάλ-δευτερόλεπτο','Milipascal-segundos'],
+        ['lbf_s_ft2','lbf·s/ft²','Pound-force seconds per square foot','Λίβρες δύναμης-δευτερόλεπτο ανά τετραγωνικό πόδι','Libras-fuerza segundo por pie cuadrado'],
+        ['lbm_ft_s','lbm/(ft·s)','Pounds per foot-second','Λίβρες ανά πόδι-δευτερόλεπτο','Libras por pie-segundo']
+    ],
+    illuminance: [
+        ['lux','lx','Lux','Λουξ','Lux'],
+        ['mlux','mlx','Millilux','Μιλιλούξ','Mililux'],
+        ['klux','klx','Kilolux','Κιλολούξ','Kilolux'],
+        ['fc','fc','Foot-candles','Foot-candle','Pies-bujía'],
+        ['phot','ph','Phot','Φοτ','Phot'],
+        ['nx','nx','Nox','Νοξ','Nox'],
+        ['ulux','μlx','Microlux','Μικρολούξ','Microlux'],
+        ['megalux','Mlx','Megalux','Μεγαλούξ','Megalux'],
+        ['gilux','Glx','Gigalux','Γιγαλούξ','Gigalux']
+    ],
+    radiation: [
+        ['gy','Gy','Gray','Γκρέι','Gray'],
+        ['mgy','mGy','Milligray','Μιλιγκρέι','Miligray'],
+        ['ugy','μGy','Microgray','Μικρογκρέι','Microgray'],
+        ['kgy','kGy','Kilogray','Κιλογκρέι','Kilogray'],
+        ['rad_d','rad','Rad','Ραντ','Rad'],
+        ['erg_g','erg/g','Ergs per gram','Έργκ ανά γραμμάριο','Ergios por gramo'],
+        ['sv','Sv','Sievert','Σίβερτ','Sievert'],
+        ['msv','mSv','Millisievert','Μιλισίβερτ','Milisievert'],
+        ['usv','μSv','Microsievert','Μικροσίβερτ','Microsievert'],
+        ['rem','rem','Rem','Ρεμ','Rem'],
+        ['mrem','mrem','Millirem','Μιλιρέμ','Milirem']
+    ],
+    magflux: [
+        ['wb','Wb','Weber','Βέμπερ','Weber'],
+        ['mwb','mWb','Milliweber','Μιλιβέμπερ','Miliweber'],
+        ['uwb','μWb','Microweber','Μικροβέμπερ','Microweber'],
+        ['nwb','nWb','Nanoweber','Νανοβέμπερ','Nanoweber'],
+        ['kwb','kWb','Kiloweber','Κιλοβέμπερ','Kiloweber'],
+        ['mxw','Mx','Maxwell','Μάξγουελ','Maxwell'],
+        ['vs','V·s','Volt-seconds','Βολτ-δευτερόλεπτο','Voltios-segundo']
+    ],
+    magdensity: [
+        ['t','T','Tesla','Τέσλα','Tesla'],
+        ['mt','mT','Millitesla','Μιλιτέσλα','Militesla'],
+        ['ut','μT','Microtesla','Μικροτέσλα','Microtesla'],
+        ['nt','nT','Nanotesla','Νανοτέσλα','Nanotesla'],
+        ['pt','pT','Picotesla','Πικοτέσλα','Picotesla'],
+        ['g','G','Gauss','Γκάους','Gauss'],
+        ['mg_d','mG','Milligauss','Μιλιγκάους','Miligauss'],
+        ['ug_d','μG','Microgauss','Μικρογκάους','Microgauss'],
+        ['gamma','γ','Gamma','Γάμμα','Gamma']
+    ],
+    magfield: [
+        ['a_m','A/m','Amperes per meter','Αμπέρ ανά μέτρο','Amperios por metro'],
+        ['ka_m','kA/m','Kiloamperes per meter','Κιλοαμπέρ ανά μέτρο','Kiloamperios por metro'],
+        ['ma_m','mA/m','Milliamperes per meter','Μιλιαμπέρ ανά μέτρο','Miliamperios por metro'],
+        ['ga_m','GA/m','Gigaamperes per meter','Γιγααμπέρ ανά μέτρο','Gigaamperios por metro'],
+        ['oe','Oe','Oersted','Έρστεντ','Oersted'],
+        ['moe','mOe','Milli-oersted','Μιλιέρστεντ','Mili-oersted'],
+        ['koe','kOe','Kilo-oersted','Κιλοέρστεντ','Kilo-oersted']
+    ],
+    magmmf: [
+        ['at','At','Ampere-turns','Αμπερελίγματα','Amperios-vuelta'],
+        ['kat','kAt','Kiloampere-turns','Κιλοαμπερελίγματα','Kiloamperios-vuelta'],
+        ['mat','mAt','Milliampere-turns','Μιλιαμπερελίγματα','Miliamperios-vuelta'],
+        ['uat','μAt','Microampere-turns','Μικροαμπερελίγματα','Microamperios-vuelta'],
+        ['gb','Gb','Gilbert','Γκίλμπερτ','Gilbert']
+    ],
+    luminance: [
+        ['cd_m2','cd/m²','Candelas per square meter (nit)','Καντέλα ανά τετραγωνικό μέτρο (nit)','Candelas por metro cuadrado (nit)'],
+        ['mcd_m2','mcd/m²','Millicandelas per square meter','Μιλικαντέλα ανά τετραγωνικό μέτρο','Milicandelas por metro cuadrado'],
+        ['kcd_m2','kcd/m²','Kilocandelas per square meter','Κιλοκαντέλα ανά τετραγωνικό μέτρο','Kilocandelas por metro cuadrado'],
+        ['Mcd_m2','Mcd/m²','Megacandelas per square meter','Μεγακαντέλα ανά τετραγωνικό μέτρο','Megacandelas por metro cuadrado'],
+        ['fL','fL','Foot-lamberts','Foot-lambert','Pies-lambert'],
+        ['sb','sb','Stilb','Στιλμπ','Estilbio'],
+        ['la','La','Lambert','Λάμπερτ','Lambert'],
+        ['asb','asb','Apostilb','Αποστιλμπ','Apostilbio'],
+        ['mla','mLa','Millilambert','Μιλιλάμπερτ','Mililambert'],
+        ['cd_ft2','cd/ft²','Candelas per square foot','Καντέλα ανά τετραγωνικό πόδι','Candelas por pie cuadrado'],
+        ['cd_in2','cd/in²','Candelas per square inch','Καντέλα ανά τετραγωνική ίντσα','Candelas por pulgada cuadrada']
+    ],
+    lumflux: [
+        ['lm','lm','Lumens','Λούμεν','Lúmenes'],
+        ['klm','klm','Kilolumens','Κιλολούμεν','Kilolúmenes'],
+        ['Mlm','Mlm','Megalumens','Μεγαλούμεν','Megalúmenes'],
+        ['ulm','μlm','Microlumens','Μικρολούμεν','Microlúmenes'],
+        ['cd_sr','cd·sr','Candela-steradians','Καντέλα-στερακτίνιο','Candela-estereorradián'],
+        ['cp','cp','Spherical candlepower','Σφαιρικό candlepower','Bujía esférica']
+    ],
+    lumintensity: [
+        ['cd','cd','Candelas','Καντέλα','Candelas'],
+        ['mcd','mcd','Millicandelas','Μιλικαντέλα','Milicandelas'],
+        ['kcd','kcd','Kilocandelas','Κιλοκαντέλα','Kilocandelas'],
+        ['Mcd','Mcd','Megacandelas','Μεγακαντέλα','Megacandelas'],
+        ['ucd','μcd','Microcandelas','Μικροκαντέλα','Microcandelas'],
+        ['cp_i','cp','International candles','Διεθνή κεριά','Bujías internacionales'],
+        ['hk','HK','Hefner candles','Κεριά Hefner','Bujías Hefner']
+    ]
+};
+
+/* ── Category names + one-line descriptions (hub cards and converter title) ──────────
+   One row per category:  key: [ name EN, name EL, name ES, description EN, description EL, description ES ]
+   Full names on purpose (no abbreviations): the hub shows them in full, the converter title reuses them. */
+var UCV_CATS = {
+    length: ['Length','Μήκος','Longitud',
+             'Meters, kilometers, miles, inches, light years and more.',
+             'Μέτρα, χιλιόμετρα, μίλια, ίντσες, έτη φωτός και άλλα.',
+             'Metros, kilómetros, millas, pulgadas, años luz y más.'],
+    area: ['Area','Εμβαδόν','Área',
+           'Square meters, hectares, acres, square feet and more.',
+           'Τετραγωνικά μέτρα, εκτάρια, acres, τετραγωνικά πόδια.',
+           'Metros cuadrados, hectáreas, acres, pies cuadrados y más.'],
+    volume: ['Volume','Όγκος','Volumen',
+             'Liters, gallons, cups, cubic meters, barrels and more.',
+             'Λίτρα, γαλόνια, φλιτζάνια, κυβικά μέτρα, βαρέλια και άλλα.',
+             'Litros, galones, tazas, metros cúbicos, barriles y más.'],
+    mass: ['Mass','Μάζα','Masa',
+           'Grams, kilograms, pounds, ounces, tons and more.',
+           'Γραμμάρια, χιλιόγραμμα, λίβρες, ουγγιές, τόνοι και άλλα.',
+           'Gramos, kilogramos, libras, onzas, toneladas y más.'],
+    temp: ['Temperature','Θερμοκρασία','Temperatura',
+           'Celsius, Fahrenheit, Kelvin, Rankine and more.',
+           'Κελσίου, Φαρενάιτ, Κέλβιν, Ράνκιν και άλλες κλίμακες.',
+           'Celsius, Fahrenheit, Kelvin, Rankine y más escalas.'],
+    speed: ['Speed','Ταχύτητα','Velocidad',
+            'Meters per second, km/h, mph, knots and Mach.',
+            'Μέτρα ανά δευτερόλεπτο, km/h, mph, κόμβοι και Μαχ.',
+            'Metros por segundo, km/h, mph, nudos y Mach.'],
+    time: ['Time','Χρόνος','Tiempo',
+           'Nanoseconds to decades: seconds, hours, days, years.',
+           'Από νανοδευτερόλεπτα έως δεκαετίες: ώρες, ημέρες, χρόνια.',
+           'De nanosegundos a décadas: horas, días, años.'],
+    energy: ['Energy','Ενέργεια','Energía',
+             'Joules, kWh, calories, BTU, tons of TNT and more.',
+             'Τζάουλ, kWh, θερμίδες, BTU, τόνοι TNT και άλλα.',
+             'Julios, kWh, calorías, BTU, toneladas de TNT y más.'],
+    pressure: ['Pressure','Πίεση','Presión',
+               'Pascals, bar, atmospheres, psi, mmHg and Torr.',
+               'Πασκάλ, μπαρ, ατμόσφαιρες, psi, mmHg και Τορ.',
+               'Pascales, bar, atmósferas, psi, mmHg y Torr.'],
+    data: ['Data Storage','Αποθήκευση δεδομένων','Almacenamiento de datos',
+           'Bits, bytes, kilobytes up to yottabytes.',
+           'Μπιτ, μπάιτ, από κιλομπάιτ έως γιοταμπάιτ.',
+           'Bits, bytes, desde kilobytes hasta yottabytes.'],
+    angle: ['Angle','Γωνία','Ángulo',
+            'Degrees, radians, gradians, arcminutes and turns.',
+            'Μοίρες, ακτίνια, γκραντ, λεπτά τόξου και στροφές.',
+            'Grados, radianes, gradianes, minutos de arco y vueltas.'],
+    frequency: ['Frequency','Συχνότητα','Frecuencia',
+                'Hertz, kilohertz, megahertz, gigahertz and rpm.',
+                'Χερτζ, κιλοχέρτζ, μεγαχέρτζ, γιγαχέρτζ και rpm.',
+                'Hercios, kilohercios, megahercios, gigahercios y rpm.'],
+    force: ['Force','Δύναμη','Fuerza',
+            'Newtons, kilonewtons, pound-force, dynes and more.',
+            'Νιούτον, κιλονιούτον, λίβρες δύναμης, δύνες και άλλα.',
+            'Newtons, kilonewtons, libras-fuerza, dinas y más.'],
+    power: ['Power','Ισχύς','Potencia',
+            'Watts, kilowatts, horsepower, BTU per hour and more.',
+            'Βατ, κιλοβάτ, ίπποι, BTU ανά ώρα και άλλα.',
+            'Vatios, kilovatios, caballos de fuerza, BTU por hora.'],
+    fuel: ['Fuel Economy','Κατανάλωση καυσίμου','Consumo de combustible',
+           'km/L, L/100 km and miles per gallon (US and UK).',
+           'km/L, L/100 km και μίλια ανά γαλόνι (ΗΠΑ, ΗΒ).',
+           'km/L, L/100 km y millas por galón (EE. UU., Reino Unido).'],
+    accel: ['Acceleration','Επιτάχυνση','Aceleración',
+            'm/s², g, Gal and km/h per second.',
+            'm/s², g, Gal και km/h ανά δευτερόλεπτο.',
+            'm/s², g, Gal y km/h por segundo.'],
+    datarate: ['Data Transfer Rate','Ταχύτητα μεταφοράς δεδομένων','Velocidad de transferencia de datos',
+               'Mbps, Gbps, MB/s and other network and disk speeds.',
+               'Mbps, Gbps, MB/s και άλλες ταχύτητες δικτύου και δίσκων.',
+               'Mbps, Gbps, MB/s y otras velocidades de red y disco.'],
+    flow: ['Flow Rate','Ρυθμός ροής','Caudal',
+           'Liters per minute, m³/h, GPM, CFM and more.',
+           'Λίτρα ανά λεπτό, m³/h, GPM, CFM και άλλα.',
+           'Litros por minuto, m³/h, GPM, CFM y más.'],
+    viscosity: ['Viscosity','Ιξώδες','Viscosidad',
+                'Pascal-seconds, poise, centipoise and more.',
+                'Πασκάλ-δευτερόλεπτο, πουάζ, εκατοστοπουάζ και άλλα.',
+                'Pascal-segundos, poise, centipoise y más.'],
+    illuminance: ['Illuminance','Φωτισμός','Iluminancia',
+                  'Lux, foot-candles, phot, nox and more.',
+                  'Λουξ, foot-candle, φοτ, νοξ και άλλα.',
+                  'Lux, pies-bujía, phot, nox y más.'],
+    radiation: ['Radiation Dose','Δόση ακτινοβολίας','Dosis de radiación',
+                'Gray, sievert, rad, rem and their subunits.',
+                'Γκρέι, σίβερτ, ραντ, ρεμ και υποπολλαπλάσια.',
+                'Gray, sievert, rad, rem y sus submúltiplos.'],
+    magflux: ['Magnetic Flux','Μαγνητική ροή','Flujo magnético',
+              'Weber, maxwell, volt-seconds and their multiples.',
+              'Βέμπερ, μάξγουελ, βολτ-δευτερόλεπτο και πολλαπλάσια.',
+              'Weber, maxwell, voltios-segundo y sus múltiplos.'],
+    magdensity: ['Magnetic Flux Density','Πυκνότητα μαγνητικής ροής','Densidad de flujo magnético',
+                 'Tesla, gauss, gamma and their subunits.',
+                 'Τέσλα, γκάους, γάμμα και υποπολλαπλάσια.',
+                 'Tesla, gauss, gamma y sus submúltiplos.'],
+    magfield: ['Magnetic Field Strength','Ένταση μαγνητικού πεδίου','Intensidad del campo magnético',
+               'Amperes per meter, oersted and their multiples.',
+               'Αμπέρ ανά μέτρο, έρστεντ και πολλαπλάσια.',
+               'Amperios por metro, oersted y sus múltiplos.'],
+    magmmf: ['Magnetomotive Force','Μαγνητεγερτική δύναμη','Fuerza magnetomotriz',
+             'Ampere-turns, gilbert and their subunits.',
+             'Αμπερελίγματα, γκίλμπερτ και υποπολλαπλάσια.',
+             'Amperios-vuelta, gilbert y sus submúltiplos.'],
+    luminance: ['Luminance','Φωτεινότητα','Luminancia',
+                'Candelas per m² (nit), stilb, lambert and more.',
+                'Καντέλα ανά m² (nit), στιλμπ, λάμπερτ και άλλα.',
+                'Candelas por m² (nit), estilbio, lambert y más.'],
+    lumflux: ['Luminous Flux','Φωτεινή ροή','Flujo luminoso',
+              'Lumens, kilolumens and candela-steradians.',
+              'Λούμεν, κιλολούμεν και καντέλα-στερακτίνιο.',
+              'Lúmenes, kilolúmenes y candela-estereorradián.'],
+    lumintensity: ['Luminous Intensity','Φωτεινή ένταση','Intensidad luminosa',
+                   'Candelas, millicandelas, international candles and more.',
+                   'Καντέλα, μιλικαντέλα, διεθνή κεριά και άλλα.',
+                   'Candelas, milicandelas, bujías internacionales y más.']
+};
+
+/* ── Default units per category ── */
+var defaults = {
+    length:'mm|cm', area:'m2|ft2', volume:'l|gal', mass:'kg|lb', temp:'c|f',
+    speed:'kmh|mph', time:'h|min', energy:'kwh|j', pressure:'bar|psi',
+    data:'gb|mb', angle:'deg|rad', frequency:'hz|khz', force:'n|lbf',
+    power:'kw|hp', fuel:'kml|mpg_us', accel:'m_s2|g0', datarate:'mbps|KBps',
+    flow:'l_s|gpm', viscosity:'pa_s|cp', illuminance:'lux|fc',
+    radiation:'msv|rem', magflux:'wb|mxw', magdensity:'t|g',
+    magfield:'a_m|oe', magmmf:'at|gb', luminance:'cd_m2|fL',
+    lumflux:'lm|klm', lumintensity:'cd|mcd'
+};
+
+/* ── Current category ── */
+var currentCat = '';
+
+/* Category names/descriptions: see UCV_CATS (full names, 3 languages). MODULE-01's shorter
+   T() names (e.g. "Mag. Field") are intentionally no longer used for the unit categories. */
+/* ── Core conversion engine (source: lines 8797-8883) ── */
+function convertTemperature(value, from, to) {
+    var celsius;
+    if      (from==='c')  celsius = value;
+    else if (from==='f')  celsius = (value-32)*5/9;
+    else if (from==='k')  celsius = value-273.15;
+    else if (from==='r')  celsius = (value-491.67)*5/9;
+    else if (from==='re') celsius = value*5/4;
+    else if (from==='n')  celsius = value*100/33;
+    if      (to==='c')  return celsius;
+    else if (to==='f')  return (celsius*9/5)+32;
+    else if (to==='k')  return celsius+273.15;
+    else if (to==='r')  return (celsius+273.15)*9/5;
+    else if (to==='re') return celsius*4/5;
+    else if (to==='n')  return celsius*33/100;
+    return celsius;
+}
+
+function convertFuelLocal(fromVal, fromUnit, toUnit) {
+    var kml;
+    if      (fromUnit==='kml')    kml = fromVal;
+    else if (fromUnit==='mpg_us') kml = fromVal*0.425144;
+    else if (fromUnit==='mpg_uk') kml = fromVal*0.354006;
+    else if (fromUnit==='l100km') kml = 100/fromVal;
+    var result;
+    if      (toUnit==='kml')    result = kml;
+    else if (toUnit==='mpg_us') result = kml/0.425144;
+    else if (toUnit==='mpg_uk') result = kml/0.354006;
+    else if (toUnit==='l100km') result = 100/kml;
+    return isFinite(result) ? result : 0;
+}
+
+/* ── Derived lookups: category → [{k, s, n:{en,el,es}}] and category → key → unit ── */
+var ucvUnits = {}, ucvIndex = {};
+Object.keys(UCV_TABLE).forEach(function (cat) {
+    ucvUnits[cat] = UCV_TABLE[cat].map(function (r) {
+        return { k: r[0], s: r[1], n: { en: r[2], el: r[3], es: r[4] } };
+    });
+    ucvIndex[cat] = {};
+    ucvUnits[cat].forEach(function (u) { ucvIndex[cat][u.k] = u; });
+});
+
+/* ── Category texts (hub cards + converter title); languages index: en 0, el 1, es 2 (+3 = description) ── */
+function ucvCatText(cat, desc) {
+    var r = UCV_CATS[cat];
+    if (!r) return desc ? '' : cat;
+    return r[({ en: 0, el: 1, es: 2 })[ucvLang()] + (desc ? 3 : 0)];
+}
+function ucvCatName(cat) { return ucvCatText(cat, false); }
+
+/* ── Module-local texts (same {el,en,es} pattern the other modules use) ── */
+var UCV_TXT = {
+    copyHint: { el: 'Πάτα για αντιγραφή',  en: 'Tap to copy',     es: 'Toca para copiar' },
+    copied:   { el: 'Αντιγράφηκε',         en: 'Copied',          es: 'Copiado' },
+    swap:     { el: 'Εναλλαγή μονάδων',    en: 'Swap units',      es: 'Intercambiar unidades' },
+    enter:    { el: 'Γράψε έναν αριθμό',   en: 'Enter a number',  es: 'Escribe un número' }
+};
+
+/* Current language: the App's state when running in-app; ?lang=el|en|es lets the
+   standalone file be previewed in another language; otherwise English. */
+function ucvLang() {
+    var l;
+    try { l = window.MultiCalc && window.MultiCalc.state && window.MultiCalc.state.currentLang; } catch (e) {}
+    if (!l) { try { if (typeof currentLang !== 'undefined') l = currentLang; } catch (e) {} }
+    if (!l) { try { var m = /[?&]lang=(el|en|es)(?:&|$)/.exec(location.search); if (m) l = m[1]; } catch (e) {} }
+    return (l === 'el' || l === 'es' || l === 'en') ? l : 'en';
+}
+function ucvT(key) { var d = UCV_TXT[key]; return d ? (d[ucvLang()] || d.en) : key; }
+function ucvEl(id) { return document.getElementById(id); }
+function ucvName(u) { return u.n[ucvLang()] || u.n.en; }
+function ucvShort(u) { return u.s || ucvName(u); }
+/* The symbol chip is hidden when it would just repeat the name (Bar, Torr, Rem…) */
+function ucvShowSym(u, name) { return !!u.s && u.s.toLowerCase() !== name.toLowerCase(); }
+
+/* ── Number formatting ──
+   ucvFmt    → value for the <input> (always '.' decimals, as type=number requires,
+               12 significant digits like before). With card=true it keeps 10 digits
+               (but never rounds integer digits away) so repeating decimals such as
+               −17.2222222222 stay readable in the result card.
+   ucvPretty → text for the result card (decimal sign per language, thin-space
+               grouping from 5 digits, ×10ⁿ instead of 1e-7)                        */
+function ucvFmt(r, card) {
+    if (!isFinite(r)) r = 0;
+    if (r === 0) return '0';
+    var a = Math.abs(r);
+    if (a >= 0.001 && a < 1e12) {
+        var prec = card ? Math.max(10, Math.min(12, Math.floor(Math.log10(a)) + 1)) : 12;
+        return parseFloat(r.toPrecision(prec)).toString();
+    }
+    return r.toExponential(6).replace(/\.?0+e/, 'e');
+}
+function ucvSup(n) {
+    var map = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+    return String(n).split('').map(function (c) { return map[c] || c; }).join('');
+}
+function ucvPretty(n) {
+    var raw = ucvFmt(n, true), sep = (ucvLang() === 'en') ? '.' : ',';
+    var neg = raw.charAt(0) === '-' ? '\u2212' : '';
+    if (neg) raw = raw.slice(1);
+    var m = raw.match(/^([\d.]+)e([+-]?\d+)$/);
+    if (m) return neg + m[1].replace('.', sep) + ' × 10' + ucvSup(parseInt(m[2], 10));
+    var parts = raw.split('.'), ip = parts[0];
+    if (ip.length >= 5) ip = ip.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F');
+    return neg + ip + (parts[1] ? sep + parts[1] : '');
+}
+
+/* ── Conversion of one value (null if the units are unknown) ── */
+function ucvConvert(val, from, to) {
+    var r;
+    if (currentCat === 'temp')      r = convertTemperature(val, from, to);
+    else if (currentCat === 'fuel') r = convertFuelLocal(val, from, to);
+    else {
+        var f = conversionFactors[currentCat];
+        if (!f || !f[from] || !f[to]) return null;
+        r = (val * f[from]) / f[to];
+    }
+    return isFinite(r) ? r : 0;
+}
+
+/* ═══ Custom picker ═══════════════════════════════════════════
+   The visible control is a button + a floating listbox panel; the hidden
+   <select id="conv-…-unit"> only holds the chosen value, so the conversion
+   code keeps reading .value exactly like before.                            */
+var ucvPickers = {};
+var ucvOpenPicker = null;
+var ucvSwapAngle = 0;
+
+function ucvMakePicker(side) {
+    var root = ucvEl('ucv-pick-' + side);
+    if (!root) return null;
+    var sel = ucvEl('conv-' + side + '-unit');
+    var btn = root.querySelector('.ucv-btn');
+    var nameEl = root.querySelector('.ucv-btn-name');
+    var symEl = btn.querySelector('.ucv-sym');
+    var panel = root.querySelector('.ucv-panel');
+    var list = root.querySelector('.ucv-list');
+    var rows = [], active = -1, typed = '', typedTimer = null;
+    var api = { side: side, root: root };
+
+    function selectedIndex() {
+        for (var i = 0; i < rows.length; i++) if (rows[i].dataset.k === sel.value) return i;
+        return -1;
+    }
+    function isOpen() { return root.classList.contains('is-open'); }
+
+    api.value = function () { return sel.value; };
+
+    api.setValue = function (key) {
+        sel.value = key;
+        var u = ucvIndex[currentCat] && ucvIndex[currentCat][sel.value];
+        rows.forEach(function (r) { r.setAttribute('aria-selected', r.dataset.k === sel.value ? 'true' : 'false'); });
+        if (!u) return;
+        var name = ucvName(u), showSym = ucvShowSym(u, name);
+        nameEl.textContent = name;
+        symEl.textContent = showSym ? u.s : '';
+        symEl.style.display = showSym ? '' : 'none';
+        var lbl = ucvEl('lbl-conv-' + side);
+        btn.setAttribute('aria-label', (lbl ? lbl.textContent + ': ' : '') + name + (u.s ? ' (' + u.s + ')' : ''));
+    };
+
+    /* (Re)build the options of the current category in the current language */
+    api.render = function (cat, wantKey) {
+        var units = ucvUnits[cat];
+        if (!units) return;
+        sel.innerHTML = '';
+        list.innerHTML = '';
+        rows = [];
+        active = -1;
+        units.forEach(function (u, i) {
+            var name = ucvName(u);
+            var opt = document.createElement('option');
+            opt.value = u.k;
+            opt.text = name + (u.s ? ' (' + u.s + ')' : '');
+            sel.appendChild(opt);
+
+            var row = document.createElement('div');
+            row.className = 'ucv-opt';
+            row.id = 'ucv-' + side + '-o' + i;
+            row.setAttribute('role', 'option');
+            row.setAttribute('aria-selected', 'false');
+            row.dataset.k = u.k;
+            var n = document.createElement('span');
+            n.className = 'ucv-opt-name';
+            n.textContent = name;
+            row.appendChild(n);
+            if (ucvShowSym(u, name)) {
+                var s = document.createElement('span');
+                s.className = 'ucv-sym';
+                s.textContent = u.s;
+                row.appendChild(s);
+            }
+            list.appendChild(row);
+            rows.push(row);
+        });
+        api.setValue(wantKey && ucvIndex[cat][wantKey] ? wantKey : units[0].k);
+    };
+
+    function setActive(i, scroll) {
+        if (active >= 0 && rows[active]) rows[active].classList.remove('is-active');
+        active = i;
+        if (i >= 0 && rows[i]) {
+            rows[i].classList.add('is-active');
+            panel.setAttribute('aria-activedescendant', rows[i].id);
+            if (scroll) {
+                var top = rows[i].offsetTop, bot = top + rows[i].offsetHeight;
+                if (top < list.scrollTop) list.scrollTop = top - 4;
+                else if (bot > list.scrollTop + list.clientHeight) list.scrollTop = bot - list.clientHeight + 4;
+            }
+        } else {
+            panel.removeAttribute('aria-activedescendant');
+        }
+    }
+
+    /* Open downwards when there is room, otherwise flip upwards; the list is
+       capped to the room available so the panel never runs off the screen.   */
+    function place() {
+        var r = btn.getBoundingClientRect();
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        var limitBottom = vh - 10;
+        var fp = document.querySelector('.fun-facts-panel,#fun-facts-panel');
+        if (fp) {
+            try {
+                if (getComputedStyle(fp).position === 'fixed') {
+                    var fr = fp.getBoundingClientRect();
+                    if (fr.height > 0 && fr.top > r.bottom) limitBottom = Math.min(limitBottom, fr.top - 8);
+                }
+            } catch (e) {}
+        }
+        var chrome = 8 + 14;                                  /* gap + panel padding/border */
+        var below = limitBottom - r.bottom - chrome;
+        var above = r.top - 10 - chrome;
+        var want = Math.min(list.scrollHeight, 340);
+        var up = below < Math.min(want, 220) && above > below;
+        panel.style.transition = 'none';                      /* no slide when only the direction changes */
+        panel.classList.toggle('is-up', up);
+        void panel.offsetWidth;
+        panel.style.transition = '';
+        list.style.maxHeight = Math.max(140, Math.min(want, up ? above : below)) + 'px';
+    }
+
+    function onDocDown(e) { if (!root.contains(e.target)) close(false); }
+    function onResize() { close(false); }
+
+    function open() {
+        if (ucvOpenPicker && ucvOpenPicker !== api) ucvOpenPicker.close(false);
+        place();
+        root.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+        ucvOpenPicker = api;
+        var si = selectedIndex();
+        if (si >= 0) list.scrollTop = Math.max(0, rows[si].offsetTop - (list.clientHeight - rows[si].offsetHeight) / 2);
+        setActive(si, false);
+        document.addEventListener('pointerdown', onDocDown, true);
+        window.addEventListener('resize', onResize);
+        try { panel.focus({ preventScroll: true }); } catch (e) {}
+    }
+    function close(refocus) {
+        if (!isOpen()) return;
+        root.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('pointerdown', onDocDown, true);
+        window.removeEventListener('resize', onResize);
+        if (ucvOpenPicker === api) ucvOpenPicker = null;
+        if (refocus) { try { btn.focus({ preventScroll: true }); } catch (e) {} }
+    }
+    api.close = close;
+
+    function choose(i) {
+        if (i < 0 || !rows[i]) return;
+        var changed = rows[i].dataset.k !== sel.value;
+        api.setValue(rows[i].dataset.k);
+        close(true);
+        if (changed) doConvert();
+    }
+
+    function norm(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+    function typeahead(ch) {
+        clearTimeout(typedTimer);
+        typed += ch;
+        typedTimer = setTimeout(function () { typed = ''; }, 700);
+        var t = norm(typed);
+        for (var i = 0; i < rows.length; i++) {
+            var u = ucvIndex[currentCat][rows[i].dataset.k];
+            if (norm(ucvName(u)).indexOf(t) === 0 || norm(u.s || '').indexOf(t) === 0) { setActive(i, true); return; }
+        }
+    }
+
+    btn.addEventListener('click', function () { if (isOpen()) close(true); else open(); });
+    btn.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!isOpen()) open(); }
+    });
+    list.addEventListener('click', function (e) {
+        var row = e.target.closest ? e.target.closest('.ucv-opt') : null;
+        if (row) choose(rows.indexOf(row));
+    });
+    panel.addEventListener('keydown', function (e) {
+        var n = rows.length, k = e.key, handled = true;
+        if      (k === 'ArrowDown') setActive(Math.min(n - 1, active + 1), true);
+        else if (k === 'ArrowUp')   setActive(Math.max(0, active - 1), true);
+        else if (k === 'Home')      setActive(0, true);
+        else if (k === 'End')       setActive(n - 1, true);
+        else if (k === 'PageDown')  setActive(Math.min(n - 1, active + 6), true);
+        else if (k === 'PageUp')    setActive(Math.max(0, active - 6), true);
+        else if (k === 'Enter' || k === ' ') choose(active);
+        else if (k === 'Escape')    close(true);
+        else if (k === 'Tab')       { close(false); handled = false; }
+        else if (k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) typeahead(k);
+        else handled = false;
+        if (handled) e.preventDefault();
+    });
+    return api;
+}
+
+/* Create / re-create the two pickers when their elements are in the page.
+   Lazy on purpose: in-app the screen can reach the live DOM after this script ran. */
+function ucvEnsurePickers() {
+    ['from', 'to'].forEach(function (side) {
+        var root = ucvEl('ucv-pick-' + side);
+        if (!root) { delete ucvPickers[side]; return; }
+        if (!ucvPickers[side] || ucvPickers[side].root !== root) ucvPickers[side] = ucvMakePicker(side);
+    });
+    return !!(ucvPickers.from && ucvPickers.to);
+}
+function ucvCloseAll() { if (ucvOpenPicker) ucvOpenPicker.close(false); }
+
+/* ── Result card ── */
+function ucvRenderResult() {
+    var main = ucvEl('conv-result'), sub = ucvEl('conv-result-sub');
+    if (!main || !sub) return;
+    var fv = parseFloat(ucvEl('conv-from-val').value), tv = parseFloat(ucvEl('conv-to-val').value);
+    if (isNaN(fv) || isNaN(tv)) { main.textContent = ucvT('enter'); sub.textContent = ''; return; }
+    var idx = ucvIndex[currentCat] || {};
+    var fu = idx[ucvEl('conv-from-unit').value], tu = idx[ucvEl('conv-to-unit').value];
+    if (!fu || !tu) return;
+    main.textContent = ucvPretty(fv) + ' ' + ucvShort(fu) + ' = ' + ucvPretty(tv) + ' ' + ucvShort(tu);
+    var inv = ucvConvert(1, tu.k, fu.k);
+    sub.textContent = inv === null ? '' : '1 ' + ucvShort(tu) + ' = ' + ucvPretty(inv) + ' ' + ucvShort(fu);
+}
+
+var ucvHintTimer = null;
+function ucvResetHint() {
+    var hint = ucvEl('conv-result-hint');
+    if (!hint) return;
+    clearTimeout(ucvHintTimer);
+    hint.textContent = ucvT('copyHint');
+    hint.classList.remove('is-ok');
+}
+/* Tap the result card → copies the converted number (plain digits, '.' decimals) */
+function ucvCopy() {
+    var txt = ucvEl('conv-to-val').value;
+    if (!txt) return;
+    function done() {
+        var hint = ucvEl('conv-result-hint');
+        if (!hint) return;
+        hint.textContent = ucvT('copied') + ' ✓';
+        hint.classList.add('is-ok');
+        clearTimeout(ucvHintTimer);
+        ucvHintTimer = setTimeout(ucvResetHint, 1500);
+    }
+    function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select();
+        try { if (document.execCommand('copy')) done(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(done, fallback); return; }
+    } catch (e) {}
+    fallback();
+}
+
+/* Category colour: taken from the hub card's own gradient, so the converter
+   always matches the card that opened it, even if the card colours change. */
+function ucvApplyAccent(cat) {
+    var scr = ucvEl('scr-converter');
+    if (!scr) return;
+    var a = '#6366f1', b = '#4338ca', rgb = '99,102,241';
+    try {
+        var icon = document.querySelector('#scr-units .icon[data-icon="' + cat + '"]');
+        var card = icon && icon.parentElement;
+        var m = card ? (getComputedStyle(card).backgroundImage || '').match(/rgba?\([^)]+\)/g) : null;
+        if (m && m.length >= 2) {
+            var c1 = m[0].match(/[\d.]+/g), c2 = m[1].match(/[\d.]+/g);
+            a = 'rgb(' + c1[0] + ',' + c1[1] + ',' + c1[2] + ')';
+            b = 'rgb(' + c2[0] + ',' + c2[1] + ',' + c2[2] + ')';
+            rgb = c1[0] + ',' + c1[1] + ',' + c1[2];
+        }
+    } catch (e) {}
+    scr.style.setProperty('--ucv-a', a);
+    scr.style.setProperty('--ucv-b', b);
+    scr.style.setProperty('--ucv-a-rgb', rgb);
+    var badge = ucvEl('conv-badge'), dict = window.MC_CONVERT_ICONS;
+    if (badge) {
+        badge.innerHTML = (dict && dict[cat]) ? dict[cat] : '';
+        var s = badge.firstElementChild;
+        if (s) { s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false'); }
+    }
+}
+
+/* Static texts of this screen that depend on the language */
+function ucvStaticText() {
+    var swap = ucvEl('ucv-swap');
+    if (swap) swap.setAttribute('aria-label', ucvT('swap'));
+    ucvResetHint();
+}
+
+/* Hub cards (name + description) and the open converter's title, in the current language.
+   Needs no T(): the texts live in UCV_CATS, so it also works standalone. */
+function ucvRefreshHub() {
+    document.querySelectorAll('#scr-units .unit-card .label[data-cat]').forEach(function (el) {
+        el.textContent = ucvCatName(el.dataset.cat);
+    });
+    document.querySelectorAll('#scr-units .unit-card .uc-desc[data-desc]').forEach(function (el) {
+        el.textContent = ucvCatText(el.dataset.desc, true);
+    });
+    var titleEl = ucvEl('conv-title');
+    if (titleEl && currentCat) titleEl.textContent = ucvCatName(currentCat);
+}
+
+/* Language changed: re-render unit names in both pickers, keep the chosen units & values */
+function ucvRefreshLang() {
+    ucvStaticText();
+    if (!currentCat || !ucvEnsurePickers()) return;
+    ucvCloseAll();
+    var fk = ucvEl('conv-from-unit').value, tk = ucvEl('conv-to-unit').value;
+    ucvPickers.from.render(currentCat, fk);
+    ucvPickers.to.render(currentCat, tk);
+    ucvRenderResult();
+}
+
+/* ── translateUnitsUI() — updates ALL translatable text in this module.
+   Called: (a) once at module load, (b) whenever language changes
+   (registered into window.__mcExtraTranslators, invoked by the App
+   after applyTranslations() runs). The unit names live in UCV_TABLE and are
+   re-rendered here too, so they work with or without T() (standalone mode
+   keeps the static English UI text but still honours ?lang=el|es). ── */
+function translateUnitsUI() {
+    ucvRefreshHub();  /* hub card names + descriptions, converter title (no T() needed) */
+    ucvRefreshLang(); /* unit names, swap label, copy hint, result card */
+    if (typeof T !== 'function') return; // standalone mode — keep static English
+
+    /* "Back to Units" button */
+    var btu = document.getElementById('lbl-back-to-units');
+    if (btu) btu.textContent = T('backToUnits');
+
+    /* From / To labels */
+    var lblFrom = document.getElementById('lbl-conv-from');
+    if (lblFrom) lblFrom.textContent = T('from');
+    var lblTo = document.getElementById('lbl-conv-to');
+    if (lblTo) lblTo.textContent = T('to');
+
+    /* Picker buttons carry "From/To: unit" for screen readers */
+    if (currentCat && ucvEnsurePickers()) {
+        ucvPickers.from.setValue(ucvEl('conv-from-unit').value);
+        ucvPickers.to.setValue(ucvEl('conv-to-unit').value);
+    }
+}
+
+/* Register with the App's translation refresh system (no-op if standalone) */
+window.__mcExtraTranslators = window.__mcExtraTranslators || [];
+window.__mcExtraTranslators.push(translateUnitsUI);
+
+/* Run once immediately in case language was already selected before
+   this module loaded (e.g. saved in localStorage) */
+translateUnitsUI();
+
+/* ── Category icons ──────────────────────────────────────────
+   The SVGs live in convert-icons.js (window.MC_CONVERT_ICONS),
+   next to this file. Each hub card has <div class="icon"
+   data-icon="key">. Idempotent: safe to call any number of times.
+   Does NOT depend on DOMContentLoaded (never fires in-app); it runs
+   now, retries briefly in case the sibling script or the screen
+   arrives a moment later, and runs again on window load. */
+function mcConvInjectIcons() {
+    var dict = window.MC_CONVERT_ICONS;
+    if (!dict) return false;
+    var slots = document.querySelectorAll('#scr-units .unit-card .icon[data-icon]');
+    var complete = slots.length > 0;
+    slots.forEach(function(el) {
+        if (el.firstElementChild) return;
+        var svg = dict[el.getAttribute('data-icon')];
+        if (!svg) { complete = false; return; }
+        el.innerHTML = svg;
+        var s = el.firstElementChild;
+        if (s) { s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false'); }
+    });
+    return complete;
+}
+(function mcConvIconsBoot() {
+    var tries = 0;
+    (function attempt() {
+        if (mcConvInjectIcons() || ++tries > 20) return;
+        setTimeout(attempt, 150);
+    })();
+    window.addEventListener('load', mcConvInjectIcons);
+})();
+
+/* ── Show hub / show converter ── */
+function showHub() {
+    ucvCloseAll();
+    document.getElementById('scr-converter').classList.remove('active');
+    document.getElementById('scr-units').classList.add('active');
+    mcConvInjectIcons();
+}
+
+function openConverter(cat) {
+    var units = ucvUnits[cat];
+    if (!units) return;
+    currentCat = cat;
+    if (!ucvEnsurePickers()) return;
+    ucvCloseAll();
+
+    /* Title: full category name in the current language */
+    document.getElementById('conv-title').textContent = ucvCatName(cat);
+
+    /* Category colour + icon badge, language-dependent static texts */
+    ucvApplyAccent(cat);
+    ucvStaticText();
+
+    /* Populate the two pickers with default units */
+    var defs = (defaults[cat] || '|').split('|');
+    ucvPickers.from.render(cat, defs[0]);
+    ucvPickers.to.render(cat, defs[1]);
+
+    /* Reset values */
+    document.getElementById('conv-from-val').value = '1';
+    document.getElementById('conv-to-val').value   = '';
+    document.getElementById('conv-result').innerText = '–';
+    document.getElementById('conv-result-sub').innerText = '';
+
+    /* Reset the swap arrow to its rest position (screen is hidden → no animation) */
+    var sw = ucvEl('ucv-swap'), svg = sw && sw.querySelector('svg');
+    ucvSwapAngle = 0;
+    if (svg) svg.style.transform = '';
+
+    /* Switch screens */
+    document.getElementById('scr-units').classList.remove('active');
+    document.getElementById('scr-converter').classList.add('active');
+
+    /* Initial conversion */
+    doConvert();
+}
+
+
+/* src === 'to' → the user typed in the "To" field, so convert backwards into "From".
+   Otherwise "From" is the source (typing, or a unit was changed). */
+function doConvert(src) {
+    if (!currentCat || !ucvEnsurePickers()) return;
+    var side  = (src === 'to') ? 'to' : 'from';
+    var other = (side === 'from') ? 'to' : 'from';
+    var inEl  = ucvEl('conv-' + side  + '-val');
+    var outEl = ucvEl('conv-' + other + '-val');
+
+    var v = parseFloat(inEl.value);
+    if (isNaN(v)) { outEl.value = ''; ucvRenderResult(); return; }
+
+    var r = ucvConvert(v, ucvEl('conv-' + side + '-unit').value, ucvEl('conv-' + other + '-unit').value);
+    if (r === null) return;
+
+    outEl.value = ucvFmt(r);
+    ucvRenderResult();
+}
+
+/* Re-triggers the short "slide in from the other row" animation */
+function ucvAnimate(el) {
+    if (!el) return;
+    el.classList.remove('is-swapping');
+    void el.offsetWidth;
+    el.classList.add('is-swapping');
+    setTimeout(function () { el.classList.remove('is-swapping'); }, 480);
+}
+
+function doSwap() {
+    if (!currentCat || !ucvEnsurePickers()) return;
+    ucvCloseAll();
+
+    var fromVal = ucvEl('conv-from-val');
+    var toVal   = ucvEl('conv-to-val');
+    var fromKey = ucvPickers.from.value();
+    var toKey   = ucvPickers.to.value();
+
+    ucvPickers.from.setValue(toKey);
+    ucvPickers.to.setValue(fromKey);
+
+    var tmpVal   = fromVal.value;
+    fromVal.value  = toVal.value || '1';
+    toVal.value    = tmpVal;
+
+    doConvert();
+
+    /* The arrow turns another half-turn on EVERY press (driven from JS, so it
+       can't get stuck on a :hover state like the old CSS-only version did) */
+    ucvSwapAngle += 180;
+    var sw = ucvEl('ucv-swap'), svg = sw && sw.querySelector('svg');
+    if (svg) svg.style.transform = 'rotate(' + ucvSwapAngle + 'deg)';
+    ucvAnimate(ucvEl('ucv-group-from'));
+    ucvAnimate(ucvEl('ucv-group-to'));
+}
+</script>
+</body>
+</html>

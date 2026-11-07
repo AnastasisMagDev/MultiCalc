@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="el" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MODULE 07 — Standard Calculator</title>
+
+    <!-- ═══════════════════════════════════════════════════
+         SHARED BASE CSS — needed by ALL modules
+         Source: lines 1-194, 543-570, 1928-1985, 2016-2038
+         ═══════════════════════════════════════════════════ -->
+    <style>
+        /* ── Reset & Base ── */
+        :root {
+            --bg: #0f172a; --fg: #f1f5f9; --accent: #38bdf8;
+            --primary: #3b82f6; --secondary: #6366f1; --surface: #1e293b;
+        }
+        * { margin:0; padding:0; box-sizing:border-box;
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+            -webkit-font-smoothing:antialiased; }
+        .is-animating { pointer-events:none !important; }
+
+        html { background:#0f172a; min-height:100%; }
+
+        body {
+            background: linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);
+            min-height:100dvh; min-height:100vh;
+            color:white; overflow-x:hidden;
+        }
+
+        /* Background orbs */
+        body::before, body::after {
+            content:''; position:fixed; border-radius:50%;
+            pointer-events:none; z-index:0;
+        }
+        body::before {
+            width:420px; height:420px;
+            background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);
+            top:-80px; left:-80px;
+        }
+        body::after {
+            width:360px; height:360px;
+            background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);
+            bottom:40px; right:-60px;
+        }
+
+        /* Screen */
+        .screen {
+            display:none; padding:20px; padding-bottom:170px;
+            min-height:100dvh; min-height:100vh;
+            position:relative; z-index:1;
+            contain:layout style; -webkit-backface-visibility:hidden;
+        }
+        .screen.active {
+            display:block;
+            animation:screenIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;
+        }
+        @keyframes screenIn {
+            from { opacity:0; transform:scale3d(0.96,0.96,1) translateY(10px); }
+            to   { opacity:1; transform:scale3d(1,1,1) translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity:0; transform:translateY(15px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        /* Staggered button entry */
+        .screen.active .calc-grid > * {
+            animation:fadeIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;
+        }
+        .screen.active .calc-grid > *:nth-child(1)  { animation-delay:0.05s; }
+        .screen.active .calc-grid > *:nth-child(2)  { animation-delay:0.08s; }
+        .screen.active .calc-grid > *:nth-child(3)  { animation-delay:0.11s; }
+        .screen.active .calc-grid > *:nth-child(4)  { animation-delay:0.14s; }
+        .screen.active .calc-grid > *:nth-child(n+5){ animation-delay:0.17s; }
+
+        /* Header */
+        .header { text-align:center; padding:40px 20px 20px; }
+        .logo { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+        .logo-icon {
+            width:48px; height:48px;
+            background:linear-gradient(135deg,#6366f1,#a855f7);
+            border-radius:12px; display:flex; align-items:center;
+            justify-content:center; font-weight:800; font-size:1.8rem;
+            color:#fff; box-shadow:0 8px 24px rgba(99,102,241,0.3);
+            position:relative; overflow:hidden;
+        }
+        .logo-icon::before {
+            content:''; position:absolute; top:-50%; left:-50%;
+            width:200%; height:200%;
+            background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);
+            animation:shimmer 3s infinite;
+        }
+        @keyframes shimmer {
+            0%   { transform:translate(-100%,-100%) rotate(0deg); }
+            100% { transform:translate(100%,100%) rotate(0deg); }
+        }
+        .logo-text {
+            font-size:2.5rem; font-weight:700;
+            background:linear-gradient(135deg,#fff,#e2e8f0);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .logo span {
+            background:linear-gradient(135deg,#6366f1,#a855f7);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .subtitle { color:#94a3b8; font-size:0.95rem; margin-top:5px; }
+
+        /* Back button */
+        .back-btn {
+            background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px; color:#94a3b8; font-size:0.95rem;
+            padding:10px 16px; cursor:pointer; display:inline-flex;
+            align-items:center; gap:8px; margin-bottom:20px;
+            transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+            -webkit-tap-highlight-color:transparent;
+        }
+        .back-btn:hover { color:#e2e8f0; background:rgba(255,255,255,0.1); transform:translateX(-3px); }
+        .back-btn:active { transform:scale(0.94) translateX(-2px); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width:8px; }
+        ::-webkit-scrollbar-track { background:rgba(15,23,42,0.3); }
+        ::-webkit-scrollbar-thumb { background:rgba(71,85,105,0.5); border-radius:4px; }
+        ::-webkit-scrollbar-thumb:hover { background:rgba(100,116,139,0.7); }
+
+        /* ── MODULE 07 CSS ─────────────────────────────────────
+           Calculator Display & Buttons
+           Source: lines 404-506 + 2016-2038
+           ──────────────────────────────────────────────────── */
+
+        /* Display */
+        .calc-display {
+            background:rgba(15,23,42,0.6);
+            border:1px solid rgba(71,85,105,0.3);
+            border-radius:20px; padding:30px 20px;
+            margin-bottom:20px; text-align:right;
+        }
+        .calc-value { font-size:3rem; font-weight:300; overflow-x:auto; white-space:nowrap; }
+
+        /* 4-column grid */
+        .calc-grid {
+            display:grid !important;
+            grid-template-columns:repeat(4,1fr) !important;
+            gap:12px !important; max-width:500px; margin:0 auto;
+        }
+
+        /* Base button */
+        .calc-btn {
+            height:70px; border-radius:20px; border:none;
+            font-size:1.3rem; font-weight:600; cursor:pointer;
+            transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+                        box-shadow 0.18s ease, filter 0.15s ease;
+            color:white; position:relative; overflow:hidden;
+            -webkit-tap-highlight-color:transparent;
+            user-select:none; touch-action:manipulation;
+        }
+        /* Enhanced hover/active — source: lines 2017-2038 */
+        .calc-btn:hover {
+            transform:translateY(-3px) scale(1.06) !important;
+            filter:brightness(1.15) !important;
+        }
+        .calc-btn:active {
+            transform:scale(0.87) !important;
+            transition:transform 0.07s cubic-bezier(0.68,-0.55,0.27,1.55) !important;
+        }
+
+        /* Number buttons */
+        .btn-number {
+            background:#ffffff !important; border:1px solid #e2e8f0 !important;
+            color:#0f172a !important; box-shadow:0 4px 10px rgba(0,0,0,0.3) !important;
+            font-weight:800 !important;
+        }
+        .btn-number:hover { background:#f8fafc; border-color:#cbd5e1; }
+
+        /* Operator buttons */
+        .btn-operator {
+            background:#3b82f6 !important; border:1px solid #60a5fa !important;
+            color:white !important; box-shadow:0 4px 15px rgba(59,130,246,0.4) !important;
+            font-weight:800 !important;
+        }
+        .btn-operator:hover {
+            box-shadow:0 6px 20px rgba(59,130,246,0.4),
+                       0 0 0 1px rgba(96,165,250,0.3) !important;
+        }
+
+        /* Clear button */
+        .btn-clear { background:#ef4444; border:1px solid #f87171; color:white; }
+        .btn-clear:hover { box-shadow:0 6px 20px rgba(239,68,68,0.4) !important; }
+
+        /* Equals button */
+        .btn-equals {
+            background:linear-gradient(135deg,#6366f1,#a855f7);
+            border:none; position:relative; overflow:hidden;
+        }
+        .btn-equals:hover {
+            box-shadow:0 8px 28px rgba(99,102,241,0.55),
+                       0 0 0 1px rgba(168,85,247,0.4) !important;
+            transform:translateY(-3px) scale(1.07) !important;
+        }
+
+        /* ── History Panel CSS
+           Source: lines 995-1094 + 2098-2114
+           ──────────────────────────────────────────────────── */
+        .history-btn {
+            position:absolute; top:20px; right:20px;
+            background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.3);
+            color:#818cf8; padding:10px 20px; border-radius:15px;
+            cursor:pointer; font-size:0.95rem; font-weight:600;
+            transition:all 0.3s ease; z-index:10;
+        }
+        .history-btn:hover { background:rgba(99,102,241,0.3); transform:translateY(-2px); }
+
+        .history-panel {
+            display:none; position:fixed; top:80px; right:20px;
+            width:320px; max-height:70vh;
+            background:rgba(10,14,40,0.92) !important;
+            border:1px solid rgba(99,102,241,0.25) !important;
+            border-radius:20px; padding:20px; overflow-y:auto;
+            backdrop-filter:blur(20px) saturate(180%) !important;
+            box-shadow:0 0 0 1px rgba(255,255,255,0.05),
+                       0 24px 60px rgba(0,0,0,0.5),
+                       0 0 40px rgba(99,102,241,0.1) !important;
+            z-index:100;
+            animation:slideInRight 0.4s cubic-bezier(0.68,-0.55,0.265,1.55);
+        }
+        @keyframes slideInRight {
+            from { opacity:0; transform:translateX(100px); }
+            to   { opacity:1; transform:translateX(0); }
+        }
+        .history-panel.show { display:block; }
+
+        .history-title {
+            font-size:1.2rem; font-weight:600; margin-bottom:15px;
+            color:#818cf8; display:flex; justify-content:space-between; align-items:center;
+        }
+        .history-clear {
+            background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.3);
+            color:#f87171; padding:5px 12px; border-radius:8px;
+            cursor:pointer; font-size:0.85rem;
+        }
+        .history-item {
+            background:rgba(30,41,59,0.6); border:1px solid rgba(71,85,105,0.3);
+            border-radius:12px; padding:12px; margin-bottom:10px; cursor:pointer;
+            transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1) !important;
+        }
+        .history-item:hover {
+            background:rgba(51,65,85,0.6);
+            transform:translateX(-6px) scale(1.01) !important;
+            border-color:rgba(99,102,241,0.4) !important;
+            box-shadow:0 4px 16px rgba(0,0,0,0.3),
+                       inset 0 0 0 1px rgba(99,102,241,0.1) !important;
+        }
+        .history-expr  { color:#94a3b8; font-size:0.9rem; margin-bottom:5px; }
+        .history-result{ color:#60a5fa; font-size:1.1rem; font-weight:600; }
+
+        /* ── Responsive ── */
+        @media (min-width:601px) and (max-width:1024px) {
+            .calc-grid  { max-width:540px !important; gap:14px !important; }
+            .calc-btn   { height:72px; font-size:1.35rem; }
+        }
+        @media (max-width:600px) {
+            .calc-value { font-size:2.4rem; }
+            .calc-grid  { gap:8px !important; max-width:100% !important; }
+            .calc-btn   { height:56px; border-radius:14px; font-size:1.05rem; }
+        }
+        @media (max-width:480px) {
+            .screen      { padding:15px; padding-bottom:140px; }
+            .calc-display{ padding:20px 15px; margin-bottom:15px; }
+        }
+    
+/* ── Light-theme contrast overrides (auto-added) ── */
+body.theme-light .back-btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+body.theme-light .back-btn:hover{background:#334155;border-color:#475569;color:#ffffff;}
+body.theme-light .subtitle{color:#475569;}
+body.theme-light .logo-text{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;}
+body.theme-light .calc-display{background:rgba(15,23,42,0.88);}
+body.theme-light .history-item{background:rgba(30,41,59,0.88);}
+body.theme-light .history-item:hover{background:rgba(51,65,85,0.92);}
+</style>
+</head>
+<body>
+
+<!-- ═══ 07-HTML — Standard Calculator Screen ═══════════════════════════════
+     Source: lines 2381-2421 (original file)
+     ════════════════════════════════════════════════════════════════════════ -->
+
+<div id="scr-calc" class="screen active">
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">∑</div>
+            <div class="logo-text">Multi<span>Calc</span></div>
+        </div>
+        <div class="subtitle t-header-sub">Math • Physics • Units • Currency</div>
+    </div>
+
+    <button class="back-btn" type="button">← <span class="t-back">Πίσω</span></button>
+    <button class="history-btn" onclick="toggleHistory('std')">📜 History</button>
+    <div id="history-std" class="history-panel"></div>
+
+    <div class="calc-display">
+        <div class="calc-value" id="std-res">0</div>
+    </div>
+
+    <div class="calc-grid">
+        <button class="calc-btn btn-clear"    onclick="clearCalc()">C</button>
+        <button class="calc-btn btn-operator" onclick="append('±')">±</button>
+        <button class="calc-btn btn-operator" onclick="append('%')">%</button>
+        <button class="calc-btn btn-operator" onclick="append('÷')">÷</button>
+
+        <button class="calc-btn btn-number"   onclick="append('7')">7</button>
+        <button class="calc-btn btn-number"   onclick="append('8')">8</button>
+        <button class="calc-btn btn-number"   onclick="append('9')">9</button>
+        <button class="calc-btn btn-operator" onclick="append('×')">×</button>
+
+        <button class="calc-btn btn-number"   onclick="append('4')">4</button>
+        <button class="calc-btn btn-number"   onclick="append('5')">5</button>
+        <button class="calc-btn btn-number"   onclick="append('6')">6</button>
+        <button class="calc-btn btn-operator" onclick="append('-')">-</button>
+
+        <button class="calc-btn btn-number"   onclick="append('1')">1</button>
+        <button class="calc-btn btn-number"   onclick="append('2')">2</button>
+        <button class="calc-btn btn-number"   onclick="append('3')">3</button>
+        <button class="calc-btn btn-operator" onclick="append('+')">+</button>
+
+        <button class="calc-btn btn-number"   onclick="append('0')">0</button>
+        <button class="calc-btn btn-number"   onclick="append('.')">.</button>
+        <button class="calc-btn btn-operator" style="background:#475569;color:white;"
+                onclick="delChar()">⌫</button>
+        <button class="calc-btn btn-equals"   onclick="solve()">=</button>
+    </div>
+
+    <div class="fun-facts-slot"></div>
+</div>
+
+
+<script>
+/* ── Light-theme contrast guard ─────────────────────────────
+   Detects whether the currently active body background is a
+   light color (any theme, present or future) and toggles
+   body.theme-light so panels/text/back-btn switch to a closed,
+   readable palette. getComputedStyle always normalizes colors
+   to rgb()/rgba() — never hex — so we parse that, not hex.
+   Fully-transparent stops (alpha 0, e.g. body's own unset
+   background-color) are skipped so they don't drag the
+   average down as if they were a real black stop.
+   A MutationObserver on body's style attribute acts as the
+   "signal": whenever ANYTHING changes the body background
+   (theme picker, app boot, future code), every already-loaded
+   module reacts instantly, with no fixed timing assumptions. */
+function mcRelLuminanceRGB(r,g,b){
+    const lin=c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+}
+function mcExtractRGB(str){
+    const out=[];
+    (str.match(/rgba?\([^)]+\)/g)||[]).forEach(m=>{
+        const n=m.match(/[\d.]+/g).map(Number);
+        if(n.length>=4 && n[3]===0) return;
+        out.push([n[0],n[1],n[2]]);
+    });
+    (str.match(/#[0-9a-fA-F]{6}/g)||[]).forEach(h=>{
+        out.push([parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+    });
+    return out;
+}
+function mcCheckThemeLightness(){
+    const cs=getComputedStyle(document.body);
+    const str=(cs.backgroundImage&&cs.backgroundImage!=='none'?cs.backgroundImage:'')+' '+cs.backgroundColor;
+    const colors=mcExtractRGB(str);
+    if(!colors.length){document.body.classList.remove('theme-light');return;}
+    const avg=colors.reduce((s,[r,g,b])=>s+mcRelLuminanceRGB(r,g,b),0)/colors.length;
+    document.body.classList.toggle('theme-light',avg>0.18);
+}
+mcCheckThemeLightness();
+window.addEventListener('load',mcCheckThemeLightness);
+setTimeout(mcCheckThemeLightness,300);
+try{
+    new MutationObserver(mcCheckThemeLightness)
+        .observe(document.body,{attributes:true,attributeFilter:['style','class']});
+}catch(e){}
+
+// ══════════════════════════════════════════════════════
+// MODULE 07: STANDARD CALCULATOR — JS
+// Source: lines 7879, 7900-7941, 7839, 10369-10392,
+//         11066-11121
+// ══════════════════════════════════════════════════════
+
+// Minimal MultiCalc namespace stub (full version in main file)
+    var MultiCalc = {
+    state: { calcHistory: { std: [], sci: [] }, currentLang: 'el' },
+    data:  { translations: { el: { history:'Ιστορικό', clear:'Καθαρισμός', confirmClear:'Καθαρισμός ιστορικού;' },
+                              en: { history:'History',   clear:'Clear',      confirmClear:'Clear all history?' },
+                              es: { history:'Historial', clear:'Borrar',     confirmClear:'¿Borrar historial?' } } }
+};
+
+// ── Global expr (loose var — intentional) ──
+var expr = "";
+
+// ── Core Math ──
+function append(val) {
+    if (expr === "0" || expr === "Error") expr = "";
+    if (val === "±") {
+        if (expr.startsWith("-")) expr = expr.slice(1);
+        else if (expr !== "") expr = "-" + expr;
+        document.getElementById('std-res').innerText = expr || "0";
+        return;
+    }
+    if (val === "%") {
+        try { expr = String(parseFloat(expr) / 100); } catch(e) { expr = "Error"; }
+        document.getElementById('std-res').innerText = expr;
+        return;
+    }
+    expr += val;
+    document.getElementById('std-res').innerText = expr || "0";
+}
+
+function clearCalc() {
+    expr = "";
+    document.getElementById('std-res').innerText = "0";
+}
+
+function delChar() {
+    expr = expr.slice(0, -1);
+    document.getElementById('std-res').innerText = expr || "0";
+}
+
+function solve() {
+    if (!expr) return;
+    try {
+        const finalExpr = expr.split('×').join('*').split('÷').join('/');
+        const result = new Function(`return ${finalExpr}`)();
+        if (!Number.isFinite(result)) throw new Error();
+        expr = result.toString().length > 12
+            ? result.toPrecision(10)
+            : result.toString();
+        document.getElementById('std-res').innerText = expr;
+        addToHistory('std', finalExpr, expr);
+    } catch(e) {
+        expr = "Error";
+        document.getElementById('std-res').innerText = expr;
+    }
+}
+
+// ── History System ──
+function addToHistory(type, expression, result) {
+    if (!expression || !result || result === "Error") return;
+    MultiCalc.state.calcHistory[type].unshift({ expr: expression, result, time: Date.now() });
+    if (MultiCalc.state.calcHistory[type].length > 20)
+        MultiCalc.state.calcHistory[type].pop();
+    updateHistoryPanel(type);
+    try { localStorage.setItem('mc_history', JSON.stringify(MultiCalc.state.calcHistory)); } catch(e) {}
+}
+
+function updateHistoryPanel(type) {
+    const panel = document.getElementById(`history-${type}`);
+    if (!panel) return;
+    const t = MultiCalc.data.translations[MultiCalc.state.currentLang] || MultiCalc.data.translations['en'];
+    if (MultiCalc.state.calcHistory[type].length === 0) {
+        panel.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:20px;">No history yet</div>';
+        return;
+    }
+    panel.innerHTML =
+        `<div class="history-title">
+             <span>${t.history}</span>
+             <button class="history-clear" onclick="clearHistory('${type}')">${t.clear}</button>
+         </div>` +
+        MultiCalc.state.calcHistory[type].map(item => `
+            <div class="history-item" onclick="loadFromHistory('std','${item.expr.replace(/'/g,"\\'")}')">
+                <div class="history-expr">${item.expr}</div>
+                <div class="history-result">= ${item.result}</div>
+            </div>`).join('');
+}
+
+function toggleHistory(type) {
+    const panel = document.getElementById(`history-${type}`);
+    if (panel) panel.classList.toggle('show');
+}
+
+function clearHistory(type) {
+    const t = MultiCalc.data.translations[MultiCalc.state.currentLang] || MultiCalc.data.translations['en'];
+    if (confirm(t.confirmClear)) {
+        MultiCalc.state.calcHistory[type] = [];
+        updateHistoryPanel(type);
+        try { localStorage.setItem('mc_history', JSON.stringify(MultiCalc.state.calcHistory)); } catch(e) {}
+    }
+}
+
+function loadFromHistory(type, histExpr) {
+    expr = histExpr;
+    document.getElementById('std-res').innerText = histExpr;
+    toggleHistory(type);
+}
+
+// Load saved history on start
+try {
+    const saved = localStorage.getItem('mc_history');
+    if (saved) {
+        MultiCalc.state.calcHistory = JSON.parse(saved);
+        updateHistoryPanel('std');
+    }
+} catch(e) {}
+</script>
+
+</body>
+</html>

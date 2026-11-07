@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="el"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chemical Formula Lab</title>
+<style>
+.fl-wrap{max-width:780px;margin:0 auto;padding:12px 12px 32px;color:#e8eefc;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.fl-wrap *{box-sizing:border-box}
+.fl-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.fl-head h2{margin:0;font-size:1.15rem;color:inherit}
+.fl-head small{display:block;opacity:.7;font-size:.78rem;margin-top:2px}
+.fl-lang{margin-left:auto;display:flex;gap:4px}
+.fl-lang button{background:#16203f;color:#cfe0ff;border:1px solid #2c3d73;border-radius:8px;padding:4px 8px;font-size:.75rem}
+.fl-card{position:relative;overflow:hidden;border-radius:20px;padding:16px;margin-bottom:12px;background:linear-gradient(145deg,#0d1630,#140f31);border:1px solid rgba(140,170,255,.2);box-shadow:0 10px 36px rgba(15,25,70,.45)}
+.fl-card::before{content:"";position:absolute;inset:-45%;pointer-events:none;background:radial-gradient(circle at 25% 25%,rgba(110,168,255,.2),transparent 40%),radial-gradient(circle at 78% 72%,rgba(177,140,255,.18),transparent 42%);animation:fl-drift 16s ease-in-out infinite alternate}
+.fl-card>*{position:relative}
+@keyframes fl-drift{to{transform:translate(6%,4%) rotate(8deg)}}
+.fl-in{width:100%;font:600 1.5rem/1.2 ui-monospace,Menlo,Consolas,monospace;color:#fff;background:rgba(5,9,25,.7);border:1.5px solid #34498f;border-radius:14px;padding:13px 14px;outline:0;transition:border-color .25s,box-shadow .25s}
+.fl-in:focus{border-color:#6ea8ff;box-shadow:0 0 0 4px rgba(110,168,255,.18)}
+.fl-keys,.fl-ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fl-keys button,.fl-ex button{background:#18254f;color:#dce8ff;border:1px solid #2f4390;border-radius:10px;padding:7px 11px;font:600 .9rem ui-monospace,Menlo,monospace;transition:transform .15s,background .2s}
+.fl-keys button:active,.fl-ex button:active{transform:scale(.94);background:#25377a}
+.fl-lbl{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65;margin-top:12px}
+.fl-formula{font-size:1.9rem;font-weight:700;letter-spacing:.02em;animation:fl-up .5s both}
+.fl-formula sub{font-size:.6em}
+.fl-mass{font:700 2.6rem/1.1 ui-monospace,Menlo,monospace;background:linear-gradient(90deg,#7fb6ff,#c5a3ff,#7fb6ff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fl-shine 4s linear infinite}
+@keyframes fl-shine{to{background-position:-200% 0}}
+.fl-mass small{font-size:.9rem;opacity:.8;margin-left:6px;-webkit-text-fill-color:#aebfe8}
+.fl-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.fl-tags span{font-size:.76rem;padding:4px 10px;border-radius:99px;background:rgba(110,168,255,.14);border:1px solid rgba(110,168,255,.3)}
+.fl-note{font-size:.74rem;opacity:.65;margin-top:8px;line-height:1.35}
+.fl-comp{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.fl-donut{width:150px;height:150px;flex:none}
+.fl-seg{transition:stroke-dasharray 1.1s cubic-bezier(.2,.8,.2,1) calc(var(--i)*110ms)}
+.fl-leg{flex:1;min-width:190px;display:grid;gap:8px}
+.fl-lr{display:grid;grid-template-columns:34px 1fr 64px;gap:8px;align-items:center;font-size:.85rem}
+.fl-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
+.fl-bar i{display:block;height:100%;width:0;border-radius:5px;background:var(--c);transition:width 1.1s cubic-bezier(.2,.8,.2,1) calc(var(--i)*110ms)}
+.fl-chip{font-style:normal;font-weight:800;text-align:center;border-radius:9px;padding:4px 0;color:#0a1022;background:var(--c)}
+.fl-step{animation:fl-up .55s both;animation-delay:calc(var(--i)*130ms)}
+.fl-step h3{margin:0 0 4px;font-size:.98rem;color:#cfe0ff}
+.fl-step p{margin:0 0 10px;font-size:.78rem;opacity:.7;line-height:1.35}
+.fl-row{display:grid;grid-template-columns:38px 1fr;gap:10px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.07);font:.92rem ui-monospace,Menlo,monospace;word-break:break-word}
+.fl-eq{font:.92rem ui-monospace,Menlo,monospace;line-height:1.6;word-break:break-word}
+.fl-eq b{color:#8fe9c4}
+.fl-err{border-radius:16px;padding:14px;background:#2a1020;border:1px solid #7a2a4a;animation:fl-up .35s both}
+.fl-err code{display:block;margin-top:8px;font-size:1.2rem;color:#ffd3df}
+.fl-err u{color:#ff6b8f;text-decoration-thickness:3px}
+.fl-src{font-size:.7rem;opacity:.5;line-height:1.4;margin-top:4px}
+@keyframes fl-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.fl-mode{display:flex;gap:6px;margin-top:12px}.fl-mode button{flex:1;background:#18254f;color:#dce8ff;border:1px solid #2f4390;border-radius:10px;padding:8px;font-weight:700;transition:background .25s}
+.fl-mode .on{background:#3a56c9;border-color:#6ea8ff;color:#fff}
+.fl-why{margin-top:10px;padding:10px 12px;border-radius:12px;font-size:.8rem;line-height:1.45;background:rgba(143,233,196,.08);border:1px solid rgba(143,233,196,.25);animation:fl-up .4s both}
+.fl-row em{opacity:.75;font-style:normal;font-size:.8rem}
+.fl-mi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}.fl-mi label{font-size:.72rem;opacity:.85}
+.fl-mi input{width:100%;margin-top:4px;font:600 1.1rem ui-monospace,Menlo,monospace;color:#fff;background:rgba(5,9,25,.7);border:1.5px solid #34498f;border-radius:12px;padding:10px;outline:0}
+.fl-hint{margin:0 0 10px;font-size:.78rem;opacity:.7}
+.fl-er{display:grid;grid-template-columns:72px 1fr 42px;gap:8px;margin-bottom:8px}
+.fl-er input{width:100%;font:600 1rem ui-monospace,Menlo,monospace;color:#fff;background:rgba(5,9,25,.7);border:1.5px solid #34498f;border-radius:12px;padding:9px;outline:0}
+.fl-er button{background:#2a1a3a;color:#ffb3c8;border:1px solid #6b3b6b;border-radius:10px}
+.fl-formula sup{font-size:.6em}
+.fl-irow{display:grid;grid-template-columns:48px 1fr auto;gap:4px 10px;align-items:center;font:.8rem ui-monospace,Menlo,monospace;padding:4px 0;word-break:break-all}
+.fl-irow>span:first-child{color:var(--c);font-weight:800}
+.fl-irow .fl-bar{grid-column:1/-1;height:5px}
+.fl-stage{position:relative;border-radius:20px;margin-bottom:12px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#16224a,#0a1022 75%);border:1px solid rgba(140,170,255,.2);box-shadow:0 10px 36px rgba(15,25,70,.45)}
+.fl-stage canvas{display:block;margin:0 auto;touch-action:none}
+.fl-tools{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.fl-tools button{width:38px;height:38px;border-radius:12px;border:1px solid rgba(140,170,255,.3);background:rgba(16,26,60,.72);color:#dce8ff;font-size:1.05rem;padding:0}
+.fl-stage.fl-full{position:fixed;inset:0;z-index:9999;margin:0;border-radius:0}
+.fl-stage.fl-full canvas{margin:0}
+.fl-cap{position:absolute;left:12px;bottom:8px;font-size:.68rem;opacity:.55}
+.fl-formula span{display:inline-block;animation:fl-pop .6s cubic-bezier(.2,.9,.3,1.4) both;animation-delay:calc(var(--d)*65ms)}
+@keyframes fl-pop{from{opacity:0;transform:translateY(12px) scale(.55)}to{opacity:1;transform:none}}
+.fl-head .back-btn{width:42px;height:42px;flex:none;border-radius:14px;border:1px solid rgba(140,170,255,.3);background:rgba(16,26,60,.78);color:#dce8ff;font-size:1.2rem;cursor:pointer;transition:transform .15s,background .2s}
+.fl-head .back-btn:active{transform:scale(.92);background:#25377a}
+body.theme-light .fl-head h2{color:#0f172a}
+body.theme-light .fl-head small{color:#475569;opacity:1}
+body.theme-light .fl-src{color:#334155;opacity:.85}
+.fun-facts-slot{margin-top:14px}
+@media (prefers-reduced-motion:reduce){.fl-wrap *,.fl-wrap *::before{animation:none!important;transition:none!important}}
+</style></head>
+<body>
+<script src="../periodic-table/elements.js"></script>
+<script src="ciaaw-isotopes-2024.js"></script>
+<script src="polyatomic-ions.js"></script>
+<script src="formula-engine.js"></script>
+<script src="formula-geometry.js"></script>
+<div id="scr-formula" class="screen"><div class="fl-wrap">
+  <div class="fl-head"><button class="back-btn" type="button">←</button>
+    <div><h2 data-fl="title"></h2><small data-fl="sub"></small></div>
+    <div class="fl-lang" id="fl-lang" hidden><button data-l="el">EL</button><button data-l="en">EN</button><button data-l="es">ES</button></div></div>
+  <div class="fl-card">
+    <input id="fl-in" class="fl-in" type="text" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="120" value="Al2(SO4)3">
+    <div class="fl-keys" id="fl-keys"><button data-k="(">(</button><button data-k=")">)</button><button data-k="·">·</button><button data-k="del">⌫</button><button data-k="clr">✕</button></div>
+    <div class="fl-lbl" data-fl="ex"></div><div class="fl-ex" id="fl-ex"></div>
+    <div class="fl-mode" id="fl-mode"><button data-m="0" class="on" data-fl="mG"></button><button data-m="1" data-fl="mD"></button></div>
+  </div>
+  <div id="fl-out"></div>
+  <div class="fl-card" id="fl-mol" hidden><h3 data-fl="mt" style="margin:0 0 10px;font-size:.98rem;color:#cfe0ff"></h3>
+    <div class="fl-mi"><label><span data-fl="mg"></span><input id="fl-g" type="text" inputmode="decimal" autocomplete="off" value="100"></label>
+    <label><span data-fl="mn"></span><input id="fl-n" type="text" inputmode="decimal" autocomplete="off"></label></div>
+    <div class="fl-eq" id="fl-mst"></div></div>
+  <div class="fl-card" id="fl-emp"><h3 data-fl="ec" style="margin:0 0 4px;font-size:.98rem;color:#cfe0ff"></h3><p class="fl-hint" data-fl="eh"></p>
+    <div id="fl-erows"></div>
+    <div class="fl-ex" style="margin:0 0 10px"><button data-ea="1" data-fl="eAdd"></button><button data-eu="1" data-fl="eUse"></button></div>
+    <div class="fl-mi"><label><span data-fl="eM"></span><input id="fl-eM" type="text" inputmode="decimal" autocomplete="off" value="180.16"></label></div></div>
+  <div id="fl-eout"></div>
+  <div class="fl-src" data-fl="src"></div>
+  <div class="fun-facts-slot"></div>
+</div></div>
+<script>
+(function(){
+var D={
+el:{title:'Εργαστήριο Χημικών Τύπων',sub:'Τύπος → ανάλυση ατόμων → μάζα → σύσταση κατά μάζα',ex:'Παραδείγματα',
+mm:'Μοριακή μάζα (Mr)',fm:'Τυπική μάζα (Fu)',unit:'g/mol',tot:'άτομα συνολικά',nel:'στοιχεία',
+note:'Ενδεικτική ταξινόμηση (χωρίς γνώση της δομής): μοριακή για ενώσεις αμετάλλων, τυπική όταν υπάρχει μέταλλο.',
+comp:'Σύσταση κατά μάζα',s1:'1 · Ανάλυση τύπου',s1d:'Ο δείκτης κάθε ατόμου πολλαπλασιάζεται με τους δείκτες όλων των παρενθέσεων που το περιέχουν.',
+s1h:'Η τελεία «·» χωρίζει το ένυδρο τμήμα· ο συντελεστής πολλαπλασιάζει όλο το τμήμα.',
+s2:'2 · Ατομικές μάζες',s2d:'Άτομα × σχετική ατομική μάζα Ar.',s3:'3 · Άθροισμα',s3d:'Η μάζα της ένωσης είναι το άθροισμα των μαζών όλων των ατόμων.',
+s4:'4 · Ποσοστό κατά μάζα',s4d:'%Χ = (μάζα στοιχείου ÷ συνολική μάζα) × 100 — το άθροισμα είναι 100 %.',
+src:'Πηγή: τυπικά ατομικά βάρη IUPAC/CIAAW (συντομευμένα). Για στοιχεία χωρίς σταθερό ισότοπο: μαζικός αριθμός του μακροβιότερου ισοτόπου.',
+e_EMPTY:'Γράψε έναν χημικό τύπο.',e_UNKNOWN:'Άγνωστο σύμβολο στοιχείου «{x}».',e_CHAR:'Μη αποδεκτός χαρακτήρας «{x}» — τα σύμβολα ξεκινούν με κεφαλαίο και συνεχίζουν με μικρό.',
+e_UNBALANCED:'Παρένθεση χωρίς ταίρι.',e_ZERO:'Ο δείκτης δεν μπορεί να είναι 0.',e_EMPTYPART:'Λείπει περιεχόμενο γύρω από μια παρένθεση ή το «·».',
+mG:'Γενική',mD:'Αναλυτική',mt:'Mol ⇄ γραμμάρια',mg:'Μάζα δείγματος (g)',mn:'Ποσότητα (mol)',np:'σωματίδια (μόρια / μονάδες τύπου)',
+w1:'Γιατί: ο δείκτης δείχνει πόσα άτομα του στοιχείου υπάρχουν· η παρένθεση ομαδοποιεί ένα τμήμα, άρα ο δείκτης της ισχύει για κάθε άτομο μέσα της. Αν ένα στοιχείο εμφανίζεται σε πολλά σημεία (π.χ. CH₃COOH), οι εμφανίσεις προστίθενται.',
+w2:'Γιατί: η Ar είναι ο μέσος όρος των ισοτόπων του στοιχείου με βάση τη φυσική τους αφθονία (σε u, αριθμητικά ίση με g/mol). Η ενέργεια δεσμού αλλάζει τη μάζα αμελητέα, άρα η μάζα της ένωσης είναι το άθροισμα των ατομικών.',
+w3:'Γιατί: 1 mol ένωσης περιέχει τόσα mol ατόμων όσοι οι δείκτες, άρα M = Σ(δείκτης × Ar) σε g/mol.',
+w4:'Γιατί: το ποσοστό δείχνει ποιο μέρος της συνολικής μάζας οφείλεται σε κάθε στοιχείο· δεν εξαρτάται από την ποσότητα του δείγματος.',
+wbr:'Για στοιχεία χωρίς τυπικό ατομικό βάρος χρησιμοποιείται ο μαζικός αριθμός του μακροβιότερου ισοτόπου — προσέγγιση.',
+wm:'Γιατί: 1 mol περιέχει N<sub>A</sub> = 6,02214076×10²³ σωματίδια (ακριβής τιμή SI από το 2019)· η μάζα ενός mol είναι M σε g.',
+s5:'5 · Αριθμοί οξείδωσης',s5d:'Πρώτα τα στοιχεία με σταθερό κανόνα· το υπόλοιπο από την ουδετερότητα (ή το φορτίο του ιόντος, π.χ. SO4^2-).',
+stN:'Λείπουν δεδομένα στοιχείου.',avg:'μέση τιμή για {n} άτομα',chg:'φορτίο',
+stOK:'Το άθροισμα ισούται με το φορτίο ✓',stU:'Δύο ή περισσότερα στοιχεία χωρίς σταθερό κανόνα — δεν προκύπτουν μονοσήμαντα (π.χ. FeSO4· δοκίμασε το ιόν, π.χ. SO4^2-).',
+stM:'Το άθροισμα δεν ισούται με το φορτίο — ο τύπος είναι ιόν ή ασυνήθιστη ένωση.',stP:'Τιμή εκτός του συνηθισμένου εύρους (−4…+8) — έλεγξε τον τύπο.',
+r_g1:'αλκάλιο: +1',r_g2:'αλκαλική γαία: +2',r_Al:'Al: +3',r_common:'συνήθης τιμή',r_F:'F: −1',r_O:'O: −2',r_H:'H: +1',r_hyd:'υδρίδιο: H = −1',r_hal:'αλογόνο χωρίς O/F: −1',r_perox:'υπεροξείδιο: O = −1',r_super:'σουπεροξείδιο: O = −½',r_elem:'ελεύθερο στοιχείο: 0',r_ion:'μονοατομικό ιόν: το φορτίο του',r_solved:'από την ουδετερότητα',r_unk:'δεν προκύπτει',
+w5:'Γιατί: ο αριθμός οξείδωσης είναι το φορτίο που θα είχε το άτομο αν κάθε ζεύγος δεσμού ανήκε στο πιο ηλεκτραρνητικό άτομο· το άθροισμα ισούται με το φορτίο της οντότητας. Η μάζα των ηλεκτρονίων που προστίθενται ή αφαιρούνται (0,000549 u το καθένα) αγνοείται.',
+ec:'Εμπειρικός / μοριακός τύπος από σύσταση',eh:'Δώσε στοιχεία και % κατά μάζα (ή γραμμάρια). Προαιρετικά M για μοριακό τύπο.',eM:'Μοριακή μάζα M (g/mol)',eAdd:'+ στοιχείο',eUse:'M από τον τύπο',
+f1:'1 · Mol = μάζα ÷ Ar',f2:'2 · Διαίρεση με το μικρότερο',f3:'3 · Ακέραιοι δείκτες (×k)',f4:'4 · Εμπειρικός τύπος',f5:'5 · Μοριακός τύπος',
+ew_sum:'Το άθροισμα είναι {x}, όχι 100 — αν είναι γραμμάρια αγνόησέ το, αλλιώς ίσως λείπει στοιχείο.',ew_apx:'Δεν βρέθηκαν ακέραιοι δείκτες (ανοχή 0,08, k ≤ 8)· έγινε στρογγυλοποίηση — έλεγξε τα δεδομένα.',ew_mol:'Η M δεν είναι ακέραιο πολλαπλάσιο της μάζας του εμπειρικού τύπου (n = {x}).',
+ee_EMPTY:'Πρόσθεσε τουλάχιστον ένα στοιχείο.',ee_UNKNOWN:'Άγνωστο σύμβολο «{x}».',ee_BADVAL:'Μη έγκυρη τιμή για «{x}» — θετικός αριθμός.',ee_DUP:'Το «{x}» υπάρχει δύο φορές.',
+s6:'6 · Ισοτοπική σύσταση',s6d:'Ισότοπα κάθε στοιχείου (μάζα AME2020, αφθονία CIAAW 2024) και ισοτοπικό μοτίβο του τύπου.',
+i_nodata:'Χωρίς φυσική ισοτοπική σύσταση (ραδιενεργό στοιχείο).',i_wide:'Το στοιχείο {x} έχει πολύ μεταβλητή σύσταση — δεν υπολογίζεται μοτίβο.',i_big:'Πολύ μεγάλο μόριο για μοτίβο.',
+i_mid:'Στοιχεία με μεταβλητή σύσταση (διάστημα CIAAW): χρησιμοποιείται το μέσο του διαστήματος — το μοτίβο είναι προσεγγιστικό.',
+i_mono:'μονοϊσοτοπική μάζα',i_avg:'μέση μάζα από ισότοπα',i_pat:'Μοτίβο M, M+1, M+2 (σχετική ένταση, κορυφή = 100 %)',
+i_src:'Πηγή: CIAAW «Isotopic Compositions of the Elements 2024»· μάζες ισοτόπων CIAAW Atomic Masses (AME2020).',
+w6:'Γιατί: τα ισότοπα έχουν ίδιο Z αλλά διαφορετικό αριθμό νετρονίων. Οι εντάσεις του μοτίβου προκύπτουν από τον πολλαπλασιασμό των πιθανοτήτων κάθε ισοτόπου σε όλα τα άτομα του τύπου· η μονοϊσοτοπική μάζα χρησιμοποιεί το πιο άφθονο ισότοπο κάθε στοιχείου.',
+s7:'7 · Ιοντική σύσταση',s7d:'Κατιόντα και ανιόντα που ισορροπούν το φορτίο· οι πολυατομικές ρίζες μένουν ενιαίες (ονοματολογία: IUPAC Red Book 2005).',
+i7_none:'Δεν προκύπτει απλή ιοντική ανάλυση με ακέραια φορτία (π.χ. μικτές καταστάσεις οξείδωσης ή ομοιοπολική ένωση).',i7_amb:'Ο τύπος επιδέχεται περισσότερες από μία ιοντικές αναλύσεις — δεν επιλέγω μία.',i7_neu:'ουδέτερο μόριο (ένυδρο τμήμα)',
+w7:'Γιατί: μια ιοντική ένωση αποτελείται από κατιόντα και ανιόντα σε αναλογία που κάνει το σύνολο ουδέτερο. Μεταξύ πολλών πιθανών αναλύσεων επιλέγεται η πιο απλή (λιγότερα είδη ιόντων, μετά λιγότερα σωματίδια)· η μάζα ιόντος είναι το άθροισμα των ατομικών μαζών (η μάζα των ηλεκτρονίων αγνοείται).',
+sg:'2 · Μάζα και ποσοστά',sgd:'Άτομα × Ar = μάζα στοιχείου· ποσοστό = μάζα στοιχείου ÷ συνολική μάζα × 100.',am:'Ατομική μάζα (Ar)',im:'Μάζα ιόντος',k_ionic:'Τυπική μάζα: ιοντική ένωση (βλ. ιοντική σύσταση).',k_hyd:'Τυπική μάζα: ένυδρη ένωση.',k_net:'Τυπική μάζα: δικτυωτό (μη μοριακό) στερεό.',k_elem:'Μοριακή μάζα: μόριο στοιχείου.',k_atomic:'Ατομική μάζα του στοιχείου.',k_ion:'Μάζα ιόντος· η μάζα των ηλεκτρονίων αγνοείται.',fa:'Σχηματική απεικόνιση σχηματισμού — όχι πραγματική γεωμετρία.',
+fa_mol:'Γεωμετρία VSEPR (γωνίες προσεγγιστικές) — σύρε για περιστροφή.',fa_lat:'Τυπική κρυσταλλική δομή {x} — μοναδιαία κυψελίδα, σύρε για περιστροφή.',fa_ion:'Σχηματική διάταξη ιόντων με πραγματική γεωμετρία των πολυατομικών ιόντων — σύρε για περιστροφή.',
+lt_rs:'τύπου NaCl',lt_cs:'τύπου CsCl',lt_zb:'σφαλερίτη (ZnS)',lt_fl:'φθορίτη (CaF₂)',lt_af:'αντιφθορίτη',
+fa_cry:'Κρύσταλλος {x} — {n} άτομα. Σύρε για περιστροφή, τσίμπημα ή ροδέλα για ζουμ.',fa_i1:'Ιόν: το άτομο αλλάζει μέγεθος (ατομική → ιοντική ακτίνα) καθώς χάνει ή παίρνει ηλεκτρόνια.',fa_smp:'Δείγμα {n} από {m} άτομα.',
+lt_fcc:'fcc (εδροκεντρωμένο κυβικό)',lt_bcc:'bcc (χωροκεντρωμένο κυβικό)',lt_hcp:'hcp (εξαγωνικό πυκνότατης διάταξης)',lt_di:'διαμαντιού',lt_pk:'πυκνή διάταξη ιόντων (σχηματική)',lt_c60:'φουλερένιο C₆₀',
+w_chg:'Ασυνήθιστα μεγάλο φορτίο — δεν απαντά σε σταθερά ιόντα.'},
+en:{title:'Chemical Formula Lab',sub:'Formula → atom breakdown → mass → mass composition',ex:'Examples',
+mm:'Molecular mass (Mr)',fm:'Formula mass (Fu)',unit:'g/mol',tot:'atoms in total',nel:'elements',
+note:'Indicative classification (structure unknown): molecular for non-metal compounds, formula mass when a metal is present.',
+comp:'Mass composition',s1:'1 · Formula breakdown',s1d:'Each atom’s subscript is multiplied by the subscripts of every parenthesis that encloses it.',
+s1h:'The dot “·” separates the hydrate part; its coefficient multiplies the whole part.',
+s2:'2 · Atomic masses',s2d:'Atoms × relative atomic mass Ar.',s3:'3 · Sum',s3d:'The compound’s mass is the sum of the masses of all its atoms.',
+s4:'4 · Mass percent',s4d:'%X = (element mass ÷ total mass) × 100 — the percentages add up to 100 %.',
+src:'Source: IUPAC/CIAAW conventional standard atomic weights (abridged). Elements with no stable isotope: mass number of the longest-lived isotope.',
+e_EMPTY:'Type a chemical formula.',e_UNKNOWN:'Unknown element symbol “{x}”.',e_CHAR:'Unexpected character “{x}” — symbols start with a capital and continue in lowercase.',
+e_UNBALANCED:'Unmatched parenthesis.',e_ZERO:'A subscript cannot be 0.',e_EMPTYPART:'Missing content around a parenthesis or “·”.',
+mG:'General',mD:'Detailed',mt:'Mol ⇄ grams',mg:'Sample mass (g)',mn:'Amount (mol)',np:'particles (molecules / formula units)',
+w1:'Why: a subscript says how many atoms of that element there are; a parenthesis groups a part, so its subscript applies to every atom inside. If an element appears in several places (e.g. CH₃COOH) the occurrences are added.',
+w2:'Why: Ar is the average of the element’s isotopes weighted by natural abundance (in u, numerically equal to g/mol). Bond energy changes mass negligibly, so a compound’s mass is the sum of its atoms’ masses.',
+w3:'Why: 1 mol of compound contains as many mol of atoms as the subscripts say, so M = Σ(subscript × Ar) in g/mol.',
+w4:'Why: the percentage shows what part of the total mass each element accounts for; it does not depend on the sample size.',
+wbr:'Elements without a standard atomic weight use the mass number of the longest-lived isotope — an approximation.',
+wm:'Why: 1 mol contains N<sub>A</sub> = 6.02214076×10²³ particles (exact SI value since 2019); the mass of one mol is M in g.',
+s5:'5 · Oxidation numbers',s5d:'Elements with fixed rules first; the rest from charge balance (or the ion charge, e.g. SO4^2-).',
+stN:'Element data missing.',avg:'average over {n} atoms',chg:'charge',
+stOK:'The sum equals the charge ✓',stU:'Two or more elements without a fixed rule — not uniquely determined (e.g. FeSO4; try the ion, e.g. SO4^2-).',
+stM:'The sum does not equal the charge — the formula is an ion or an unusual compound.',stP:'Value outside the usual range (−4…+8) — check the formula.',
+r_g1:'alkali metal: +1',r_g2:'alkaline earth: +2',r_Al:'Al: +3',r_common:'common value',r_F:'F: −1',r_O:'O: −2',r_H:'H: +1',r_hyd:'hydride: H = −1',r_hal:'halogen without O/F: −1',r_perox:'peroxide: O = −1',r_super:'superoxide: O = −½',r_elem:'free element: 0',r_ion:'monatomic ion: its charge',r_solved:'from charge balance',r_unk:'not determined',
+w5:'Why: the oxidation number is the charge an atom would have if every bonding pair belonged to the more electronegative atom; the sum equals the species’ charge. The mass of added or removed electrons (0.000549 u each) is ignored.',
+ec:'Empirical / molecular formula from composition',eh:'Enter elements and mass % (or grams). Optionally M for the molecular formula.',eM:'Molar mass M (g/mol)',eAdd:'+ element',eUse:'M from the formula',
+f1:'1 · Moles = mass ÷ Ar',f2:'2 · Divide by the smallest',f3:'3 · Whole-number subscripts (×k)',f4:'4 · Empirical formula',f5:'5 · Molecular formula',
+ew_sum:'The sum is {x}, not 100 — ignore this if these are grams, otherwise an element may be missing.',ew_apx:'No whole-number subscripts found (tolerance 0.08, k ≤ 8); rounded — check the data.',ew_mol:'M is not a whole multiple of the empirical formula mass (n = {x}).',
+ee_EMPTY:'Add at least one element.',ee_UNKNOWN:'Unknown symbol “{x}”.',ee_BADVAL:'Invalid value for “{x}” — a positive number is required.',ee_DUP:'“{x}” appears twice.',
+s6:'6 · Isotopic composition',s6d:'Each element’s isotopes (AME2020 mass, CIAAW 2024 abundance) and the formula’s isotopic pattern.',
+i_nodata:'No natural isotopic composition (radioactive element).',i_wide:'Element {x} has a highly variable composition — no pattern is computed.',i_big:'Molecule too large for a pattern.',
+i_mid:'Elements with variable composition (CIAAW interval): the interval midpoint is used — the pattern is approximate.',
+i_mono:'monoisotopic mass',i_avg:'mean mass from isotopes',i_pat:'Pattern M, M+1, M+2 (relative intensity, base peak = 100 %)',
+i_src:'Source: CIAAW “Isotopic Compositions of the Elements 2024”; isotope masses from the CIAAW Atomic Masses table (AME2020).',
+w6:'Why: isotopes share Z but differ in neutron number. The pattern intensities come from multiplying each isotope’s probability over all atoms of the formula; the monoisotopic mass uses the most abundant isotope of each element.',
+s7:'7 · Ionic composition',s7d:'Cations and anions that balance the charge; polyatomic ions stay intact (nomenclature: IUPAC Red Book 2005).',
+i7_none:'No simple ionic decomposition with whole-number charges (e.g. mixed oxidation states or a covalent compound).',i7_amb:'The formula allows more than one ionic decomposition — I do not pick one.',i7_neu:'neutral molecule (hydrate part)',
+w7:'Why: an ionic compound is made of cations and anions in a ratio that makes the whole neutral. Among several possible decompositions the simplest is chosen (fewest ion species, then fewest particles); an ion’s mass is the sum of its atomic masses (electron mass ignored).',
+sg:'2 · Mass and percentages',sgd:'Atoms × Ar = element mass; percent = element mass ÷ total mass × 100.',am:'Atomic mass (Ar)',im:'Ion mass',k_ionic:'Formula mass: ionic compound (see ionic composition).',k_hyd:'Formula mass: hydrate.',k_net:'Formula mass: network (non-molecular) solid.',k_elem:'Molecular mass: molecule of an element.',k_atomic:'Atomic mass of the element.',k_ion:'Ion mass; electron mass is ignored.',fa:'Schematic formation view — not the real geometry.',
+fa_mol:'VSEPR geometry (angles approximate) — drag to rotate.',fa_lat:'Typical crystal structure: {x} — unit cell, drag to rotate.',fa_ion:'Schematic ion arrangement with the real geometry of polyatomic ions — drag to rotate.',
+lt_rs:'NaCl type',lt_cs:'CsCl type',lt_zb:'zinc blende (ZnS)',lt_fl:'fluorite (CaF₂)',lt_af:'antifluorite',
+fa_cry:'Crystal {x} — {n} atoms. Drag to rotate, pinch or wheel to zoom.',fa_i1:'Ion: the atom changes size (atomic → ionic radius) as it loses or gains electrons.',fa_smp:'Sample of {n} out of {m} atoms.',
+lt_fcc:'fcc (face-centred cubic)',lt_bcc:'bcc (body-centred cubic)',lt_hcp:'hcp (hexagonal close-packed)',lt_di:'diamond',lt_pk:'close-packed ion array (schematic)',lt_c60:'fullerene C₆₀',
+w_chg:'Unusually large charge — not found in stable ions.'},
+es:{title:'Laboratorio de Fórmulas Químicas',sub:'Fórmula → desglose de átomos → masa → composición en masa',ex:'Ejemplos',
+mm:'Masa molecular (Mr)',fm:'Masa fórmula (Fu)',unit:'g/mol',tot:'átomos en total',nel:'elementos',
+note:'Clasificación orientativa (estructura desconocida): molecular para compuestos de no metales, masa fórmula si hay un metal.',
+comp:'Composición en masa',s1:'1 · Desglose de la fórmula',s1d:'El subíndice de cada átomo se multiplica por los de todos los paréntesis que lo contienen.',
+s1h:'El punto «·» separa la parte hidratada; su coeficiente multiplica toda la parte.',
+s2:'2 · Masas atómicas',s2d:'Átomos × masa atómica relativa Ar.',s3:'3 · Suma',s3d:'La masa del compuesto es la suma de las masas de todos sus átomos.',
+s4:'4 · Porcentaje en masa',s4d:'%X = (masa del elemento ÷ masa total) × 100 — los porcentajes suman 100 %.',
+src:'Fuente: pesos atómicos estándar convencionales IUPAC/CIAAW (abreviados). Elementos sin isótopo estable: número másico del isótopo de vida más larga.',
+e_EMPTY:'Escribe una fórmula química.',e_UNKNOWN:'Símbolo de elemento desconocido «{x}».',e_CHAR:'Carácter inesperado «{x}»: los símbolos empiezan con mayúscula y siguen en minúscula.',
+e_UNBALANCED:'Paréntesis sin pareja.',e_ZERO:'Un subíndice no puede ser 0.',e_EMPTYPART:'Falta contenido alrededor de un paréntesis o de «·».',
+mG:'General',mD:'Detallado',mt:'Mol ⇄ gramos',mg:'Masa de la muestra (g)',mn:'Cantidad (mol)',np:'partículas (moléculas / unidades fórmula)',
+w1:'Por qué: un subíndice indica cuántos átomos de ese elemento hay; un paréntesis agrupa una parte, así que su subíndice vale para cada átomo de dentro. Si un elemento aparece en varios sitios (p. ej. CH₃COOH), las apariciones se suman.',
+w2:'Por qué: Ar es el promedio de los isótopos del elemento según su abundancia natural (en u, numéricamente igual a g/mol). La energía de enlace cambia la masa de forma despreciable, así que la masa del compuesto es la suma de las de sus átomos.',
+w3:'Por qué: 1 mol de compuesto contiene tantos mol de átomos como indican los subíndices, de modo que M = Σ(subíndice × Ar) en g/mol.',
+w4:'Por qué: el porcentaje muestra qué parte de la masa total aporta cada elemento; no depende del tamaño de la muestra.',
+wbr:'Los elementos sin peso atómico estándar usan el número másico del isótopo de vida más larga: una aproximación.',
+wm:'Por qué: 1 mol contiene N<sub>A</sub> = 6,02214076×10²³ partículas (valor SI exacto desde 2019); la masa de un mol es M en g.',
+s5:'5 · Números de oxidación',s5d:'Primero los elementos con regla fija; el resto por balance de carga (o la carga del ion, p. ej. SO4^2-).',
+stN:'Faltan datos del elemento.',avg:'promedio de {n} átomos',chg:'carga',
+stOK:'La suma es igual a la carga ✓',stU:'Dos o más elementos sin regla fija: no se determina de forma única (p. ej. FeSO4; prueba con el ion, p. ej. SO4^2-).',
+stM:'La suma no es igual a la carga: la fórmula es un ion o un compuesto poco habitual.',stP:'Valor fuera del rango habitual (−4…+8): revisa la fórmula.',
+r_g1:'alcalino: +1',r_g2:'alcalinotérreo: +2',r_Al:'Al: +3',r_common:'valor habitual',r_F:'F: −1',r_O:'O: −2',r_H:'H: +1',r_hyd:'hidruro: H = −1',r_hal:'halógeno sin O/F: −1',r_perox:'peróxido: O = −1',r_super:'superóxido: O = −½',r_elem:'elemento libre: 0',r_ion:'ion monoatómico: su carga',r_solved:'por balance de carga',r_unk:'no determinado',
+w5:'Por qué: el número de oxidación es la carga que tendría el átomo si cada par de enlace perteneciera al átomo más electronegativo; la suma es igual a la carga de la especie. Se ignora la masa de los electrones añadidos o quitados (0,000549 u cada uno).',
+ec:'Fórmula empírica / molecular a partir de la composición',eh:'Introduce elementos y % en masa (o gramos). Opcional: M para la fórmula molecular.',eM:'Masa molar M (g/mol)',eAdd:'+ elemento',eUse:'M de la fórmula',
+f1:'1 · Moles = masa ÷ Ar',f2:'2 · Dividir por el menor',f3:'3 · Subíndices enteros (×k)',f4:'4 · Fórmula empírica',f5:'5 · Fórmula molecular',
+ew_sum:'La suma es {x}, no 100: ignóralo si son gramos; si no, puede faltar un elemento.',ew_apx:'No se hallaron subíndices enteros (tolerancia 0,08, k ≤ 8); se redondeó: revisa los datos.',ew_mol:'M no es un múltiplo entero de la masa de la fórmula empírica (n = {x}).',
+ee_EMPTY:'Añade al menos un elemento.',ee_UNKNOWN:'Símbolo desconocido «{x}».',ee_BADVAL:'Valor no válido para «{x}»: se requiere un número positivo.',ee_DUP:'«{x}» aparece dos veces.',
+s6:'6 · Composición isotópica',s6d:'Isótopos de cada elemento (masa AME2020, abundancia CIAAW 2024) y patrón isotópico de la fórmula.',
+i_nodata:'Sin composición isotópica natural (elemento radiactivo).',i_wide:'El elemento {x} tiene una composición muy variable: no se calcula patrón.',i_big:'Molécula demasiado grande para un patrón.',
+i_mid:'Elementos con composición variable (intervalo CIAAW): se usa el punto medio del intervalo; el patrón es aproximado.',
+i_mono:'masa monoisotópica',i_avg:'masa media a partir de isótopos',i_pat:'Patrón M, M+1, M+2 (intensidad relativa, pico base = 100 %)',
+i_src:'Fuente: CIAAW «Isotopic Compositions of the Elements 2024»; masas de isótopos de la tabla Atomic Masses de CIAAW (AME2020).',
+w6:'Por qué: los isótopos comparten Z pero difieren en neutrones. Las intensidades del patrón resultan de multiplicar la probabilidad de cada isótopo sobre todos los átomos de la fórmula; la masa monoisotópica usa el isótopo más abundante de cada elemento.',
+s7:'7 · Composición iónica',s7d:'Cationes y aniones que equilibran la carga; los iones poliatómicos se mantienen unidos (nomenclatura: IUPAC Red Book 2005).',
+i7_none:'No hay una descomposición iónica simple con cargas enteras (p. ej. estados de oxidación mixtos o compuesto covalente).',i7_amb:'La fórmula admite más de una descomposición iónica: no elijo ninguna.',i7_neu:'molécula neutra (parte hidratada)',
+w7:'Por qué: un compuesto iónico está formado por cationes y aniones en una proporción que lo hace neutro. Entre varias descomposiciones posibles se elige la más simple (menos especies de iones, luego menos partículas); la masa de un ion es la suma de las masas atómicas (se ignora la masa de los electrones).',
+sg:'2 · Masa y porcentajes',sgd:'Átomos × Ar = masa del elemento; porcentaje = masa del elemento ÷ masa total × 100.',am:'Masa atómica (Ar)',im:'Masa del ion',k_ionic:'Masa fórmula: compuesto iónico (véase composición iónica).',k_hyd:'Masa fórmula: hidrato.',k_net:'Masa fórmula: sólido reticular (no molecular).',k_elem:'Masa molecular: molécula de un elemento.',k_atomic:'Masa atómica del elemento.',k_ion:'Masa del ion; se ignora la masa de los electrones.',fa:'Vista esquemática de formación: no es la geometría real.',
+fa_mol:'Geometría VSEPR (ángulos aproximados): arrastra para girar.',fa_lat:'Estructura cristalina típica: {x}, celda unidad; arrastra para girar.',fa_ion:'Disposición esquemática de iones con la geometría real de los iones poliatómicos: arrastra para girar.',
+lt_rs:'tipo NaCl',lt_cs:'tipo CsCl',lt_zb:'blenda (ZnS)',lt_fl:'fluorita (CaF₂)',lt_af:'antifluorita',
+fa_cry:'Cristal {x} — {n} átomos. Arrastra para girar, pellizca o usa la rueda para hacer zoom.',fa_i1:'Ion: el átomo cambia de tamaño (radio atómico → iónico) al perder o ganar electrones.',fa_smp:'Muestra de {n} de {m} átomos.',
+lt_fcc:'fcc (cúbica centrada en las caras)',lt_bcc:'bcc (cúbica centrada en el cuerpo)',lt_hcp:'hcp (hexagonal compacta)',lt_di:'diamante',lt_pk:'disposición compacta de iones (esquemática)',lt_c60:'fullereno C₆₀',
+w_chg:'Carga inusualmente grande: no existe en iones estables.'}};
+var inApp=!!(window.MultiCalc&&window.MultiCalc.modules&&window.MultiCalc.modules.loaded);
+if(!inApp){window.MultiCalc=window.MultiCalc||{};window.MultiCalc.state=window.MultiCalc.state||{currentLang:'el'};document.body.style.background='#070b18';}
+var EX=['H2O','H2SO4','Ca(OH)2','Al2(SO4)3','CuSO4·5H2O','C6H12O6','Ca3(PO4)2','(NH4)2SO4','Na+','SO4-2','Fe3+','C60','Fe500','Na200Cl200'];
+var RM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches),tm=0,shownLang='',det=false,curM=0;
+function L(){var s=window.MultiCalc&&window.MultiCalc.state,l=s&&s.currentLang;return D[l]?l:'el';}
+function FT(k){var v=D[L()][k];return v!==undefined?v:(D.el[k]||k);}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function f(x){return String(+x.toFixed(4));}
+var JMOL={H:'ffffff',Li:'cc80ff',Be:'c2ff00',B:'ffb5b5',C:'909090',N:'3050f8',O:'ff0d0d',F:'90e050',Na:'ab5cf2',Mg:'8aff00',Al:'bfa6a6',Si:'f0c8a0',P:'ff8000',S:'ffff30',Cl:'1ff01f',K:'8f40d4',Ca:'3dff00',Ti:'bfc2c7',Cr:'8a99c7',Mn:'9c7ac7',Fe:'e06633',Co:'f090a0',Ni:'50d050',Cu:'c88033',Zn:'7d80b0',Br:'a62929',Rb:'702eb0',Sr:'00ff00',Ag:'c0c0c0',I:'940094',Cs:'57178f',Ba:'00c900',Au:'ffd123',Hg:'b8b8d0',Pb:'575961'};
+function cc(a){return a.info&&a.info.k?'#'+a.info.k:(a.el&&JMOL[a.el]?'#'+JMOL[a.el]:col(a.Z));}
+function why(k){return det?'<div class="fl-why">💡 '+FT(k)+'</div>':'';}
+function col(z){return 'hsl('+((z*47)%360)+' 72% 64%)';}
+function i18n(skipRun){
+  shownLang=L();
+  var n=document.querySelectorAll('#scr-formula [data-fl]');
+  for(var i=0;i<n.length;i++)n[i].textContent=FT(n[i].getAttribute('data-fl'));
+  var h=document.documentElement;if(!inApp)h.lang=L();
+  if(!skipRun)run();eRender();empRun();
+}
+function chips(){
+  var c=$('fl-ex');if(!c)return false;
+  c.innerHTML=EX.map(function(x){return '<button data-ex="'+x+'">'+window.FormulaEngine.pretty(x)+'</button>';}).join('');
+  if(!inApp)$('fl-lang').hidden=false;
+  return true;
+}
+function terms(a){
+  var t=a.terms.map(function(x){return x.f.length>1?x.f.join(' × ')+' = '+x.c:String(x.c);});
+  return t.join(' + ')+(t.length>1?' = '+a.count:'');
+}
+function errHTML(r){
+  var e=r.error,n=r.norm||'',m=esc(FT('e_'+e.code).replace('{x}',e.info||''));
+  var show=n?esc(n.slice(0,e.pos))+'<u>'+esc(n.charAt(e.pos)||'∎')+'</u>'+esc(n.slice(e.pos+1)):'';
+  return '<div class="fl-err">⚠ '+m+(show?'<code>'+show+'</code>':'')+'</div>';
+}
+function resHTML(r){
+  var E=window.FormulaEngine,C=2*Math.PI*54,h='',cum=0,k=0;
+  var K=E.classify(r),noteText=(K.sure?FT('k_'+K.why):FT('note'))+(Math.abs(r.charge)>4?' ⚠ '+FT('w_chg'):'');
+  h+='<div class="fl-card"><div class="fl-lbl" style="margin-top:0">'+FT({formula:'fm',molecular:'mm',atomic:'am',ion:'im'}[K.kind])+'</div>'+
+   '<div class="fl-formula">'+fanim(r.norm)+chg(r.charge)+'</div>'+
+   '<div class="fl-mass"><span id="fl-mass" data-v="'+r.mass+'">0</span><small>'+FT('unit')+'</small></div>'+
+   '<div class="fl-tags"><span>'+r.atoms.length+' '+FT('nel')+'</span><span>'+r.total+' '+FT('tot')+'</span></div>'+
+   '<div class="fl-note">'+noteText+'</div></div>'+stageHTML();
+  var segs='',leg='';
+  r.atoms.forEach(function(a,i){
+    var len=a.pct/100*C,dash=r.atoms.length>1?Math.max(0,len-1.6):len;
+    segs+='<circle class="fl-seg" style="--i:'+i+'" cx="70" cy="70" r="54" fill="none" stroke="'+cc(a)+'" stroke-width="16" stroke-dasharray="0 '+C+'" stroke-dashoffset="'+(-cum)+'" data-d="'+dash+'" data-c="'+C+'"/>';
+    cum+=len;
+    leg+='<div class="fl-lr" style="--c:'+cc(a)+';--i:'+i+'"><i class="fl-chip">'+a.el+'</i><div class="fl-bar"><i data-w="'+a.pct+'"></i></div><b>'+a.pct.toFixed(2)+' %</b></div>';
+  });
+  h+='<div class="fl-card"><h3 style="margin:0 0 10px;font-size:.98rem;color:#cfe0ff">'+FT('comp')+'</h3><div class="fl-comp">'+
+   '<svg class="fl-donut" viewBox="0 0 140 140"><g transform="rotate(-90 70 70)"><circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="16"/>'+segs+'</g>'+
+   '<text x="70" y="76" text-anchor="middle" fill="#e8eefc" font-size="18" font-weight="700">100 %</text></svg><div class="fl-leg">'+leg+'</div></div></div>';
+  var s1='',s2='',s3=r.atoms.map(function(a){return f(a.sub);}).join(' + ')+' = <b>'+f(r.mass)+'</b> '+FT('unit'),s4='',sg='';
+  r.atoms.forEach(function(a){
+    var c=' style="--c:'+cc(a)+'"';
+    sg+='<div class="fl-row"><i class="fl-chip"'+c+'>'+a.el+'</i><span>'+a.count+' × '+a.ar+' = '+f(a.sub)+' → <b>'+a.pct.toFixed(2)+' %</b></span></div>';
+    s1+='<div class="fl-row"><i class="fl-chip"'+c+'>'+a.el+'</i><span>'+(det&&a.info?'<em>'+esc(a.info[L()]||a.info.en)+' (Z = '+a.Z+(a.info.eg?' · χ = '+a.info.eg:'')+')</em><br>':'')+terms(a)+'</span></div>';
+    s2+='<div class="fl-row"><i class="fl-chip"'+c+'>'+a.el+'</i><span>'+a.count+' × '+a.ar+' = <b>'+f(a.sub)+'</b></span></div>';
+    s4+='<div class="fl-row"><i class="fl-chip"'+c+'>'+a.el+'</i><span>'+f(a.sub)+' ÷ '+f(r.mass)+' × 100 = <b>'+a.pct.toFixed(2)+' %</b></span></div>';
+  });
+  function st(t,d,body){return '<div class="fl-card fl-step" style="--i:'+(k++)+'"><h3>'+FT(t)+'</h3><p>'+d+'</p>'+body+'</div>';}
+  var br=r.atoms.some(function(a){return a.info&&a.info.br;});
+  if(det){
+    h+=st('s1',FT('s1d')+(r.parts>1?' '+FT('s1h'):''),s1+why('w1'))+st('s2',FT('s2d'),s2+why('w2')+(br?why('wbr'):''))+st('s3',FT('s3d'),'<div class="fl-eq">'+s3+'</div>'+why('w3'))+st('s4',FT('s4d'),s4+why('w4'))+st('s5',FT('s5d'),oxBody(r))+st('s6',FT('s6d'),isoBody(r));
+    var ib=ionBody(r);if(ib)h+=st('s7',FT('s7d'),ib);
+  }else h+=st('s1',FT('s1d')+(r.parts>1?' '+FT('s1h'):''),s1)+st('sg',FT('sgd'),sg+'<div class="fl-eq" style="margin-top:8px">Σ = <b>'+f(r.mass)+'</b> '+FT('unit')+'</div>');
+  return h;
+}
+function countUp(el,to){
+  if(RM){el.textContent=f(to);return;}
+  var t0=performance.now();
+  (function s(t){var p=Math.max(0,Math.min(1,(t-t0)/900)),e=1-Math.pow(1-p,3);
+    el.textContent=p<1?(to*e).toFixed(3):f(to);if(p<1)requestAnimationFrame(s);})(t0);
+}
+function animate(){
+  var m=$('fl-mass');if(m)countUp(m,+m.getAttribute('data-v'));
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    var s=document.querySelectorAll('#fl-out .fl-seg'),b=document.querySelectorAll('#fl-out .fl-bar i'),i;
+    for(i=0;i<s.length;i++){var d=+s[i].getAttribute('data-d'),c=+s[i].getAttribute('data-c');s[i].style.strokeDasharray=d+' '+(c-d);}
+    for(i=0;i<b.length;i++)b[i].style.width=b[i].getAttribute('data-w')+'%';
+  });});
+}
+var eRows=[['C','40.00'],['H','6.71'],['O','53.29']],tm2=0;
+function chg(q){return q?'<sup>'+(Math.abs(q)>1?Math.abs(q):'')+(q>0?'+':'−')+'</sup>':'';}
+function oxBody(r){
+  var o=window.FormulaEngine.oxidation(r);
+  if(!o||o.status==='nodata')return '<div class="fl-note">'+FT('stN')+'</div>';
+  var h=o.rows.map(function(w){
+    return '<div class="fl-row"><i class="fl-chip" style="--c:'+cc(w)+'">'+w.el+'</i><span><b>'+(w.ox===null?'?':w.ox)+'</b> <em>× '+w.count+' · '+FT('r_'+(w.rule||'unk'))+(w.avg?' · '+FT('avg').replace('{n}',w.count):'')+'</em></span></div>';
+  }).join('');
+  var sum=o.rows.filter(function(w){return w.ox!==null;}).map(function(w){return w.count+' × ('+w.ox+')';}).join(' + ');
+  var line=o.status==='undetermined'?'':'<div class="fl-eq" style="margin-top:8px">Σ = '+sum+' = <b>'+(Math.abs(o.sum)<1e-9?'0':f(o.sum))+'</b>'+(o.charge?' ('+FT('chg')+' '+(o.charge>0?'+':'−')+Math.abs(o.charge)+')':'')+'</div>';
+  var m={ok:'stOK',undetermined:'stU',mismatch:'stM',implausible:'stP'}[o.status];
+  return h+line+'<div class="fl-note">'+FT(m)+'</div>'+why('w5');
+}
+function fanim(s){var d=0,prev='',o='';s.replace(/[A-Z][a-z]?|\d+|[()·]/g,function(t){var sub=/^\d/.test(t)&&/[A-Za-z)]$/.test(prev);o+='<span style="--d:'+(d++)+'">'+(sub?'<sub>'+t+'</sub>':t)+'</span>';prev=t;return t;});return o;}
+function stageHTML(){return '<div class="fl-stage"><canvas id="fl-cv"></canvas><div class="fl-tools"><button data-t="rot" type="button">⟳</button><button data-t="zin" type="button">＋</button><button data-t="zout" type="button">－</button><button data-t="rst" type="button">⌂</button><button data-t="fs" type="button">⛶</button></div><div class="fl-cap" id="fl-cap"></div></div>';}
+var stTok=0,stCtl=null,stExit=null;
+function stage(r){
+  var cv=$('fl-cv');if(!cv||!cv.getContext||!window.FormulaGeometry)return;
+  var E=window.FormulaEngine,sc=window.FormulaGeometry.scene(r,E);if(!sc)return;
+  var tok=++stTok,box=cv.parentNode,A=sc.atoms,N=A.length,B=sc.bound,i,j,x=cv.getContext('2d');if(!x)return;
+  var W=340,H=320,dpr=1,lod=0,auto=true,zoom=1,drag=0,wx=0,wy=0,dirty=1,vis=true,ptr={},ema=16,last=0,t0=performance.now(),ro=null,io2=null;
+  var cap=$('fl-cap'),kk=sc.kind==='molecule'?'fa_mol':sc.kind==='lattice'?'fa_lat':sc.kind==='ions'?'fa_ion':sc.kind==='crystal'?'fa_cry':sc.kind==='ion1'?'fa_i1':'fa';
+  if(cap)cap.textContent=FT(kk).replace('{x}',FT('lt_'+(sc.lat||''))).replace('{n}',N.toLocaleString())+(sc.sample?' '+FT('fa_smp').replace('{n}',sc.sample[0].toLocaleString()).replace('{m}',sc.sample[1].toLocaleString()):'');
+  function size(){
+    var full=box.classList&&box.classList.contains('fl-full');
+    W=Math.max(240,Math.min(box.clientWidth||340,full?4000:900));H=full?Math.max(300,window.innerHeight||600):(W<520?320:380);
+    dpr=Math.min(lod?1:2,window.devicePixelRatio||1);
+    cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.width=W+'px';cv.style.height=H+'px';x.setTransform(dpr,0,0,dpr,0,0);dirty=1;
+  }
+  size();
+  A.forEach(function(a){var inf=E.info(a.el);a.c=cc({el:a.el,info:inf,Z:(inf&&inf.n)||E.zOf(a.el)||1});});
+  function mm(a,b){return [a[0]*b[0]+a[1]*b[3]+a[2]*b[6],a[0]*b[1]+a[1]*b[4]+a[2]*b[7],a[0]*b[2]+a[1]*b[5]+a[2]*b[8],a[3]*b[0]+a[4]*b[3]+a[5]*b[6],a[3]*b[1]+a[4]*b[4]+a[5]*b[7],a[3]*b[2]+a[4]*b[5]+a[5]*b[8],a[6]*b[0]+a[7]*b[3]+a[8]*b[6],a[6]*b[1]+a[7]*b[4]+a[8]*b[7],a[6]*b[2]+a[7]*b[5]+a[8]*b[8]];}
+  function ry(a){var c=Math.cos(a),s=Math.sin(a);return [c,0,s,0,1,0,-s,0,c];}
+  function rx(a){var c=Math.cos(a),s=Math.sin(a);return [1,0,0,0,c,-s,0,s,c];}
+  function ortho(m){var a=[m[0],m[1],m[2]],l=Math.hypot(a[0],a[1],a[2]);a=a.map(function(v){return v/l;});
+    var d=a[0]*m[3]+a[1]*m[4]+a[2]*m[5],b=[m[3]-d*a[0],m[4]-d*a[1],m[5]-d*a[2]];l=Math.hypot(b[0],b[1],b[2]);b=b.map(function(v){return v/l;});
+    return [a[0],a[1],a[2],b[0],b[1],b[2],a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+  var R=mm(rx(.38),ry(.6)),nrot=0;
+  function rot(m){R=m;if(++nrot%120===0)R=ortho(R);}
+  var flight=N<=400&&sc.kind!=='ion1',V=[],dl=new Float32Array(N),du=new Float32Array(N),sx=new Float32Array(N),sy=new Float32Array(N),sz=new Float32Array(N),
+      px=new Float32Array(N),py=new Float32Array(N),pz=new Float32Array(N),pr=new Float32Array(N),ps=new Float32Array(N),pp=new Float32Array(N),bk=new Int16Array(N),ord=new Uint32Array(N),cnt=new Int32Array(1024),animEnd=0;
+  A.forEach(function(a,n){
+    if(N<=1200||a.surf!==false)V.push(n);
+    var d=Math.hypot(a.x,a.y,a.z)/B;
+    if(flight){var an=Math.random()*6.2832,z=Math.random()*2-1,s=Math.sqrt(1-z*z),Rr=B*2.4;sx[n]=a.x+Rr*s*Math.cos(an);sy[n]=a.y+Rr*z;sz[n]=a.z+Rr*s*Math.sin(an);
+      dl[n]=sc.kind==='molecule'?(n===0?0:280+n*70):d*700+n*8;du[n]=900+Math.random()*300;}
+    else{dl[n]=N>1500?d*1300:d*800;du[n]=450;}
+    animEnd=Math.max(animEnd,dl[n]+du[n]);
+  });
+  var spr={};
+  function sprite(col,lv){var key=col+lv,s=spr[key];if(s)return s;
+    var c=document.createElement('canvas');c.width=c.height=64;var g=c.getContext('2d');
+    g.fillStyle=col;g.beginPath();g.arc(32,32,30,0,6.2832);g.fill();
+    var gr=g.createRadialGradient(22,20,3,32,32,30);gr.addColorStop(0,'rgba(255,255,255,.78)');gr.addColorStop(.35,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(0,0,25,.55)');
+    g.fillStyle=gr;g.beginPath();g.arc(32,32,30,0,6.2832);g.fill();
+    if(lv){g.fillStyle='rgba(5,8,25,'+(lv*.2)+')';g.beginPath();g.arc(32,32,30,0,6.2832);g.fill();}
+    return spr[key]=c;}
+  function back(p){var c1=1.35,c3=c1+1;return 1+c3*Math.pow(p-1,3)+c1*Math.pow(p-1,2);}
+  function atom(n,df,lab){var d=pr[n]*2.13,s=sprite(A[n].c,df<.34?2:df<.67?1:0);x.drawImage(s,px[n]-d/2,py[n]-d/2,d,d);
+    if(lab&&pr[n]>=11){x.fillStyle='rgba(10,16,34,.92)';x.font='700 '+Math.round(pr[n]*.8)+'px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(A[n].el,px[n],py[n]+1);}}
+  function draw(now){
+    x.clearRect(0,0,W,H);
+    var D=B*5,k=Math.min(W,H)*.33/B*zoom,cx=W/2,cy=H/2,nv=V.length,zmin=1e9,zmax=-1e9,a,n,p,X,Y,Z,rs,rr,x1,y1,z1,den,s;
+    for(j=0;j<nv;j++){n=V[j];a=A[n];p=Math.max(0,Math.min(1,(now-dl[n])/du[n]));pp[n]=p;
+      if(p<=0){pr[n]=0;continue;}
+      X=a.x;Y=a.y;Z=a.z;rs=1;rr=a.r;
+      if(flight){var e=p>=1?1:back(p);X=sx[n]+(a.x-sx[n])*e;Y=sy[n]+(a.y-sy[n])*e;Z=sz[n]+(a.z-sz[n])*e;if(p>=1&&N<=200){var br=Math.sin(now/700+n*1.7)*.035;X+=br;Y+=br;}}
+      else rs=Math.min(1.12,back(p));
+      if(sc.ion){var q=Math.max(0,Math.min(1,(now-300)/1800));q=q*q*(3-2*q);rr=sc.ion.r0+(sc.ion.r1-sc.ion.r0)*q;}
+      x1=R[0]*X+R[1]*Y+R[2]*Z;y1=R[3]*X+R[4]*Y+R[5]*Z;z1=R[6]*X+R[7]*Y+R[8]*Z;den=D-z1;
+      if(den<D*.12){pr[n]=0;continue;}
+      s=D/den;px[n]=cx+x1*k*s;py[n]=cy-y1*k*s;pr[n]=rr*k*s*rs;pz[n]=z1;ps[n]=s;
+      if(px[n]<-pr[n]||px[n]>W+pr[n]||py[n]<-pr[n]||py[n]>H+pr[n]){pr[n]=0;continue;}
+      if(z1<zmin)zmin=z1;if(z1>zmax)zmax=z1;
+    }
+    var span=zmax-zmin+1e-6;
+    if(!lod&&nv<=3000){var fy=cy+B*k*.95,g0=x.createRadialGradient(cx,fy,2,cx,fy,B*k*1.1);g0.addColorStop(0,'rgba(0,0,0,.35)');g0.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g0;x.beginPath();x.ellipse(cx,fy,B*k*1.1,B*k*.22,0,0,6.2832);x.fill();}
+    function P(v){var x2=R[0]*v[0]+R[1]*v[1]+R[2]*v[2],y2=R[3]*v[0]+R[4]*v[1]+R[5]*v[2],z2=R[6]*v[0]+R[7]*v[1]+R[8]*v[2],s2=D/(D-z2);return [cx+x2*k*s2,cy-y2*k*s2];}
+    if(sc.edges.length){x.globalAlpha=Math.min(1,now/900)*.3;x.lineWidth=1;x.strokeStyle='#a0b9ff';x.beginPath();
+      sc.edges.forEach(function(e2){var p1=P([e2[0],e2[1],e2[2]]),p2=P([e2[3],e2[4],e2[5]]);x.moveTo(p1[0],p1[1]);x.lineTo(p2[0],p2[1]);});x.stroke();x.globalAlpha=1;}
+    if(N<=300){
+      var it=[];
+      sc.halos.forEach(function(h){if(pr[h.a]>0)it.push({z:pz[h.a]-.01,t:0,h:h});});
+      sc.bonds.forEach(function(b){if(pr[b[0]]>0&&pr[b[1]]>0)it.push({z:(pz[b[0]]+pz[b[1]])/2,t:1,a:b[0],b:b[1]});});
+      sc.links.forEach(function(b){if(pr[b[0]]>0&&pr[b[1]]>0)it.push({z:(pz[b[0]]+pz[b[1]])/2-.02,t:2,a:b[0],b:b[1]});});
+      for(j=0;j<nv;j++){n=V[j];if(pr[n]>0)it.push({z:pz[n],t:3,i:n});}
+      it.sort(function(m1,n1){return m1.z-n1.z;});
+      it.forEach(function(o){
+        if(o.t===0){var h=o.h,r0=h.ru*k*ps[h.a],c=h.q>0?'127,182,255':'255,184,107',g=x.createRadialGradient(px[h.a],py[h.a],r0*.2,px[h.a],py[h.a],r0);
+          g.addColorStop(0,'rgba('+c+',0)');g.addColorStop(.7,'rgba('+c+','+(.2*pp[h.a])+')');g.addColorStop(1,'rgba('+c+',0)');x.fillStyle=g;x.beginPath();x.ellipse(px[h.a],py[h.a],r0,r0,0,0,6.2832);x.fill();}
+        else if(o.t===3)atom(o.i,(pz[o.i]-zmin)/span,true);
+        else{var w=Math.max(1.5,(o.t===2?.04:sc.kind==='crystal'?.06:.11)*k*(ps[o.a]+ps[o.b])/2),al=Math.pow(Math.min(pp[o.a],pp[o.b]),2);x.lineCap='round';
+          if(o.t===2){x.setLineDash&&x.setLineDash([3,5]);x.globalAlpha=al*.28;x.strokeStyle='#cfe0ff';x.lineWidth=w;}
+          else{x.globalAlpha=al*.4;x.strokeStyle='#000';x.lineWidth=w+2;x.beginPath();x.moveTo(px[o.a],py[o.a]);x.lineTo(px[o.b],py[o.b]);x.stroke();x.globalAlpha=al*.95;x.strokeStyle='rgb(215,225,255)';x.lineWidth=w;}
+          x.beginPath();x.moveTo(px[o.a],py[o.a]);x.lineTo(px[o.b],py[o.b]);x.stroke();x.setLineDash&&x.setLineDash([]);x.globalAlpha=1;}
+      });
+      if(sc.ion){var nq=Math.min(8,Math.abs(sc.ion.q)),qp=Math.max(0,Math.min(1,(now-300)/1800)),Rr=sc.ion.r1*1.5;qp=qp*qp*(3-2*qp);
+        for(j=0;j<nq;j++){var an2=6.2832*j/nq+now*.0026,rad=sc.ion.q>0?Rr+qp*B*.8:Rr+(1-qp)*B*.8,al2=sc.ion.q>0?1-qp:.3+.7*qp;if(al2<=.02)continue;
+          var pe=P([rad*Math.cos(an2),rad*Math.sin(an2)*.5,rad*Math.sin(an2)*.85]);x.globalAlpha=al2;x.shadowColor='#7fe7ff';x.shadowBlur=8;x.fillStyle='#bff4ff';x.beginPath();x.arc(pe[0],pe[1],Math.max(2,.12*k),0,6.2832);x.fill();x.shadowBlur=0;x.globalAlpha=1;}}
+    }else{
+      if(N<=1500&&!lod&&sc.bonds.length){x.globalAlpha=.55;x.strokeStyle='rgb(200,215,255)';x.lineWidth=Math.max(1,.06*k);x.beginPath();
+        sc.bonds.forEach(function(b){if(pr[b[0]]>0&&pr[b[1]]>0){x.moveTo(px[b[0]],py[b[0]]);x.lineTo(px[b[1]],py[b[1]]);}});x.stroke();x.globalAlpha=1;}
+      var nvis=0;cnt.fill(0);
+      for(j=0;j<nv;j++){n=V[j];if(pr[n]>0){bk[n]=((pz[n]-zmin)/span*1023)|0;cnt[bk[n]]++;nvis++;}}
+      for(j=1;j<1024;j++)cnt[j]+=cnt[j-1];
+      for(j=nv-1;j>=0;j--){n=V[j];if(pr[n]>0)ord[--cnt[bk[n]]]=n;}
+      for(j=0;j<nvis;j++){n=ord[j];atom(n,bk[n]/1023,false);}
+    }
+  }
+  function poke(){dirty=1;if(RM)draw(1e9);}
+  function reset(){R=mm(rx(.38),ry(.6));zoom=1;wx=wy=0;poke();}
+  var ph=null,prevOv='';
+  function exitFull(){
+    if(!box.classList.contains('fl-full'))return;
+    box.classList.remove('fl-full');
+    if(ph&&ph.parentNode){ph.parentNode.insertBefore(box,ph);ph.parentNode.removeChild(ph);}
+    ph=null;document.body.style.overflow=prevOv;size();poke();
+  }
+  stExit=exitFull;
+  stCtl=function(c){
+    if(c==='rot')auto=!auto;else if(c==='zin')zoom=Math.min(8,zoom*1.35);else if(c==='zout')zoom=Math.max(.35,zoom/1.35);else if(c==='rst')return reset();
+    else if(c==='fs'){if(box.classList.contains('fl-full'))return exitFull();ph=document.createElement('div');ph.style.height=box.offsetHeight+'px';box.parentNode.insertBefore(ph,box);document.body.appendChild(box);prevOv=document.body.style.overflow;box.classList.add('fl-full');document.body.style.overflow='hidden';size();}
+    poke();};
+  cv.style.touchAction='none';cv.style.cursor='grab';
+  cv.onpointerdown=function(e){ptr[e.pointerId]={x:e.clientX,y:e.clientY};drag=Object.keys(ptr).length;wx=wy=0;try{cv.setPointerCapture(e.pointerId);}catch(_){}};
+  cv.onpointermove=function(e){var q=ptr[e.pointerId];if(!q)return;var ks=Object.keys(ptr),dx=e.clientX-q.x,dy=e.clientY-q.y;
+    if(ks.length>=2){var o=ptr[ks[0]==e.pointerId?ks[1]:ks[0]],d0=Math.hypot(q.x-o.x,q.y-o.y),d1=Math.hypot(e.clientX-o.x,e.clientY-o.y);if(d0>5)zoom=Math.max(.35,Math.min(8,zoom*d1/d0));}
+    else{rot(mm(rx(dy*.01),mm(ry(dx*.01),R)));wx=dx*.01;wy=dy*.01;}
+    q.x=e.clientX;q.y=e.clientY;poke();};
+  cv.onpointerup=cv.onpointercancel=function(e){delete ptr[e.pointerId];drag=Object.keys(ptr).length;};
+  cv.ondblclick=reset;
+  if(cv.addEventListener)cv.addEventListener('wheel',function(e){e.preventDefault();zoom=Math.max(.35,Math.min(8,zoom*Math.exp(-e.deltaY*.0015)));poke();},{passive:false});
+  if(window.ResizeObserver){ro=new ResizeObserver(function(){size();poke();});ro.observe(box);}
+  if(window.IntersectionObserver){io2=new IntersectionObserver(function(en){vis=en[0].isIntersecting;poke();});io2.observe(cv);}
+  if(RM||!window.requestAnimationFrame){auto=false;draw(1e9);return;}
+  (function frame(){
+    if(tok!==stTok||!cv.isConnected){if(ro)ro.disconnect();if(io2)io2.disconnect();return;}
+    requestAnimationFrame(frame);
+    var t=performance.now(),now=t-t0,dt=Math.min(50,t-last||16);last=t;
+    if(!vis)return;
+    if(!drag){if(auto){rot(mm(ry(.0042*dt/16),R));dirty=1;}if(Math.abs(wx)+Math.abs(wy)>1e-4){rot(mm(rx(wy),mm(ry(wx),R)));wx*=.93;wy*=.93;dirty=1;}}
+    if(now<animEnd+100||(sc.ion&&now<2400))dirty=1;
+    if(!dirty)return;dirty=0;
+    var c0=performance.now();draw(now);ema=ema*.9+(performance.now()-c0)*.1;
+    if(!lod&&N>400&&ema>26){lod=1;size();}
+  })();
+}
+function pc(v){return String(+(v*100).toPrecision(6));}
+function isoBody(r){
+  var E=window.FormulaEngine,P=E.isoPattern(r),h='',n=0;
+  r.atoms.forEach(function(a){
+    var d=E.isoRows(a.el),c='--c:'+cc(a);
+    if(!d){h+='<div class="fl-row"><i class="fl-chip" style="'+c+'">'+a.el+'</i><span><em>'+FT('i_nodata')+'</em></span></div>';return;}
+    h+='<div class="fl-row" style="align-items:start"><i class="fl-chip" style="'+c+'">'+a.el+'</i><div>'+d.rows.map(function(x){
+      var ab=x.lo!==null?'['+pc(x.lo)+' – '+pc(x.hi)+']':pc(x.x)+(x.u?' ± '+pc(x.u):'');
+      return '<div class="fl-irow" style="'+c+';--i:'+Math.min(n++,12)+'"><span><sup>'+x.A+'</sup>'+a.el+'</span><span>'+x.mass+'</span><b>'+ab+' %</b><div class="fl-bar"><i data-w="'+(x.mid/d.sum*100)+'"></i></div></div>';
+    }).join('')+'</div></div>';
+  });
+  if(P&&P.ok){
+    h+='<div class="fl-eq" style="margin-top:10px">'+FT('i_mono')+' = <b>'+P.mono.toFixed(6)+'</b> u · '+FT('i_avg')+' = <b>'+P.avg.toFixed(4)+'</b></div><div class="fl-lbl">'+FT('i_pat')+'</div>';
+    h+=P.peaks.map(function(k){return '<div class="fl-irow" style="--c:#8fe9c4;--i:'+Math.min(n++,12)+'"><span>M'+(k.k>0?'+'+k.k:k.k<0?'−'+(-k.k):'')+'</span><span>'+k.mass.toFixed(5)+'</span><b>'+(k.rel>=0.1?k.rel.toFixed(1):k.rel.toPrecision(2))+' %</b><div class="fl-bar"><i data-w="'+k.rel+'"></i></div></div>';}).join('');
+    if(P.approx)h+='<div class="fl-note">⚠ '+FT('i_mid')+'</div>';
+  }else if(P)h+='<div class="fl-note">⚠ '+FT('i_'+P.reason).replace('{x}',P.el||'')+'</div>';
+  return h+'<div class="fl-note">'+FT('i_src')+'</div>'+why('w6');
+}
+function ionBody(r){
+  var E=window.FormulaEngine,o=E.ionic(r),h='',l=L();
+  if(!o||(o.status!=='ok'&&!o.metal))return null;
+  if(o.status==='ok'){
+    h=o.ions.map(function(p){return '<div class="fl-row"><i class="fl-chip" style="--c:'+(p.q>0?'#7fb6ff':'#ffb86b')+'">'+(p.q>0?'+':'−')+'</i><span><b>'+p.n+' × '+E.pretty(esc(p.f))+chg(p.q)+'</b> <em>— '+esc(p.nm[l]||p.nm.en)+' · '+p.share.toFixed(2)+' %</em></span></div>';}).join('');
+    h+=o.extra.map(function(s){return '<div class="fl-row"><i class="fl-chip" style="--c:#8fe9c4">0</i><span><b>'+E.pretty(esc(s))+'</b> <em>— '+FT('i7_neu')+'</em></span></div>';}).join('');
+    h+='<div class="fl-eq" style="margin-top:8px">Σ = '+o.ions.map(function(p){return p.n+' × ('+(p.q>0?'+':'−')+Math.abs(p.q)+')';}).join(' + ')+' = <b>0</b> ✓</div>';
+  }else h='<div class="fl-note">⚠ '+FT(o.status==='ambiguous'?'i7_amb':'i7_none')+'</div>';
+  return h+why('w7');
+}
+function eRender(){
+  var c=$('fl-erows');if(!c)return;
+  c.innerHTML=eRows.map(function(r,i){return '<div class="fl-er"><input class="fl-es" data-i="'+i+'" value="'+esc(r[0])+'" maxlength="2" autocomplete="off" autocapitalize="off" spellcheck="false"><input class="fl-ev" data-i="'+i+'" value="'+esc(r[1])+'" inputmode="decimal" autocomplete="off"><button data-ed="'+i+'" type="button">✕</button></div>';}).join('');
+}
+function empRun(){
+  var o=$('fl-eout'),E=window.FormulaEngine;if(!o||!E)return;
+  var it=eRows.filter(function(r){return String(r[0]).trim()||String(r[1]).trim();}).map(function(r){return{el:r[0],val:r[1]};});
+  var Mv=$('fl-eM')?pn($('fl-eM').value):null,res=E.empirical(it,Mv>0?Mv:null);
+  if(!res.ok){o.innerHTML='<div class="fl-err">⚠ '+esc(FT('ee_'+res.error.code).replace('{x}',res.error.info||''))+'</div>';return;}
+  var P=function(x,d){return String(+x.toPrecision(d));},i=0,b1='',b2='',b3='';
+  function row(r,t){return '<div class="fl-row"><i class="fl-chip" style="--c:'+cc(r)+'">'+r.el+'</i><span>'+t+'</span></div>';}
+  res.rows.forEach(function(r){
+    b1+=row(r,P(r.val,6)+' ÷ '+r.ar+' = <b>'+P(r.mol,5)+'</b> mol');
+    b2+=row(r,P(r.mol,5)+' ÷ '+P(res.minMol,5)+' = <b>'+P(r.ratio,4)+'</b>');
+    b3+=row(r,P(r.ratio,4)+' × '+res.k+' = '+P(r.ratio*res.k,4)+' → <b>'+r.n+'</b>');
+  });
+  var w='';
+  if(Math.abs(res.sum-100)>1)w+='<div class="fl-note">⚠ '+FT('ew_sum').replace('{x}',P(res.sum,5))+'</div>';
+  if(!res.exact)w+='<div class="fl-note">⚠ '+FT('ew_apx')+'</div>';
+  function c(t,b){return '<div class="fl-card fl-step" style="--i:'+(i++)+'"><h3>'+FT(t)+'</h3>'+b+'</div>';}
+  var m=res.molecular,h=c('f1',b1)+c('f2',b2)+c('f3',b3+'<div class="fl-note">k = '+res.k+'</div>')+
+    c('f4','<div class="fl-formula">'+window.FormulaEngine.pretty(res.formula)+'</div><div class="fl-eq">M<sub>emp</sub> = '+f(res.empMass)+' g/mol</div>'+w);
+  if(m)h+=c('f5','<div class="fl-eq">n = M ÷ M<sub>emp</sub> = '+f(Mv)+' ÷ '+f(res.empMass)+' = <b>'+P(m.nn,5)+'</b>'+(m.ok?' ≈ '+m.n:'')+'</div>'+
+    (m.ok?'<div class="fl-formula">'+window.FormulaEngine.pretty(m.formula)+'</div><div class="fl-eq">M = '+f(m.mass)+' g/mol</div>':'<div class="fl-note">⚠ '+FT('ew_mol').replace('{x}',P(m.nn,4))+'</div>'));
+  o.innerHTML=h;
+}
+function pn(v){var x=parseFloat(String(v).replace(',','.'));return isFinite(x)&&x>=0?x:null;}
+function sci(x){return x!==0&&(x>=1e6||x<1e-3)?x.toExponential(4):String(+x.toPrecision(6));}
+function mol(src){
+  var c=$('fl-mol');if(!c)return;
+  if(!curM){c.hidden=true;return;}
+  c.hidden=false;
+  var g=$('fl-g'),n=$('fl-n'),M=curM,v;
+  if(src==='n'){v=pn(n.value);if(v!==null)g.value=sci(v*M);}
+  else{v=pn(g.value);if(v!==null)n.value=sci(v/M);}
+  var gg=pn(g.value),mm=pn(n.value),o=$('fl-mst');
+  o.innerHTML=(gg===null||mm===null)?'':'n = m ÷ M = '+sci(gg)+' ÷ '+f(M)+' = <b>'+sci(mm)+'</b> mol<br>N = n × N<sub>A</sub> = '+sci(mm)+' × 6.02214076×10²³ = <b>'+(mm*window.FormulaEngine.NA).toExponential(4)+'</b> '+FT('np')+why('wm');
+}
+function run(){
+  if(stExit)stExit();
+  var inp=$('fl-in'),out=$('fl-out'),E=window.FormulaEngine;
+  if(!inp||!out||!E)return;
+  var r=E.analyze(inp.value);
+  if(!r.ok){out.innerHTML=(r.error.code==='EMPTY'&&!inp.value.trim())?'':errHTML(r);curM=0;mol();return;}
+  out.innerHTML=resHTML(r);curM=r.mass;mol();animate();stage(r);
+}
+function edit(k){
+  var i=$('fl-in');if(!i)return;
+  if(k==='clr')i.value='';
+  else if(k==='del'){var p=i.selectionStart==null?i.value.length:i.selectionStart;if(p>0){i.value=i.value.slice(0,p-1)+i.value.slice(i.selectionEnd);i.setSelectionRange(p-1,p-1);}}
+  else{var a=i.selectionStart==null?i.value.length:i.selectionStart,b=i.selectionEnd==null?a:i.selectionEnd;i.value=i.value.slice(0,a)+k+i.value.slice(b);i.setSelectionRange(a+1,a+1);}
+  i.focus();run();
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&stExit)stExit();});
+document.addEventListener('input',function(e){var id=e.target&&e.target.id;if(id==='fl-in'){clearTimeout(tm);tm=setTimeout(run,200);}else if(id==='fl-g')mol('g');else if(id==='fl-n')mol('n');
+  else if(e.target.classList&&(e.target.classList.contains('fl-es')||e.target.classList.contains('fl-ev')||id==='fl-eM')){
+    var cl=e.target.classList,di=+e.target.getAttribute('data-i');
+    if(cl.contains('fl-es'))eRows[di][0]=e.target.value;else if(cl.contains('fl-ev'))eRows[di][1]=e.target.value;
+    clearTimeout(tm2);tm2=setTimeout(empRun,250);}
+});
+document.addEventListener('click',function(e){
+  var t=e.target&&e.target.closest?e.target.closest('#scr-formula button,.fl-stage button'):null;if(!t)return;
+  if(t.hasAttribute('data-k'))edit(t.getAttribute('data-k'));
+  else if(t.hasAttribute('data-ex')){$('fl-in').value=t.getAttribute('data-ex');run();}
+  else if(t.hasAttribute('data-l')){window.MultiCalc.state.currentLang=t.getAttribute('data-l');i18n();}
+  else if(t.hasAttribute('data-t')){if(stCtl)stCtl(t.getAttribute('data-t'));}
+  else if(t.hasAttribute('data-ea')){eRows.push(['','']);eRender();var ins=document.querySelectorAll('#fl-erows .fl-es');if(ins.length)ins[ins.length-1].focus();empRun();}
+  else if(t.hasAttribute('data-eu')){if(curM){$('fl-eM').value=f(curM);empRun();}}
+  else if(t.hasAttribute('data-ed')){if(eRows.length>1){eRows.splice(+t.getAttribute('data-ed'),1);eRender();empRun();}}
+  else if(t.hasAttribute('data-m')){var m=t.getAttribute('data-m'),b=document.querySelectorAll('#fl-mode button');det=m==='1';for(var j=0;j<b.length;j++)b[j].classList.toggle('on',b[j].getAttribute('data-m')===m);run();}
+});
+var _nav=window.navTo;
+if(typeof _nav==='function')window.navTo=function(id){var r=_nav.apply(this,arguments);if(id!=='scr-formula'&&stExit)stExit();if(id==='scr-formula'){if(shownLang!==L())i18n();else run();}return r;};
+(function boot(n){if(chips()&&window.FormulaEngine)i18n(inApp);else if(n<40)setTimeout(function(){boot(n+1);},100);})(0);
+})();
+</script>
+</body></html>

@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<!--
+  MODULE-16 · Acids, Bases & pH Lab  (Chemistry chapter)
+  Standalone module — open this file directly; nothing here is registered in the host app yet.
+  v2.1 (16 Oct 2026) — audit fixes: real-ion ledger for the ionic strength (H₂SO₄ double count removed), signed-derivative chart, Ideal/Real-consistent
+  buffer capacity, 25 °C scope note, high-I warnings in all tabs, lazy/chunked start-up with timings, ~4 000 + new independent checks. Calculations: 25 °C only.
+  Folder:  MODULE-16-ACIDS-BASES-PH-LAB.html   screen + CSS (all .phl-* namespaced) + UI glue
+           ph-engine.js   exact pH solver (charge balance, ideal + Davies activities), buffers, titrations — no DOM
+           ph-data.js     76 compounds (acids, bases, salts, amino acids, Good's buffers), indicators, reference values
+           ph-text.js     this module's own el/en/es dictionary
+           ph-steps.js    tutor mode: general + detailed solutions (solution, buffer, titration point)
+           ph-viz.js      colour model + the beaker (ions, stir bar, electrode, burette, drops)
+           ph-plot.js     precise scientific plots (distribution, Sillén, pH–log c, capacity, titration …)
+           ph-boot.js     the real loading screen (pH wheel) — runs the internal consistency checks; the pH–log c tables are warmed in the background
+           dev/           developer tools, NOT loaded by the app: run-tests.js (node), ui-test.js / ui-sweep.js (Playwright), see dev/README.md
+  Dev flags: ?phl-noboot skips the loading screen (tests / quick iteration) · ?phl-bench=5 runs the real start-up 5 times and prints median / p95 /
+             worst frame gap on screen (use it on the tablet). The boot depth is PHLabBoot.DEPTH (ph-boot.js).
+  Screen id: scr-phlab  ·  language: window.MultiCalc.state.currentLang (EL/EN/ES) or the EL/EN/ES switch when standalone
+  Globals:   PHLabEngine, PHLabData, PHLabText, PHLabSteps, PHLabViz, PHLabPlot, PHLabBoot, PHLabCache, PHLab (state/refresh hook)
+-->
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Acids, Bases &amp; pH Lab</title>
+<style>
+/* ===== MODULE-16 · Acids, Bases & pH Lab ===== every selector is namespaced (.phl-*) — the host injects <style> globally */
+.phl-root,.phl-root *{box-sizing:border-box}
+.phl-root [hidden]{display:none!important}
+.phl-root{
+  --phl-border:rgba(128,138,158,.34);--phl-soft:rgba(128,138,158,.12);--phl-soft2:rgba(128,138,158,.22);--phl-dim:.74;
+  --phl-sa:#e5533d;--phl-wa:#dd8a22;--phl-sb:#3f7de0;--phl-wb:#7a5fd0;--phl-salt:#2a9d68;--phl-bio:#c04f93;--phl-custom:#7f8794;
+  position:relative;max-width:1180px;margin:0 auto;padding:12px 12px 28px;color:inherit;font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%;text-align:left}
+html.phl-standalone body{margin:0;min-height:100vh;background:#0e1520;color:#e9eef6;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:light){html.phl-standalone body{background:#f3f5f9;color:#17202c}}
+html.phl-standalone .screen{display:block}
+html.phl-standalone .back-btn{display:none}
+
+.phl-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.phl-head{flex:1;min-width:0}
+.phl-title{font-size:1.42rem;line-height:1.15;margin:0;font-weight:700;letter-spacing:-.01em}
+.phl-sub{margin:4px 0 0;opacity:var(--phl-dim);font-size:.86rem}
+.phl-lang{display:flex;gap:4px}
+.phl-lang button{border:1px solid var(--phl-border);background:transparent;color:inherit;border-radius:8px;padding:6px 9px;font:inherit;font-size:.8rem;cursor:pointer}
+.phl-lang button[aria-pressed=true]{background:var(--phl-soft2);font-weight:700}
+
+.phl-tabs{display:flex;gap:2px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;border-bottom:1px solid var(--phl-border)}
+.phl-tabs::-webkit-scrollbar{display:none}
+.phl-tab{flex:1 0 auto;background:none;border:0;color:inherit;font:inherit;padding:11px 10px;cursor:pointer;opacity:.68;position:relative;white-space:nowrap;min-height:44px}
+.phl-tab[aria-selected=true]{opacity:1;font-weight:650}
+.phl-tab[aria-selected=true]::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px;background:linear-gradient(90deg,#d61c24,#f47c26,#f6c42a,#3cb05c,#2868c4,#962896)}
+
+.phl-layout{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.phl-layout{grid-template-columns:372px minmax(0,1fr);align-items:start}.phl-stage{position:sticky;top:8px}}
+
+.phl-stage{container-type:inline-size;border:1px solid var(--phl-border);border-radius:20px;padding:10px 14px 14px;background:linear-gradient(160deg,var(--phl-soft2),var(--phl-soft))}
+.phl-stage-row{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:8px;align-items:center}
+.phl-beaker{display:block;width:100%;height:232px;color:inherit;transition:height .3s}
+.phl-beaker.tall{height:300px}
+.phl-readout{min-width:0}
+.phl-ph{display:block}
+.phl-ph-label{display:block;font-size:.95rem;opacity:.7;line-height:1}
+.phl-ph-val{display:block;font-size:2.7rem;font-size:clamp(2.1rem,13.5cqw,3.5rem);font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+.phl-cls{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:600;font-size:.92rem}
+.phl-cls::before{content:"";flex:0 0 auto;width:13px;height:13px;border-radius:50%;background:var(--chip,#888);box-shadow:0 0 0 2px var(--phl-border)}
+.phl-legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:.8rem;opacity:.88}
+.phl-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.phl-dot.h{background:#ff6a3d}.phl-dot.oh{background:#3d9bff}
+.phl-cap{font-size:.78rem;opacity:.72;margin-top:6px}
+.phl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.phl-gauge{position:relative;margin:12px 9px 0}
+.phl-gauge-bar{height:10px;border-radius:6px;background:linear-gradient(90deg,#d61c24 0%,#e83e28 14.3%,#f47c26 25%,#f6c42a 35.7%,#a8cc34 44.3%,#3cb05c 50%,#20a0aa 57.1%,#2868c4 67.9%,#4c46b0 78.6%,#7834a4 89.3%,#962896 100%)}
+.phl-mk{position:absolute;top:-4px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#fff;border:3px solid #1b2433;box-shadow:0 1px 5px rgba(0,0,0,.45);transition:left .38s cubic-bezier(.2,.8,.2,1)}
+.phl-mk.ghost{background:transparent;border:2px dashed currentColor;box-shadow:none;opacity:.7}
+.phl-gauge-scale{display:flex;justify-content:space-between;font-size:.72rem;opacity:.62;margin-top:7px}
+.phl-model{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.phl-model>span{font-size:.8rem;opacity:.78}
+.phl-model .phl-seg{margin:0;flex:1;min-width:150px}
+.phl-model .phl-seg button{min-height:36px;padding:6px 8px;font-size:.86rem}
+.phl-mstat{font-size:.76rem;opacity:.74;margin-top:6px;font-variant-numeric:tabular-nums}
+
+.phl-panel{min-width:0;counter-reset:phlh}
+.phl-h{display:flex;align-items:baseline;gap:8px;font-size:.78rem;font-weight:650;letter-spacing:.02em;opacity:.78;margin:20px 0 9px}
+.phl-h::before{counter-increment:phlh;content:counter(phlh);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--phl-soft2);font-size:.72rem;font-weight:700;opacity:1}
+.phl-panel>.phl-h:first-child{margin-top:2px}
+.phl-field{display:flex;flex-direction:column;gap:5px;margin:0 0 11px;min-width:0}
+.phl-field>span{font-size:.82rem;opacity:.8}
+.phl-root input[type=text],.phl-root select{width:100%;min-height:44px;padding:9px 12px;font:inherit;font-size:16px;color:inherit;background-color:var(--phl-soft);border:1px solid var(--phl-border);border-radius:12px;-webkit-appearance:none;appearance:none}
+.phl-root select{padding-right:36px;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 19px) 52%,calc(100% - 14px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+.phl-root select option,.phl-root select optgroup{color:#111;background:#fff}
+.phl-root :focus-visible{outline:2px solid #4d8dff;outline-offset:2px}
+.phl-root .phl-invalid{border-color:#e5533d!important;box-shadow:0 0 0 1px #e5533d}
+.phl-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px;align-items:end}
+.phl-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 8px;align-items:end}
+.phl-hint{font-size:.82rem;opacity:.74;margin:2px 0 10px}
+
+.phl-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 9px;scrollbar-width:none}
+.phl-chips::-webkit-scrollbar{display:none}
+.phl-chips.wrap{flex-wrap:wrap;overflow:visible}
+.phl-chip{flex:0 0 auto;border:1px solid var(--phl-border);background:transparent;color:inherit;border-radius:999px;padding:7px 14px;font:inherit;font-size:.88rem;cursor:pointer;min-height:38px}
+.phl-chip[aria-pressed=true]{background:var(--c,#4d8dff);border-color:var(--c,#4d8dff);color:#fff;font-weight:650}
+.phl-seg{display:flex;border:1px solid var(--phl-border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.phl-seg button{flex:1;padding:11px 8px;font:inherit;background:transparent;color:inherit;border:0;cursor:pointer;min-height:44px}
+.phl-seg button+button{border-left:1px solid var(--phl-border)}
+.phl-seg button[aria-pressed=true]{background:var(--c,#4d8dff);color:#fff;font-weight:650}
+.phl-btn{border:1px solid var(--phl-border);background:var(--phl-soft2);color:inherit;border-radius:12px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;min-height:44px}
+.phl-btn.primary{background:#3f7de0;border-color:#3f7de0;color:#fff}
+
+.phl-root input[type=range]{width:100%;height:32px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+.phl-root input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:5px;background:var(--phl-soft2)}
+.phl-root input[type=range]::-moz-range-track{height:8px;border-radius:5px;background:var(--phl-soft2)}
+.phl-root input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-9px;border-radius:50%;background:#fff;border:3px solid #3f7de0;box-shadow:0 1px 5px rgba(0,0,0,.4)}
+.phl-root input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #3f7de0;box-shadow:0 1px 5px rgba(0,0,0,.4)}
+.phl-root input[type=range].phl-spectrum::-webkit-slider-runnable-track{background:linear-gradient(90deg,#d61c24 0%,#e83e28 14.3%,#f47c26 25%,#f6c42a 35.7%,#a8cc34 44.3%,#3cb05c 50%,#20a0aa 57.1%,#2868c4 67.9%,#4c46b0 78.6%,#7834a4 89.3%,#962896 100%)}
+.phl-root input[type=range].phl-spectrum::-moz-range-track{background:linear-gradient(90deg,#d61c24 0%,#e83e28 14.3%,#f47c26 25%,#f6c42a 35.7%,#a8cc34 44.3%,#3cb05c 50%,#20a0aa 57.1%,#2868c4 67.9%,#4c46b0 78.6%,#7834a4 89.3%,#962896 100%)}
+.phl-ticks{display:flex;justify-content:space-between;font-size:.72rem;opacity:.62;margin:-2px 4px 8px}
+
+.phl-meta{font-size:.86rem;opacity:.85;margin:-2px 0 11px;min-height:1.2em}
+.phl-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.phl-res{border:1px solid var(--phl-border);background:var(--phl-soft);border-radius:12px;padding:9px 12px;min-width:0}
+.phl-res.wide{grid-column:1/-1}
+.phl-res-l{display:block;font-size:.76rem;opacity:.74}
+.phl-res-v{display:block;font-size:1.12rem;font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.phl-res-v small{font-size:.78rem;font-weight:500;opacity:.8}
+.phl-warn,.phl-info{padding:9px 12px;border-radius:10px;font-size:.88rem;margin:8px 0}
+.phl-warn{border-left:4px solid #e0a02c;background:rgba(224,160,44,.15)}
+.phl-info{border-left:4px solid #4d8dff;background:rgba(77,141,255,.12)}
+.phl-bad{border-left-color:#e5533d;background:rgba(229,83,61,.14)}
+.phl-ok{border-left-color:#2a9d68;background:rgba(42,157,104,.14)}
+
+.phl-card{border:1px solid var(--phl-border);border-radius:14px;padding:12px 14px;background:var(--phl-soft);margin-top:12px}
+.phl-card h3{margin:0 0 8px;font-size:.98rem;font-weight:650}
+.phl-sp{display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) minmax(58px,auto);gap:10px;align-items:center;margin:6px 0;font-size:.9rem}
+.phl-sp-bar{height:10px;border-radius:6px;background:var(--phl-soft2);overflow:hidden}
+.phl-sp-bar i{display:block;height:100%;border-radius:6px;transition:width .4s cubic-bezier(.2,.8,.2,1)}
+.phl-sp-v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.phl-plot{display:block;width:100%;height:290px;color:inherit;touch-action:pan-y;cursor:crosshair;margin-top:4px}
+.phl-plotcap{font-size:.8rem;opacity:.78;margin:8px 2px 0}
+
+.phl-steps{margin-top:6px;border:1px solid var(--phl-border);border-radius:14px;background:var(--phl-soft)}
+.phl-steps>summary{cursor:pointer;padding:13px 14px;font-weight:650;list-style:none;min-height:44px}
+.phl-steps>summary::-webkit-details-marker{display:none}
+.phl-steps>summary::after{content:"+";float:right;opacity:.75;font-weight:400;font-size:1.2rem;line-height:1}
+.phl-steps[open]>summary::after{content:"\2212"}
+.phl-steps>summary small{font-weight:400;opacity:.7;margin-left:6px}
+.phl-lvl{display:flex;gap:10px;align-items:center;padding:0 14px 6px;flex-wrap:wrap}
+.phl-lvl .phl-seg{margin:0;flex:1;min-width:190px}
+.phl-lvl .phl-seg button{min-height:38px;padding:7px 8px}
+.phl-lvlhint{font-size:.78rem;opacity:.72;padding:0 14px 8px}
+.phl-steps ol{margin:0;padding:2px 14px 6px;list-style:none;counter-reset:phls}
+.phl-sec{margin:14px -4px 6px;padding:7px 10px;border-radius:9px;background:var(--phl-soft2);font-weight:700;font-size:.9rem}
+.phl-step{counter-increment:phls;position:relative;padding:2px 0 14px 36px;min-width:0}
+.phl-step::before{content:counter(phls);position:absolute;left:0;top:0;width:25px;height:25px;border-radius:50%;background:var(--phl-soft2);display:grid;place-items:center;font-size:.8rem;font-weight:700}
+.phl-step::after{content:"";position:absolute;left:12px;top:30px;bottom:3px;width:1px;background:var(--phl-border)}
+.phl-step:last-child::after{display:none}
+.phl-step-t{font-weight:650;padding-top:2px}
+.phl-math{margin:6px 0;padding:7px 11px;background:var(--phl-soft);border-radius:9px;font-variant-numeric:tabular-nums;overflow-x:auto;overflow-wrap:anywhere}
+.phl-note{font-size:.86rem;opacity:.88;margin-top:5px}
+.phl-scroll{overflow-x:auto;margin:7px 0}
+.phl-tbl{border-collapse:collapse;font-size:.86rem;font-variant-numeric:tabular-nums;min-width:100%}
+.phl-tbl th,.phl-tbl td{border:1px solid var(--phl-border);padding:5px 9px;text-align:center;white-space:nowrap}
+.phl-tbl th{background:var(--phl-soft);font-weight:650}
+.phl-tbl td:first-child,.phl-tbl th:first-child{text-align:left}
+.phl-tbl tr.hi td{background:rgba(77,141,255,.14);font-weight:650}
+.phl-assume{font-size:.8rem;opacity:.68;margin:14px 0 0}
+.phl-tempnote{font-size:.74rem;opacity:.8;margin-top:6px;padding:5px 9px;border-radius:8px;border:1px solid rgba(128,160,220,.35);background:rgba(77,141,255,.08)}
+.phl-inv{display:block;color:#e5533d;font-size:.78rem;margin-top:3px}
+.phl-failbadge{margin-top:8px;font-size:.78rem}
+
+.phl-volrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:6px 0 2px}
+.phl-volread{font-variant-numeric:tabular-nums}
+.phl-keys{margin:0;padding:0;list-style:none}
+.phl-keys li{padding:8px 0;border-top:1px solid var(--phl-border);font-size:.9rem;font-variant-numeric:tabular-nums}
+.phl-keys li:first-child{border-top:0}
+.phl-keys b{font-weight:650}
+.phl-sw{display:flex;align-items:center;gap:12px;padding:6px 0}
+.phl-sw-c{width:36px;height:36px;border-radius:50%;border:1px solid var(--phl-border);flex:0 0 auto;transition:background .25s}
+.phl-sw-n{flex:1;min-width:0}
+.phl-sw-r{font-size:.78rem;opacity:.7}
+.phl-ev{display:inline-flex;gap:7px;align-items:baseline}
+.phl-ev small{opacity:.75;font-variant-numeric:tabular-nums}
+
+/* ---- loading screen: the pH wheel ---- */
+.phl-boot{position:absolute;left:0;right:0;bottom:0;top:var(--phl-boot-top,76px);z-index:40;border-radius:20px;overflow:hidden;background:radial-gradient(ellipse at 50% 30%,#12305e 0%,#0a1a36 55%,#07111f 100%);color:#eaf2ff;transition:opacity .7s ease}
+.phl-boot.out{opacity:0;pointer-events:none}
+.phl-boot-inner{position:sticky;top:3vh;display:flex;flex-direction:column;align-items:center;padding:20px 14px 28px;text-align:center}
+.phl-boot-title{font-size:1.15rem;font-weight:650;letter-spacing:.01em;margin-bottom:6px}
+.phl-boot-wheel{width:min(86vw,440px);max-height:70vh}
+.phl-boot-svg{display:block;width:100%;height:auto;overflow:visible}
+.phl-boot-svg path,.phl-boot-svg circle{transition:fill-opacity .3s}
+.phl-boot-msg{min-height:2.7em;margin-top:6px;font-size:.92rem;opacity:.92;max-width:34em}
+.phl-boot-sum{font-size:.8rem;opacity:.7;margin-top:4px;font-variant-numeric:tabular-nums}
+
+@media (max-width:420px){.phl-beaker{height:214px}.phl-beaker.tall{height:270px}.phl-stage{padding:8px 10px 12px}.phl-plot{height:260px}}
+@media (prefers-reduced-motion:reduce){.phl-root *{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div id="scr-phlab" class="screen active phl-root">
+
+  <header class="phl-top" id="phl-top">
+    <button class="back-btn" type="button" aria-label="Back">&#8592;</button>
+    <div class="phl-head">
+      <h1 class="phl-title" data-i18n="title"></h1>
+      <p class="phl-sub" data-i18n="subtitle"></p>
+    </div>
+    <div class="phl-lang" id="phl-lang" hidden>
+      <button type="button" data-lang="el">EL</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button>
+    </div>
+  </header>
+
+  <nav class="phl-tabs" id="phl-tabs" role="tablist">
+    <button class="phl-tab" role="tab" data-tab="sol" data-i18n="tabSol"></button>
+    <button class="phl-tab" role="tab" data-tab="buf" data-i18n="tabBuf"></button>
+    <button class="phl-tab" role="tab" data-tab="tit" data-i18n="tabTit"></button>
+    <button class="phl-tab" role="tab" data-tab="scale" data-i18n="tabScale"></button>
+  </nav>
+
+  <div class="phl-layout">
+    <aside class="phl-stage">
+      <div class="phl-stage-row">
+        <canvas id="phl-beaker" class="phl-beaker" role="img"></canvas>
+        <div class="phl-readout">
+          <div class="phl-ph"><span class="phl-ph-label">pH</span><span class="phl-ph-val" id="phl-phval">7.00</span></div>
+          <div class="phl-cls" id="phl-cls"></div>
+          <div class="phl-legend" id="phl-legend">
+            <span><i class="phl-dot h"></i>H<sub>3</sub>O<sup>+</sup></span><span><i class="phl-dot oh"></i>OH<sup>&minus;</sup></span>
+            <span data-i18n="stageIons" style="flex-basis:100%;opacity:.8"></span>
+          </div>
+          <div class="phl-cap" id="phl-cap"></div>
+          <span class="phl-sr" id="phl-sr" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+      <div class="phl-gauge">
+        <div class="phl-gauge-bar"></div>
+        <i class="phl-mk ghost" id="phl-mk2" hidden></i><i class="phl-mk" id="phl-mk"></i>
+        <div class="phl-gauge-scale"><span>0</span><span>7</span><span>14</span></div>
+      </div>
+      <div class="phl-model"><span data-i18n="modelLabel"></span>
+        <div class="phl-seg" id="phl-model"><button type="button" data-m="ideal" data-i18n="modelIdeal"></button><button type="button" data-m="real" data-i18n="modelReal"></button></div>
+      </div>
+      <div class="phl-mstat" id="phl-mstat"></div>
+      <div class="phl-tempnote" id="phl-tnote" data-i18n="tempNote"></div>
+      <div class="phl-warn phl-failbadge" id="phl-failbadge" role="alert" hidden></div>
+    </aside>
+
+    <main class="phl-main">
+
+      <!-- ============ SOLUTION ============ -->
+      <section class="phl-panel" id="phl-p-sol" role="tabpanel">
+        <h2 class="phl-h" data-i18n="hCompound"></h2>
+        <div class="phl-chips" id="phl-cats"></div>
+        <label class="phl-field" id="phl-comp-field"><span data-i18n="lblCompound"></span><select id="phl-comp"></select></label>
+        <div id="phl-custom" hidden>
+          <div class="phl-grid3">
+            <label class="phl-field"><span data-i18n="lblCustomType"></span><select id="phl-cu-type"><option value="acid" data-i18n="optCustomAcid"></option><option value="base" data-i18n="optCustomBase"></option></select></label>
+            <label class="phl-field"><span data-i18n="lblCustomMode"></span><select id="phl-cu-mode"></select></label>
+            <label class="phl-field"><span data-i18n="lblCustomValue"></span><input type="text" id="phl-cu-val" inputmode="decimal" autocomplete="off" value="4.76"></label>
+          </div>
+        </div>
+        <div class="phl-meta" id="phl-meta"></div>
+
+        <h2 class="phl-h" data-i18n="hConc"></h2>
+        <label class="phl-field"><span data-i18n="lblConc"></span><input type="text" id="phl-conc" inputmode="decimal" autocomplete="off" value="0.1"></label>
+        <input type="range" id="phl-conc-sl" min="-9" max="1" step="0.01" value="-1" aria-label="log10 c">
+        <div class="phl-ticks"><span>10<sup>&minus;9</sup></span><span>10<sup>&minus;6</sup></span><span>10<sup>&minus;3</sup></span><span>1</span><span>10</span></div>
+        <div class="phl-hint" id="phl-conc-hint"></div>
+        <div id="phl-warn"></div>
+
+        <h2 class="phl-h" data-i18n="hResults"></h2>
+        <div class="phl-results" id="phl-res"></div>
+        <div class="phl-card" id="phl-species-card"><h3 data-i18n="speciesTitle"></h3><div id="phl-species"></div></div>
+
+        <h2 class="phl-h" data-i18n="hPlots"></h2>
+        <div class="phl-chips" id="phl-sol-pm"></div>
+        <canvas id="phl-plot-sol" class="phl-plot" role="img"></canvas>
+        <p class="phl-plotcap" id="phl-sol-cap"></p>
+
+        <h2 class="phl-h" data-i18n="hSteps"></h2>
+        <details class="phl-steps" id="phl-steps" open>
+          <summary><span data-i18n="hSteps"></span><small id="phl-steps-n"></small></summary>
+          <div class="phl-lvl"><div class="phl-seg" id="phl-lvl-sol"><button type="button" data-l="general" data-i18n="lvlGeneral"></button><button type="button" data-l="detailed" data-i18n="lvlDetailed"></button></div></div>
+          <div class="phl-lvlhint" data-i18n="lvlHint"></div>
+          <ol id="phl-steps-list"></ol>
+        </details>
+        <p class="phl-assume" data-i18n="assume"></p>
+      </section>
+
+      <!-- ============ BUFFER ============ -->
+      <section class="phl-panel" id="phl-p-buf" role="tabpanel" hidden>
+        <h2 class="phl-h" data-i18n="hPair"></h2>
+        <div class="phl-seg" id="phl-bmode"><button type="button" data-m="find" data-i18n="modeFind"></button><button type="button" data-m="design" data-i18n="modeDesign"></button></div>
+        <label class="phl-field"><span data-i18n="lblPair"></span><select id="phl-pair"></select></label>
+
+        <h2 class="phl-h" data-i18n="hComposition"></h2>
+        <div class="phl-grid2" id="phl-b-find">
+          <label class="phl-field"><span data-i18n="lblAcidForm"></span><input type="text" id="phl-b-ca" inputmode="decimal" autocomplete="off" value="0.1"></label>
+          <label class="phl-field"><span data-i18n="lblBaseForm"></span><input type="text" id="phl-b-cb" inputmode="decimal" autocomplete="off" value="0.1"></label>
+        </div>
+        <div class="phl-grid2" id="phl-b-design" hidden>
+          <label class="phl-field"><span data-i18n="lblTarget"></span><input type="text" id="phl-b-target" inputmode="decimal" autocomplete="off" value="7.4"></label>
+          <label class="phl-field"><span data-i18n="lblTotal"></span><input type="text" id="phl-b-total" inputmode="decimal" autocomplete="off" value="0.1"></label>
+        </div>
+        <label class="phl-field"><span data-i18n="lblVolume"></span><input type="text" id="phl-b-vol" inputmode="decimal" autocomplete="off" value="100"></label>
+        <div id="phl-b-msg"></div>
+
+        <h2 class="phl-h" data-i18n="hResults"></h2>
+        <div class="phl-results" id="phl-b-res"></div>
+        <div id="phl-b-recipe"></div>
+
+        <h2 class="phl-h" data-i18n="hAdd"></h2>
+        <div class="phl-seg" id="phl-bkind"><button type="button" data-k="acid" data-i18n="addAcid" style="--c:var(--phl-sa)"></button><button type="button" data-k="base" data-i18n="addBase" style="--c:var(--phl-sb)"></button></div>
+        <label class="phl-field"><span data-i18n="lblAmount"></span><input type="text" id="phl-b-amt" inputmode="decimal" autocomplete="off" value="0"></label>
+        <input type="range" id="phl-b-amt-sl" min="0" max="1000" step="1" value="0" aria-label="mmol">
+        <div class="phl-results" id="phl-b-add-res"></div>
+        <div class="phl-hint" data-i18n="noteVol"></div>
+
+        <h2 class="phl-h" data-i18n="hPlots"></h2>
+        <div class="phl-chips" id="phl-buf-pm"></div>
+        <canvas id="phl-plot-buf" class="phl-plot" role="img"></canvas>
+        <p class="phl-plotcap" id="phl-buf-cap"></p>
+
+        <h2 class="phl-h" data-i18n="hSteps"></h2>
+        <details class="phl-steps" id="phl-b-steps" open>
+          <summary><span data-i18n="hSteps"></span><small id="phl-b-steps-n"></small></summary>
+          <div class="phl-lvl"><div class="phl-seg" id="phl-lvl-buf"><button type="button" data-l="general" data-i18n="lvlGeneral"></button><button type="button" data-l="detailed" data-i18n="lvlDetailed"></button></div></div>
+          <div class="phl-lvlhint" data-i18n="lvlHint"></div>
+          <ol id="phl-b-steps-list"></ol>
+        </details>
+        <p class="phl-assume" data-i18n="assume"></p>
+      </section>
+
+      <!-- ============ TITRATION ============ -->
+      <section class="phl-panel" id="phl-p-tit" role="tabpanel" hidden>
+        <h2 class="phl-h" data-i18n="hAnalyte"></h2>
+        <label class="phl-field"><span data-i18n="lblAnalyte"></span><select id="phl-t-comp"></select></label>
+        <div class="phl-seg" id="phl-t-dir" hidden><button type="button" data-d="acid" data-i18n="dirAcid"></button><button type="button" data-d="base" data-i18n="dirBase"></button></div>
+        <div class="phl-grid3">
+          <label class="phl-field"><span data-i18n="lblConcA"></span><input type="text" id="phl-t-ca" inputmode="decimal" autocomplete="off" value="0.1"></label>
+          <label class="phl-field"><span data-i18n="lblVolA"></span><input type="text" id="phl-t-va" inputmode="decimal" autocomplete="off" value="25"></label>
+          <label class="phl-field"><span id="phl-t-ct-l"></span><input type="text" id="phl-t-ct" inputmode="decimal" autocomplete="off" value="0.1"></label>
+        </div>
+
+        <h2 class="phl-h" data-i18n="hIndicator"></h2>
+        <label class="phl-field"><span data-i18n="lblIndicator"></span><select id="phl-t-ind"></select></label>
+
+        <h2 class="phl-h" data-i18n="hCurve"></h2>
+        <div class="phl-chips" id="phl-tit-pm"></div>
+        <canvas id="phl-plot-tit" class="phl-plot" role="img"></canvas>
+        <p class="phl-plotcap" id="phl-tit-cap"></p>
+        <div id="phl-t-warn"></div>
+        <div class="phl-volrow"><div class="phl-volread" id="phl-t-read"></div></div>
+        <input type="range" id="phl-t-sl" min="0" max="1000" step="1" value="0" aria-label="volume">
+        <div class="phl-volrow">
+          <button type="button" class="phl-btn primary" id="phl-t-play"></button>
+          <button type="button" class="phl-btn" id="phl-t-reset" data-i18n="tRestart"></button>
+        </div>
+        <div class="phl-hint" style="margin-top:8px" data-i18n="tHint"></div>
+
+        <h2 class="phl-h" data-i18n="hKeyPoints"></h2>
+        <div class="phl-card" style="margin-top:0"><ul class="phl-keys" id="phl-t-keys"></ul></div>
+
+        <h2 class="phl-h" data-i18n="hPoint"></h2>
+        <details class="phl-steps" id="phl-t-steps" open>
+          <summary><span data-i18n="hPoint"></span><small id="phl-t-steps-n"></small></summary>
+          <div class="phl-lvl"><div class="phl-seg" id="phl-lvl-tit"><button type="button" data-l="general" data-i18n="lvlGeneral"></button><button type="button" data-l="detailed" data-i18n="lvlDetailed"></button></div></div>
+          <div class="phl-lvlhint" data-i18n="lvlHint"></div>
+          <ol id="phl-t-steps-list"></ol>
+        </details>
+        <p class="phl-assume" data-i18n="assume"></p>
+      </section>
+
+      <!-- ============ SCALE ============ -->
+      <section class="phl-panel" id="phl-p-scale" role="tabpanel" hidden>
+        <h2 class="phl-h" data-i18n="lblPHslider"></h2>
+        <input type="range" id="phl-s-sl" class="phl-spectrum" min="0" max="14" step="0.01" value="7" aria-label="pH">
+        <div class="phl-ticks"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span></div>
+        <div class="phl-card"><h3 id="phl-s-ind-h"></h3><div id="phl-s-sw"></div></div>
+
+        <h2 class="phl-h" data-i18n="hFacts"></h2>
+        <div class="phl-results" id="phl-s-facts"></div>
+
+        <h2 class="phl-h" data-i18n="hEveryday"></h2>
+        <div class="phl-chips wrap" id="phl-s-ev"></div>
+
+        <h2 class="phl-h" data-i18n="hConverter"></h2>
+        <div class="phl-card" style="margin-top:0">
+          <div class="phl-grid2">
+            <label class="phl-field"><span>pH</span><input type="text" id="phl-cv-ph" inputmode="decimal" autocomplete="off"></label>
+            <label class="phl-field"><span>pOH</span><input type="text" id="phl-cv-poh" inputmode="decimal" autocomplete="off"></label>
+            <label class="phl-field"><span>[H<sub>3</sub>O<sup>+</sup>] (mol/L)</span><input type="text" id="phl-cv-h" inputmode="decimal" autocomplete="off"></label>
+            <label class="phl-field"><span>[OH<sup>&minus;</sup>] (mol/L)</span><input type="text" id="phl-cv-oh" inputmode="decimal" autocomplete="off"></label>
+          </div>
+          <div class="phl-hint" data-i18n="sConvNote"></div>
+        </div>
+
+        <h2 class="phl-h" data-i18n="hKw"></h2>
+        <div class="phl-card" style="margin-top:0"><div class="phl-scroll"><table class="phl-tbl" id="phl-s-kw"></table></div><p class="phl-hint" data-i18n="kwNote"></p><p class="phl-hint" data-i18n="pkwNote" style="margin-bottom:0"></p></div>
+
+        <h2 class="phl-h" data-i18n="hValidation"></h2>
+        <div class="phl-card" style="margin-top:0"><div class="phl-scroll"><table class="phl-tbl" id="phl-s-val"></table></div><p class="phl-hint" data-i18n="valNote" style="margin-bottom:0"></p></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- loading screen (the pH wheel) -->
+  <div class="phl-boot" id="phl-boot" hidden><div class="phl-boot-inner" id="phl-boot-inner"></div></div>
+</div>
+
+<script src="ph-engine.js"></script>
+<script src="ph-data.js"></script>
+<script src="ph-text.js"></script>
+<script src="ph-steps.js"></script>
+<script src="ph-viz.js"></script>
+<script src="ph-plot.js"></script>
+<script src="ph-boot.js"></script>
+<script>
+(function () {
+  'use strict';
+  var ROOT_ID = 'scr-phlab', root = null, E, D, X, ST, V, PL, BT, CACHE;
+  var inApp = false, lastLang = null, beaker = null, plotSol = null, plotBuf = null, plotTit = null;
+  var srT = 0, phShown = 7, phTween = 0, playRaf = 0, flowT = 0, stepsT = 0, stepsLast = 0, PAIRS = null, curve = null, tctx = null, autoInd = 'univ', valRows = null, lastSig = {}, lastTitV = 0;
+  var CAT_DEFAULT = { sa: 'HCl', wa: 'acetic', sb: 'NaOH', wb: 'nh3', salt: 'NaAc', bio: 'gly' };
+  var PAL = ['#e5533d', '#e6a12c', '#3fae6b', '#3f7de0', '#8a5fd0', '#c04fa0'];
+  var ACC = '#4d8dff', IDEAL_C = '#3f7de0', REAL_C = '#e8892f', GREY = '#8a93a3';
+  var S = {
+    lang: 'el', tab: 'sol', model: 'ideal', level: 'general',
+    sol: { cat: 'wa', id: 'acetic', c: 0.1, plot: 'dist', cu: { type: 'acid', mode: 'pK', val: '4.76' } },
+    buf: { mode: 'find', pair: 'acetic:0', plot: 'beta', kind: 'base', amt: 0 },
+    tit: { id: 'acetic', dir: 'acid', ind: 'auto', v: 0, playing: false, plot: 'ph' },
+    scale: { pH: 7 }
+  };
+
+  function $(id) { return document.getElementById('phl-' + id); }
+  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }
+  function log10(x) { return Math.log(x) / Math.LN10; }
+  function opts() { return S.model === 'real' ? { act: true } : null; }
+
+  /* ---------- language ---------- */
+  function lang() {
+    var l = (inApp && window.MultiCalc.state && window.MultiCalc.state.currentLang) || S.lang;
+    l = String(l || 'el').toLowerCase().slice(0, 2); if (l === 'gr') l = 'el';
+    return (l === 'en' || l === 'es' || l === 'el') ? l : 'el';
+  }
+  function PT(key, p) {
+    var d = X[lang()] || X.el, s = d[key];
+    if (s === undefined) s = X.el[key];
+    if (s === undefined) return key;
+    if (p) for (var k in p) s = s.split('{' + k + '}').join(p[k]);
+    return s;
+  }
+  function nm(o) { return o ? (o[lang()] || o.en) : ''; }
+
+  /* ---------- helpers ---------- */
+  function byId(id) { for (var i = 0; i < D.COMPOUNDS.length; i++) if (D.COMPOUNDS[i].id === id) return D.COMPOUNDS[i]; return null; }
+  function famOf(c) { return c.fam ? D.FAMILIES[c.fam] : null; }
+  // red border + a clear message under the field (empty, non-numeric, negative, zero or absurdly large values)
+  function setInvalid(el, bad, key, p) {
+    el.classList.toggle('phl-invalid', !!bad); el.setAttribute('aria-invalid', bad ? 'true' : 'false');
+    var host = el.parentNode, m = null, i;
+    if (host && host.children) for (i = 0; i < host.children.length; i++) if (host.children[i].className === 'phl-inv') m = host.children[i];
+    if (bad) { if (!m && host) { m = document.createElement('small'); m.className = 'phl-inv'; m.setAttribute('role', 'alert'); host.appendChild(m); } if (m) m.textContent = PT(key || 'invalid', p); }
+    else if (m && m.parentNode) m.parentNode.removeChild(m);
+  }
+  function parsePos(el, allowZero, max) {
+    var v = E.parseNum(el.value), top = max || 10, num = isFinite(v), ok = num && (allowZero ? v >= 0 : v > 0) && v <= top;
+    setInvalid(el, !ok, num && v > top ? 'invalidExtreme' : 'invalid', { max: top });
+    return ok ? v : NaN;
+  }
+  function classify(p) { return p < 3 ? 'clsStrongAcid' : p < 6.5 ? 'clsWeakAcid' : p <= 7.5 ? 'clsNeutral' : p <= 11 ? 'clsWeakBase' : 'clsStrongBase'; }
+  function ionCount(c) { return Math.round(34 * clamp((14 + log10(Math.max(c, 1e-20))) / 14, 0, 1)); }
+  function res(label, v, wide) { return '<div class="phl-res' + (wide ? ' wide' : '') + '"><span class="phl-res-l">' + label + '</span><span class="phl-res-v">' + v + '</span></div>'; }
+  function overWater(c) { var a = c[3] === undefined ? 1 : c[3], W = V.WATER, i, out = []; for (i = 0; i < 3; i++) out.push(W[i] * (1 - a) + c[i] * a); out.push(W[3] + (0.9 - W[3]) * a); return out; }
+  function niceMax(x) { var e = Math.pow(10, Math.floor(log10(x))), m = x / e; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * e; }
+  function fmtField(x) { var r = Number(x.toPrecision(4)); return (x >= 1e-3 && x < 1e5) ? String(r) : r.toExponential(); }
+  function sub(n) { return String.fromCharCode(0x2080 + n); }
+  function tableHTML(t, hiRow) {
+    var h = '<div class="phl-scroll"><table class="phl-tbl"><thead><tr>' + t.head.map(function (x) { return '<th>' + x + '</th>'; }).join('') + '</tr></thead><tbody>';
+    t.rows.forEach(function (r, i) { h += '<tr' + (hiRow === i ? ' class="hi"' : '') + '>' + r.map(function (x) { return '<td>' + x + '</td>'; }).join('') + '</tr>'; });
+    return h + '</tbody></table></div>';
+  }
+  function stepsHTML(list) {
+    var h = '';
+    list.forEach(function (s) {
+      if (s.sec) h += '<li class="phl-sec">' + PT(s.sec) + '</li>';
+      h += '<li class="phl-step"><div class="phl-step-t">' + s.title + '</div>';
+      if (s.table) h += tableHTML(s.table);
+      s.lines.forEach(function (l) { h += '<div class="phl-math">' + l + '</div>'; });
+      if (s.note) h += '<div class="phl-note">' + s.note + '</div>';
+      h += '</li>';
+    });
+    return h;
+  }
+  function syncLevelButtons() { ['sol', 'buf', 'tit'].forEach(function (t) { $('lvl-' + t).querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-l') === S.level)); b.style.setProperty('--c', '#3f7de0'); }); }); }
+  function buildChips(el, modes, cur) {
+    var keys = { dist: 'pmDist', sillen: 'pmSillen', phc: 'pmPhC', beta: 'pmBeta', resp: 'pmResp', ph: 'pmPH', der: 'pmDer', sp: 'pmSpecies' };
+    el.innerHTML = '';
+    modes.forEach(function (m) { var b = document.createElement('button'); b.type = 'button'; b.className = 'phl-chip'; b.setAttribute('data-pm', m); b.style.setProperty('--c', '#3f7de0'); b.textContent = PT(keys[m]); b.setAttribute('aria-pressed', String(m === cur)); el.appendChild(b); });
+  }
+
+  /* ---------- stage (beaker + big pH + gauge + model status) ---------- */
+  function showPH(p, instant) {
+    var el = $('phval'); cancelAnimationFrame(phTween);
+    if (!isFinite(p)) { el.textContent = '\u2014'; return; }
+    if (instant || V.reduceMotion || !isFinite(phShown)) { phShown = p; el.textContent = E.fmtPH(p); return; }
+    var from = phShown, t0 = 0;
+    phTween = requestAnimationFrame(function s(ts) {
+      if (!t0) t0 = ts; var t = Math.min(1, (ts - t0) / 320), e = 1 - Math.pow(1 - t, 3);
+      phShown = from + (p - from) * e; el.textContent = E.fmtPH(phShown); if (t < 1) phTween = requestAnimationFrame(s);
+    });
+  }
+  function setStage(o) {
+    showPH(o.pH, o.instant);
+    var cls = $('cls'); cls.textContent = PT(classify(o.pH)); cls.style.setProperty('--chip', V.rgba(V.universalColor(o.pH), 1));
+    $('mk').style.left = (clamp(o.pH, 0, 14) / 14 * 100) + '%';
+    var g = $('mk2'); if (o.ghost !== undefined && o.ghost !== null && isFinite(o.ghost)) { g.hidden = false; g.style.left = (clamp(o.ghost, 0, 14) / 14 * 100) + '%'; } else g.hidden = true;
+    $('cap').textContent = o.caption || '';
+    clearTimeout(srT); srT = setTimeout(function () { $('sr').textContent = 'pH ' + E.fmtPH(o.pH) + ' \u2014 ' + PT(classify(o.pH)); }, 600);
+    $('legend').hidden = !o.ions;
+    beaker.setColor(o.color, o.instant); beaker.setLevel(o.level === undefined ? 0.62 : o.level);
+    beaker.setMode({ showIons: !!o.ions, burette: !!o.burette, buretteFill: o.buretteFill === undefined ? 1 : o.buretteFill, stir: !!o.stir, mixRate: o.mixRate || 5.5 });
+    if (o.flow !== undefined) beaker.setMode({ flow: o.flow });
+    if (o.ions) beaker.setIons(ionCount(o.ions.h), ionCount(o.ions.oh));
+    $('mstat').textContent = (S.model === 'real' && o.info) ? PT('modelStatusReal', { i: E.numPlain(o.info.I, 3), g: E.numPlain(o.info.g, 3) }) : PT(S.model === 'real' ? 'modelStatusReal' : 'modelStatusIdeal', { i: '\u2014', g: '\u2014' });
+  }
+
+  /* ================= SOLUTION ================= */
+  function buildCats() {
+    var el = $('cats'); el.innerHTML = '';
+    D.CATEGORIES.concat(['custom']).forEach(function (c) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'phl-chip'; b.setAttribute('data-cat', c); b.style.setProperty('--c', 'var(--phl-' + c + ')');
+      b.textContent = PT('cat' + c.charAt(0).toUpperCase() + c.slice(1)); b.setAttribute('aria-pressed', String(S.sol.cat === c)); el.appendChild(b);
+    });
+  }
+  function buildCompSelect() {
+    var sel = $('comp'), cat = S.sol.cat; sel.innerHTML = ''; $('comp-field').hidden = cat === 'custom'; if (cat === 'custom') return;
+    var list = D.COMPOUNDS.filter(function (c) { return c.cat === cat; });
+    list.forEach(function (c) { var o = document.createElement('option'); o.value = c.id; o.textContent = V.toUnicode(c.f) + ' \u2014 ' + nm(c.name); sel.appendChild(o); });
+    if (!list.some(function (c) { return c.id === S.sol.id; })) S.sol.id = CAT_DEFAULT[cat];
+    sel.value = S.sol.id;
+  }
+  function buildCustomModes() {
+    var sel = $('cu-mode'), acid = S.sol.cu.type === 'acid'; sel.innerHTML = '';
+    [['pK', acid ? 'pKa' : 'pKb'], ['K', acid ? 'Ka' : 'Kb']].forEach(function (m) { var o = document.createElement('option'); o.value = m[0]; o.textContent = m[1]; sel.appendChild(o); });
+    sel.value = S.sol.cu.mode;
+  }
+  function currentCompound() {
+    if (S.sol.cat === 'custom') {
+      var el = $('cu-val'), v = E.parseNum(el.value), pK = S.sol.cu.mode === 'pK' ? v : (v > 0 ? -log10(v) : NaN);
+      var bad = !isFinite(pK) || pK < -10 || pK > 24; setInvalid(el, bad, 'invalidRange', { a: '\u221210', b: 24 }); if (bad) return null;
+      if (S.sol.cu.type === 'acid') return { comp: { type: 'wa', id: 'custom', cat: 'wa', f: 'HA' }, fam: { pKa: [pK], z0: 0, forms: ['HA', 'A<sup>\u2212</sup>'] } };
+      return { comp: { type: 'wb', j: 1, id: 'custom', cat: 'wb', f: 'B' }, fam: { pKa: [14 - pK], z0: 1, forms: ['BH<sup>+</sup>', 'B'] } };
+    }
+    var c = byId(S.sol.id); return { comp: c, fam: famOf(c) };
+  }
+  function metaLine(cs) {
+    var c = cs.comp, f = cs.fam;
+    if (c.strongH) return PT('metaStrongAcid') + ' \u00b7 ' + PT('metaPKa', { p: f.pKa[0].toFixed(2), k: E.sciHTML(Math.pow(10, -f.pKa[0]), 3) }).replace('pKa', 'pKa\u2082').replace('Ka =', 'Ka\u2082 =');
+    if (c.type === 'sa') return PT('metaStrongAcid');
+    if (c.type === 'sb') return PT('metaStrongBase');
+    if (c.type === 'neutral') return PT('metaNeutral');
+    if (c.type === 'wb') { var pb = 14 - f.pKa[0]; return PT('metaPKb', { p: pb.toFixed(2), k: E.sciHTML(Math.pow(10, -pb), 3) }); }
+    if (f.pKa.length === 1) return PT('metaPKa', { p: f.pKa[0].toFixed(2), k: E.sciHTML(Math.pow(10, -f.pKa[0]), 3) });
+    return PT('metaPoly', { list: f.pKa.map(function (x) { return x.toFixed(2); }).join(' / ') });
+  }
+  function solModes(fam) { return fam ? ['dist', 'sillen', 'phc'] : ['phc']; }
+
+  // pH–log c tables: the boot caches the ideal ones and warms the Real ones in the background. Anything still missing is computed
+  // here once (coarser grid) and remembered, so a redraw never recomputes it.
+  var customPhc = {};
+  function phcSeries(comp, fam) {
+    var out = {}, custom = comp.id === 'custom', sig = custom ? [comp.type, comp.j, comp.n, comp.zS, fam && fam.z0, fam && fam.pKa.join(',')].join('|') : '';
+    ['ideal', 'real'].forEach(function (m) {
+      var c = custom ? customPhc[m + sig] : CACHE.phc[m][comp.id];
+      if (!c) {
+        c = E.phVsLogC(comp, fam, -9, 1, m === 'real' ? 160 : 320, m === 'real');
+        if (custom) { var ks = Object.keys(customPhc); if (ks.length > 12) delete customPhc[ks[0]]; customPhc[m + sig] = c; } else CACHE.phc[m][comp.id] = c;
+      }
+      out[m] = c;
+    });
+    return out;
+  }
+  function drawSolPlot(cs, c, sol, solI, solR) {
+    var comp = cs.comp, fam = cs.fam, mode = S.sol.plot, I = S.model === 'real' ? solR.I : 0, cfg, i, j;
+    var sig = mode + '|' + comp.id + '|' + S.model + '|' + (fam ? fam.pKa.join() : '') + '|' + lang(), animate = lastSig.sol !== sig; lastSig.sol = sig;
+    var cur = { x: sol.pH, color: ACC, dash: [], w: 1.8, alpha: 0.9, label: 'pH ' + E.fmtPH(sol.pH), row: 2 };
+    if (mode === 'dist' && fam) {
+      var ser = (I === 0 && CACHE.dist[comp.fam]) ? CACHE.dist[comp.fam] : E.distributionSeries(fam, 561, I), n = ser.pH.length;
+      var series = fam.forms.map(function (fl, jj) {
+        var pts = [], best = -1, bx = 0;
+        for (i = 0; i < n; i++) { pts.push([ser.pH[i], ser.a[i][jj]]); if (ser.a[i][jj] > best) { best = ser.a[i][jj]; bx = ser.pH[i]; } }
+        var lx = jj === 0 ? Math.min(bx + 0.9, 1.4) : jj === fam.forms.length - 1 ? Math.max(bx - 0.9, 12.6) : bx;
+        return { name: V.toUnicode(fl), color: PAL[jj % PAL.length], pts: pts, labelAt: { x: lx, text: V.toUnicode(fl), dy: jj === 0 || jj === fam.forms.length - 1 ? 16 : -9 } };
+      });
+      var vl = fam.pKa.map(function (p, jj) { return { x: p, label: 'pKa' + (fam.pKa.length > 1 ? sub(jj + 1) : '') + ' ' + p.toFixed(2), row: jj % 2 }; }); vl.push(cur);
+      cfg = { x: { min: 0, max: 14, label: 'pH', tip: function (v) { return v.toFixed(2); } }, y: { min: 0, max: 1, label: PT('axAlpha'), tip: function (v) { return v.toFixed(4); } }, series: series, vlines: vl };
+    } else if (mode === 'sillen' && fam) {
+      var ser2 = E.distributionSeries(fam, 561, I), g1 = E.gamma(1, I), lc = log10(c), top = Math.max(0.5, Math.ceil(lc + 0.2)), pts2 = [];
+      var s2 = fam.forms.map(function (fl, jj) { var pts = []; for (i = 0; i < ser2.pH.length; i++) pts.push([ser2.pH[i], log10(Math.max(c * ser2.a[i][jj], 1e-300))]); return { name: V.toUnicode(fl), color: PAL[jj % PAL.length], pts: pts }; });
+      var hp = [], op = []; for (i = 0; i < ser2.pH.length; i++) { hp.push([ser2.pH[i], -ser2.pH[i] - log10(g1)]); op.push([ser2.pH[i], ser2.pH[i] - 14 - log10(g1)]); }
+      s2.push({ name: 'H\u2083O\u207a', color: '#ff6a3d', pts: hp, dash: [6, 4], w: 2 }, { name: 'OH\u207b', color: '#3d9bff', pts: op, dash: [6, 4], w: 2 });
+      var pts3 = [{ x: sol.pH, y: log10(sol.h), color: '#ff6a3d', label: 'H\u2083O\u207a' }, { x: sol.pH, y: log10(sol.oh), color: '#3d9bff', label: 'OH\u207b' }];
+      cfg = { x: { min: 0, max: 14, label: 'pH', tip: function (v) { return v.toFixed(2); } }, y: { min: -14, max: top, label: 'log c', tip: function (v) { return v.toFixed(3); } }, series: s2, vlines: [cur], points: pts3, legend: true };
+    } else {
+      var ps = phcSeries(comp, fam), mk = function (o) { return o.lc.map(function (x, k) { return [x, o.pH[k]]; }); }, lo = Infinity, hi = -Infinity;
+      [ps.ideal.pH, ps.real.pH, ps.ideal.naive].forEach(function (a) { a.forEach(function (v) { if (isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; } }); });
+      var lcNow = log10(c);
+      cfg = { x: { min: -9, max: 1, label: PT('axLogC'), tip: function (v) { return v.toFixed(2) + '  (' + E.numPlain(Math.pow(10, v), 3) + ' M)'; }, tipLabel: 'log c' },
+        y: { min: Math.floor(Math.max(-1.5, lo - 0.3)), max: Math.ceil(Math.min(15.5, hi + 0.3)), label: 'pH', tip: function (v) { return v.toFixed(3); } },
+        series: [{ name: PT('lgExact') + ' \u00b7 ' + PT('modelIdeal'), color: IDEAL_C, pts: mk(ps.ideal) }, { name: PT('lgExact') + ' \u00b7 ' + PT('modelReal'), color: REAL_C, pts: mk(ps.real) }, { name: PT('lgNaive'), color: GREY, dash: [6, 4], pts: ps.ideal.lc.map(function (x, k) { return [x, ps.ideal.naive[k]]; }), w: 2 }],
+        vlines: [{ x: lcNow, color: ACC, dash: [], w: 1.6, alpha: 0.85 }], points: [{ x: lcNow, y: sol.pH, color: ACC, label: 'pH ' + E.fmtPH(sol.pH), r: 5 }], legend: true };
+    }
+    plotSol.set(cfg, animate);
+    $('sol-cap').textContent = PT(mode === 'dist' ? 'ptDist' : mode === 'sillen' ? 'ptSillen' : 'ptPhC');
+  }
+
+  function renderSolution() {
+    var cs = currentCompound(); $('custom').hidden = S.sol.cat !== 'custom'; if (!cs) return;
+    var c = S.sol.c, comp = cs.comp, fam = cs.fam;
+    var sys = E.systemFor(comp, fam, c); if (fam) sys.pKaList = fam.pKa;
+    var solI = E.solve(sys), solR = E.solve(sys, { act: true }), sol = S.model === 'real' ? solR : solI;
+    $('meta').innerHTML = metaLine(cs); $('conc-hint').innerHTML = '= ' + E.fmtConc(c); $('conc-sl').value = clamp(log10(c), -9, 1);
+    var j0 = comp.type === 'wa' ? 0 : (comp.type === 'wb' || comp.type === 'salt') ? comp.j : null;
+    var html = res('pOH', E.fmtPH(sol.pOH)) + res('[H<sub>3</sub>O<sup>+</sup>]', E.fmt(sol.h, 3) + ' <small>M</small>') + res('[OH<sup>&minus;</sup>]', E.fmt(sol.oh, 3) + ' <small>M</small>');
+    if (fam && j0 !== null) { var react = (1 - sol.alpha[j0]) * 100; html += res(PT(comp.type === 'salt' ? 'resHydro' : 'resIonize'), (react < 0.01 ? E.sciHTML(react, 2) : react < 10 ? react.toFixed(2) : react.toFixed(1)) + ' <small>%</small>'); }
+    html += res(PT('resI'), E.fmt(solR.I, 3) + ' <small>M</small>') + res(PT('resGamma'), E.fmt(solR.gH, 3)) + res(PT('resDelta'), E.minus((solR.pH - solI.pH >= 0 ? '+' : '') + (solR.pH - solI.pH).toFixed(3)));
+    $('res').innerHTML = html;
+    var w = '';
+    if (comp.sol && c > comp.sol) w += '<div class="phl-warn">' + PT('warnSol', { c: comp.sol, f: V.toUnicode(comp.f) }) + '</div>';
+    if (c > 1) w += '<div class="phl-warn">' + PT('warnConc') + '</div>';
+    if (S.model === 'real' && solR.I > E.I_DAVIES_MAX) w += '<div class="phl-warn">' + PT('nDaviesLimit') + '</div>';
+    if (S.model === 'ideal' && solR.I > E.I_DAVIES_MAX) w += '<div class="phl-warn">' + PT('warnHighIIdeal', { i: E.numPlain(solR.I, 2) }) + '</div>';
+    if (!solI.converged || !solR.converged) w += '<div class="phl-warn">' + PT('warnNoConv') + '</div>';
+    if (c * (comp.n || 1) < 1e-6) w += '<div class="phl-info">' + PT('noteDilute') + '</div>';
+    $('warn').innerHTML = w;
+    $('species-card').hidden = !fam;
+    if (fam) {
+      var sp = '';
+      fam.forms.forEach(function (fl, j) { var a = sol.alpha[j] * 100; sp += '<div class="phl-sp"><span>' + fl + '</span><span class="phl-sp-bar"><i style="width:' + a.toFixed(2) + '%;background:' + PAL[j % PAL.length] + '"></i></span><span class="phl-sp-v">' + (a < 0.01 ? '&lt;0.01 %' : a.toFixed(a < 10 ? 2 : 1) + ' %') + '</span></div>'; });
+      $('species').innerHTML = sp;
+    }
+    var modes = solModes(fam); if (modes.indexOf(S.sol.plot) < 0) S.sol.plot = modes[0];
+    buildChips($('sol-pm'), modes, S.sol.plot); drawSolPlot(cs, c, sol, solI, solR);
+    var r = ST.build({ comp: comp, fam: fam, C: c, T: PT, name: nm(comp.name), model: S.model }), list = r[S.level];
+    $('steps-list').innerHTML = stepsHTML(list); $('steps-n').textContent = '\u00b7 ' + PT('stepsCount', { n: list.length });
+    setStage({ pH: sol.pH, color: V.universalColor(sol.pH), ions: { h: sol.h, oh: sol.oh }, caption: PT('stageUniv'), level: 0.62, info: { I: solR.I, g: solR.gH } });
+  }
+
+  /* ================= BUFFER ================= */
+  function pairs() {
+    if (!PAIRS) { PAIRS = []; Object.keys(D.FAMILIES).forEach(function (id) { var f = D.FAMILIES[id]; for (var k = 0; k < f.pKa.length; k++) PAIRS.push({ id: id + ':' + k, famId: id, fam: f, k: k, pK: f.pKa[k] }); }); }
+    return PAIRS;
+  }
+  function pairById(id) { var P = pairs(); for (var i = 0; i < P.length; i++) if (P[i].id === id) return P[i]; return P[0]; }
+  function famName(famId) { for (var i = 0; i < D.COMPOUNDS.length; i++) { var c = D.COMPOUNDS[i]; if (c.fam === famId && (c.type === 'wa' || c.type === 'wb' || (c.type === 'salt' && c.cat === 'bio'))) return nm(c.name); } return famId; }
+  function buildPairSelect() {
+    var sel = $('pair'); sel.innerHTML = '';
+    [['grpAcids', 0], ['grpBases', 1]].forEach(function (g) {
+      var og = document.createElement('optgroup'); og.label = PT(g[0]);
+      pairs().forEach(function (P) {
+        if ((P.fam.z0 > 0 ? 1 : 0) !== g[1]) return;
+        var o = document.createElement('option'); o.value = P.id;
+        o.textContent = famName(P.famId) + ' \u2014 ' + V.toUnicode(P.fam.forms[P.k]) + ' / ' + V.toUnicode(P.fam.forms[P.k + 1]) + ' \u00b7 pKa ' + P.pK.toFixed(2); og.appendChild(o);
+      }); sel.appendChild(og);
+    });
+    sel.value = S.buf.pair;
+  }
+  var capMemo = {};
+  function capSeries(famId, fam, Ct, real) { var key = famId + '|' + Ct + '|' + (real ? 'R' : 'I'); if (!capMemo[key]) { var k0 = Object.keys(capMemo); if (k0.length > 12) delete capMemo[k0[0]]; capMemo[key] = E.capacitySeries(fam, Ct, 561, real); } return capMemo[key]; }
+  function drawBufPlot(P, ca, cb, vol, maxAmt, sol0, pHnow) {
+    var fam = P.fam, k = P.k, mode = S.buf.plot, cfg, i;
+    var sig = mode + '|' + P.id + '|' + S.model + '|' + lang(), animate = lastSig.buf !== sig; lastSig.buf = sig;
+    if (mode === 'beta') {
+      var real = S.model === 'real', Ct = ca + cb, cs = capSeries(P.famId, fam, Ct, real), cI = real ? capSeries(P.famId, fam, Ct, false) : null, bp = [], wp = [], rp0 = [], mx = 0;
+      for (i = 0; i < cs.pH.length; i++) { bp.push([cs.pH[i], cs.beta[i]]); wp.push([cs.pH[i], cs.water[i]]); var part = cs.beta[i] - cs.water[i]; if (part > mx) mx = part; if (cI) { rp0.push([cI.pH[i], cI.beta[i]]); var pI = cI.beta[i] - cI.water[i]; if (pI > mx) mx = pI; } }
+      var vl = fam.pKa.map(function (p, j) { return { x: p, label: 'pKa' + (fam.pKa.length > 1 ? sub(j + 1) : '') + ' ' + p.toFixed(2), row: j % 2 }; });
+      vl.push({ x: sol0.pH, color: ACC, dash: [], w: 1.8, alpha: 0.9, label: 'pH ' + E.fmtPH(sol0.pH), row: 2 });
+      cfg = { x: { min: 0, max: 14, label: 'pH', tip: function (v) { return v.toFixed(2); } }, y: { min: 0, max: Math.max(mx, 1e-12) * 1.35, label: PT('axBeta'), tip: function (v) { return E.numPlain(v, 3); } },
+        series: [{ name: PT(real ? 'lgBetaReal' : 'lgBetaIdeal'), color: real ? REAL_C : IDEAL_C, pts: bp, fill: true }].concat(real ? [{ name: PT('lgBetaIdealRef'), color: IDEAL_C, pts: rp0, dash: [7, 4], w: 1.8 }] : [], [{ name: PT('lgWater'), color: GREY, pts: wp, dash: [5, 4], w: 1.8 }]), vlines: vl, legend: true };
+    } else {
+      var rp = E.bufferResponse(fam, k, ca, cb, vol, maxAmt, 120, S.model === 'real'), bpts = [], wpts = [], lo = 14, hi = 0;
+      for (i = 0; i < rp.x.length; i++) { bpts.push([rp.x[i], rp.buf[i]]); wpts.push([rp.x[i], rp.water[i]]); lo = Math.min(lo, rp.buf[i], rp.water[i]); hi = Math.max(hi, rp.buf[i], rp.water[i]); }
+      var amtS = (S.buf.kind === 'base' ? 1 : -1) * S.buf.amt;
+      cfg = { x: { min: -maxAmt, max: maxAmt, label: PT('axAdded'), tip: function (v) { return (v >= 0 ? '+' : '') + v.toFixed(3) + ' mmol'; }, tipLabel: 'mmol' }, y: { min: Math.min(0, Math.floor(lo)), max: Math.max(14, Math.ceil(hi)), label: 'pH', tip: function (v) { return v.toFixed(3); } },
+        series: [{ name: PT('lgBuffer'), color: IDEAL_C, pts: bpts }, { name: PT('lgWater'), color: GREY, pts: wpts, dash: [5, 4], w: 2 }], vlines: [{ x: 0, alpha: 0.35 }],
+        points: S.buf.amt > 0 ? [{ x: clamp(amtS, -maxAmt, maxAmt), y: pHnow, color: ACC, label: 'pH ' + E.fmtPH(pHnow), r: 5 }] : [], legend: true };
+    }
+    plotBuf.set(cfg, animate);
+    $('buf-cap').textContent = PT(mode === 'beta' ? (S.model === 'real' ? 'ptBetaReal' : 'ptBeta') : 'ptResp');
+  }
+  function renderBuffer() {
+    var P = pairById(S.buf.pair), fam = P.fam, k = P.k, o = opts(), i;
+    $('b-find').hidden = S.buf.mode !== 'find'; $('b-design').hidden = S.buf.mode !== 'design';
+    var vol = parsePos($('b-vol'), false, 1e6), ca = NaN, cb = NaN, design = null, msg = '';
+    if (S.buf.mode === 'design') {
+      var t = E.parseNum($('b-target').value), ct = parsePos($('b-total'));
+      setInvalid($('b-target'), !isFinite(t) || t < -2 || t > 16, 'invalidRange', { a: '\u22122', b: 16 });
+      if (isFinite(t) && isFinite(ct) && t >= -2 && t <= 16) {
+        design = E.designBuffer(fam, k, ct, t, o);
+        if (design.ok) { ca = design.ca; cb = design.cb; } else msg = '<div class="phl-warn">' + PT('bufUnreach', { a: E.fmtPH(design.pHmin), b: E.fmtPH(design.pHmax) }) + '</div>';
+      }
+    } else { ca = parsePos($('b-ca'), true); cb = parsePos($('b-cb'), true); }
+    $('b-msg').innerHTML = msg;
+    if (!(isFinite(ca) && isFinite(cb) && ca + cb > 0 && isFinite(vol))) { $('b-res').innerHTML = ''; $('b-recipe').innerHTML = ''; $('b-steps-list').innerHTML = ''; return; }
+    var sys0 = E.bufferSystem(fam, k, ca, cb, 0), s0 = E.solve(sys0, o), s0r = E.solve(sys0, { act: true });
+    var hh = (ca > 0 && cb > 0) ? P.pK + log10(cb / ca) : NaN, beta = S.model === 'real' ? E.bufferCapacityAt(fam, k, ca, cb, 0, o) : E.bufferCapacity(s0), eff = Math.abs(s0.pH - P.pK) <= 1;
+    var hiI = S.model === 'real' ? s0.I : s0r.I, warnI = hiI > E.I_DAVIES_MAX ? '<div class="phl-res wide" style="border:0;background:none;padding:0"><div class="phl-warn" style="margin:0">' + (S.model === 'real' ? PT('nDaviesLimit') : PT('warnHighIIdeal', { i: E.numPlain(hiI, 2) })) + '</div></div>' : '';
+    if (!s0.converged || !s0r.converged) warnI += '<div class="phl-res wide" style="border:0;background:none;padding:0"><div class="phl-warn" style="margin:0">' + PT('warnNoConv') + '</div></div>';
+    $('b-res').innerHTML = res(PT('resExact'), E.fmtPH(s0.pH)) + res(PT('resHH'), isFinite(hh) ? E.fmtPH(hh) : '\u2014') + res(PT('resRatio'), ca > 0 ? E.fmt(cb / ca, 3) : '\u221e') + res(PT('resBeta') + ' \u00b7 ' + PT(S.model === 'real' ? 'modelReal' : 'modelIdeal'), E.fmt(beta, 3) + ' <small>mol/(L\u00b7pH)</small>') +
+      '<div class="phl-res wide" style="border:0;background:none;padding:0"><div class="phl-info ' + (eff ? 'phl-ok' : 'phl-warn') + '" style="margin:0">' + PT(eff ? 'bufEffective' : 'bufWeak') + '</div></div>' + warnI;
+    $('b-recipe').innerHTML = (design && design.ok) ? '<div class="phl-card"><h3>' + PT('bufRecipe', { v: E.fmt(vol, 3, true) }) + '</h3>' +
+      '<div class="phl-sp" style="grid-template-columns:minmax(80px,auto) 1fr"><span>' + fam.forms[k] + '</span><span><b>' + E.fmt(ca * vol, 3) + ' mmol</b> \u00b7 ' + E.fmtConc(ca) + '</span></div>' +
+      '<div class="phl-sp" style="grid-template-columns:minmax(80px,auto) 1fr"><span>' + fam.forms[k + 1] + '</span><span><b>' + E.fmt(cb * vol, 3) + ' mmol</b> \u00b7 ' + E.fmtConc(cb) + '</span></div></div>' : '';
+    var maxAmt = niceMax(1.3 * (ca + cb) * vol), sl = $('b-amt-sl'); sl.max = maxAmt; sl.step = maxAmt / 400;
+    var amt = S.buf.amt, delta = (S.buf.kind === 'base' ? 1 : -1) * amt / vol; sl.value = Math.min(amt, maxAmt);
+    $('bkind').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-k') === S.buf.kind)); });
+    var addHTML = '', pHnow = s0.pH, ghost = null, s1 = s0;
+    if (amt > 0) {
+      s1 = E.solve(E.bufferSystem(fam, k, ca, cb, delta), o); var water = E.pureWater(delta, o).pH, over = S.buf.kind === 'acid' ? amt > cb * vol : amt > ca * vol;
+      addHTML = res(PT('lblBefore'), E.fmtPH(s0.pH)) + res(PT('lblAfter'), E.fmtPH(s1.pH)) + res(PT('lblDelta'), (s1.pH - s0.pH >= 0 ? '+' : '') + E.minus((s1.pH - s0.pH).toFixed(2))) +
+        res(PT('lblWater'), E.fmtPH(water) + ' <small>(\u0394 ' + E.minus((water - 7).toFixed(2)) + ')</small>') + (over ? '<div class="phl-res wide" style="border:0;background:none;padding:0"><div class="phl-warn" style="margin:0">' + PT('bufOver') + '</div></div>' : '') +
+        (S.model === 'real' && s1.I > E.I_DAVIES_MAX ? '<div class="phl-res wide" style="border:0;background:none;padding:0"><div class="phl-warn" style="margin:0">' + PT('nDaviesLimit') + '</div></div>' : '');
+      pHnow = s1.pH; ghost = s0.pH;
+    }
+    $('b-add-res').innerHTML = addHTML;
+    var modes = ['beta', 'resp']; if (modes.indexOf(S.buf.plot) < 0) S.buf.plot = 'beta';
+    buildChips($('buf-pm'), modes, S.buf.plot); drawBufPlot(P, ca, cb, vol, maxAmt, s0, pHnow);
+    var r = ST.buildBuffer({ fam: fam, k: k, ca: ca, cb: cb, vol: vol, kind: S.buf.kind, amt: amt, T: PT, model: S.model }), list = r[S.level];
+    $('b-steps-list').innerHTML = stepsHTML(list); $('b-steps-n').textContent = '\u00b7 ' + PT('stepsCount', { n: list.length });
+    setStage({ pH: pHnow, ghost: ghost, color: V.universalColor(pHnow), ions: { h: Math.pow(10, -pHnow), oh: Math.pow(10, pHnow - 14) }, caption: PT('stageUniv'), level: 0.62, info: { I: s0r.I, g: s0r.gH } });
+  }
+
+  /* ================= TITRATION ================= */
+  function buildTitSelect() {
+    var sel = $('t-comp'); sel.innerHTML = '';
+    [['acids', 'grpAcidsT'], ['bases', 'grpBasesT'], ['salts', 'grpSaltsT']].forEach(function (g) {
+      var og = document.createElement('optgroup'); og.label = PT(g[1]);
+      D.COMPOUNDS.forEach(function (c) {
+        var sp = E.titrationSpec(c, famOf(c)); if (!sp.acid && !sp.base) return;
+        var grp = c.type === 'salt' ? 'salts' : (sp.def === 'acid' ? 'acids' : 'bases'); if (grp !== g[0]) return;
+        var o = document.createElement('option'); o.value = c.id; o.textContent = V.toUnicode(c.f) + ' \u2014 ' + nm(c.name); og.appendChild(o);
+      }); sel.appendChild(og);
+    });
+    sel.value = S.tit.id;
+  }
+  function buildIndSelect() {
+    var sel = $('t-ind'); sel.innerHTML = '';
+    [['auto', PT('indAuto')], ['univ', PT('indUniv')], ['none', PT('indNone')]].concat(D.INDICATORS.map(function (i) { return [i.id, nm(i.name) + ' (' + i.pK.toFixed(1) + ')']; })).forEach(function (p) { var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1]; sel.appendChild(o); });
+    sel.value = S.tit.ind;
+  }
+  function indObj(id) { for (var i = 0; i < D.INDICATORS.length; i++) if (D.INDICATORS[i].id === id) return D.INDICATORS[i]; return null; }
+  function resolvedInd() { return S.tit.ind === 'auto' ? autoInd : S.tit.ind; }
+  function titColor(pH) { var id = resolvedInd(); if (id === 'univ') return V.universalColor(pH); if (id === 'none') return V.WATER; return overWater(V.indicatorColor(indObj(id), pH)); }
+  function suitableFor(eq) { return D.INDICATORS.filter(function (i) { return i.pK >= eq.lo - 0.0001 && i.pK <= eq.hi + 0.0001; }); }
+  function syncTitDir() {
+    var comp = byId(S.tit.id), sp = E.titrationSpec(comp, famOf(comp));
+    if (!sp[S.tit.dir]) S.tit.dir = sp.def;
+    $('t-dir').hidden = !(sp.acid && sp.base);
+    $('t-dir').querySelectorAll('button').forEach(function (b) { b.disabled = !sp[b.getAttribute('data-d')]; b.setAttribute('aria-pressed', String(b.getAttribute('data-d') === S.tit.dir)); b.style.setProperty('--c', '#3f7de0'); });
+    return sp;
+  }
+  function computeCurve() {
+    var comp = byId(S.tit.id), fam = famOf(comp), sp = syncTitDir(), dir = S.tit.dir, spec = sp[dir];
+    var ca = parsePos($('t-ca')), va = parsePos($('t-va'), false, 1e6), ct = parsePos($('t-ct'));
+    if (!(isFinite(ca) && isFinite(va) && isFinite(ct))) return false;
+    var tName = dir === 'acid' ? 'NaOH' : 'HCl';
+    tctx = { comp: comp, fam: fam, ca: ca, va: va, ct: ct, dir: dir, tName: tName, spec: spec, make: function (c) { return E.systemFor(comp, fam, c); } };
+    var cached = S.model === 'ideal' && ca === 0.1 && va === 25 && ct === 0.1 && CACHE.tit[comp.id + ':' + dir];
+    curve = cached || E.titrationCurve({ makeSys: tctx.make, Ca: ca, Va: va, Ct: ct, dir: dir, nEq: spec.neq, eqScale: spec.escale, act: S.model === 'real' });
+    autoInd = 'univ'; var best = -1, ei;
+    for (ei = 0; ei < curve.eq.length; ei++) {
+      var jw = curve.eq[ei].hi - curve.eq[ei].lo;
+      if (jw >= 1.5 && jw > best) { var su = suitableFor(curve.eq[ei]); if (su.length) { su.sort(function (a, b) { return Math.abs(a.pK - curve.eq[ei].pH) - Math.abs(b.pK - curve.eq[ei].pH); }); autoInd = su[0].id; best = jw; } }
+    }
+    return true;
+  }
+  function drawTitPlot(animate) {
+    var mode = S.tit.plot, d = curve, tN = tctx.tName, weak = !!tctx.fam && !tctx.comp.strongH, cfg, i, hasA = d.pts[0].a && d.pts[0].a.length > 0;
+    if (mode === 'sp' && !hasA) mode = S.tit.plot = 'ph';
+    var eqV = d.eq.map(function (e) { return { x: e.v, alpha: 0.35 }; });
+    var base = { x: { min: 0, max: d.vmax, label: PT('axV', { t: tN }), tip: function (v) { return v.toFixed(3) + ' mL'; }, tipLabel: 'V' }, pick: function (x) { stopPlay(); setTitVolume(x); } };
+    if (mode === 'ph') {
+      var ind = indObj(resolvedInd()), bands = [];
+      if (ind) bands.push({ y0: ind.pK - 1, y1: ind.pK + 1, grad: [V.rgba(ind.acid, ind.acid[3] === 0 ? 0.07 : 0.3), V.rgba(ind.base, 0.3)] });
+      var pts = [];
+      d.eq.forEach(function (e, k) { pts.push({ x: e.v, y: e.pH, color: ACC, label: PT('eqShort') + (d.eq.length > 1 ? (k + 1) : '') + ' ' + E.fmtPH(e.pH) }); });
+      if (weak) d.half.forEach(function (h, k) { pts.push({ x: h.v, y: h.pH, ring: true, dy: 12, label: PT('halfShort') + (d.half.length > 1 ? (k + 1) : '') + ' ' + E.fmtPH(h.pH) }); });
+      cfg = Object.assign(base, { y: { min: clamp(Math.min(0, Math.floor(d.minPH)), -2, 0), max: clamp(Math.max(14, Math.ceil(d.maxPH)), 14, 16), label: 'pH', tip: function (v) { return v.toFixed(3); } },
+        series: [{ name: 'pH', gradient: 'ph', w: 3.2, pts: d.pts.map(function (p) { return [p.v, p.pH]; }) }], bands: bands, vlines: eqV, points: pts, cursorColor: function (y) { return V.rgba(V.universalColor(y), 1); } });
+    } else if (mode === 'der') {
+      // dpH/dV is signed (negative for base + HCl). A log axis shows the MAGNITUDE; the tooltip gives the real sign.
+      var ds = E.derivativeSeries(d.der), dp = ds.map(function (q) { return [q.v, q.y]; }), lo = Infinity, hi = -Infinity;
+      dp.forEach(function (q) { lo = Math.min(lo, q[1]); hi = Math.max(hi, q[1]); });
+      var signedAt = function (x) { var lo2 = 0, hi2 = ds.length - 1; if (x <= ds[0].v) return ds[0].d; if (x >= ds[hi2].v) return ds[hi2].d; while (hi2 - lo2 > 1) { var m = (lo2 + hi2) >> 1; if (ds[m].v <= x) lo2 = m; else hi2 = m; } var t = (x - ds[lo2].v) / (ds[hi2].v - ds[lo2].v); return ds[lo2].d + t * (ds[hi2].d - ds[lo2].d); };
+      cfg = Object.assign(base, { y: { min: Math.floor(lo - 0.2), max: Math.ceil(hi + 0.3), label: 'log\u2081\u2080 |dpH/dV|', tip: function (v) { return v.toFixed(3); } },
+        series: [{ name: '|dpH/dV|', color: REAL_C, pts: dp, fill: true, w: 2.4, tipAt: function (x, y) { var sd = signedAt(x); return 'log ' + E.minus(y.toFixed(3)) + ' \u00b7 dpH/dV = ' + E.numPlain(sd, 3) + ' pH/mL'; } }], vlines: eqV.map(function (v, k) { return Object.assign({ label: PT('eqShort') + (d.eq.length > 1 ? (k + 1) : '') }, v); }), cursorColor: function () { return REAL_C; } });
+    } else {
+      var series = tctx.fam.forms.map(function (fl, j) { return { name: V.toUnicode(fl), color: PAL[j % PAL.length], pts: d.pts.map(function (p) { return [p.v, p.a[j]]; }), w: 2.4 }; });
+      var vl = eqV.map(function (v, k) { return Object.assign({ label: PT('eqShort') + (d.eq.length > 1 ? (k + 1) : '') }, v); });
+      cfg = Object.assign(base, { y: { min: 0, max: 1, label: PT('axAlpha'), tip: function (v) { return v.toFixed(4); } }, series: series, vlines: vl, legend: true, cursorDot: false });
+    }
+    plotTit.set(cfg, animate); plotTit.setCursor(S.tit.v);
+    $('tit-cap').textContent = PT(mode === 'ph' ? 'ptTit' : mode === 'der' ? 'ptDer' : 'ptSpecies');
+  }
+  function titWarn() {
+    var mx = 0, i; for (i = 0; i < curve.pts.length; i++) if (curve.pts[i].I > mx) mx = curve.pts[i].I;
+    $('t-warn').innerHTML = (mx > E.I_DAVIES_MAX ? '<div class="phl-warn">' + (S.model === 'real' ? PT('warnHighIReal', { i: E.numPlain(mx, 2) }) : PT('warnHighIIdeal', { i: E.numPlain(mx, 2) })) + '</div>' : '') +
+      (curve.unconverged > 0 ? '<div class="phl-warn">' + PT('warnNoConv') + '</div>' : '');
+  }
+  function renderKeys() {
+    var h = '', weak = !!tctx.fam && !tctx.comp.strongH;
+    curve.eq.forEach(function (eq, idx) {
+      var su = suitableFor(eq), jw = eq.hi - eq.lo;
+      h += '<li><b>' + PT('tEqN', { k: curve.eq.length > 1 ? idx + 1 : '' }).replace(/\s+$/, '') + '</b><br>' + PT('tEqLine', { v: E.fmt(eq.v, 4), p: E.fmtPH(eq.pH) }) + ' \u00b7 ' + PT('tJump', { a: E.fmtPH(eq.lo), b: E.fmtPH(eq.hi) }) + '<br>' +
+        (jw >= 1.5 && su.length ? PT('tSuit', { list: su.map(function (x) { return nm(x.name); }).join(', ') }) : PT('tNoSuit')) + '</li>';
+    });
+    if (weak) curve.half.forEach(function (hp, idx) {
+      var pkIdx = tctx.dir === 'acid' ? (tctx.comp.type === 'salt' ? tctx.comp.j + idx : idx) : tctx.comp.j - 1 - idx, pk = tctx.fam.pKa[pkIdx];
+      h += '<li>' + PT('tHalf', { k: curve.half.length > 1 ? idx + 1 : '', p: E.fmtPH(hp.pH), pk: pk === undefined ? '\u2014' : pk.toFixed(2) }).replace(/\s+:/, ':').replace(/\s{2,}/g, ' ') + ' \u00b7 V = ' + E.fmt(hp.v, 4) + ' mL</li>';
+    });
+    $('t-keys').innerHTML = h;
+  }
+  function renderTitration(rebuild) {
+    if (rebuild || !curve) {
+      if (!computeCurve()) return;
+      S.tit.v = clamp(S.tit.v, 0, curve.vmax); lastTitV = S.tit.v;
+      var hasA = curve.pts[0].a && curve.pts[0].a.length > 0;
+      buildChips($('tit-pm'), hasA ? ['ph', 'der', 'sp'] : ['ph', 'der'], S.tit.plot === 'sp' && !hasA ? 'ph' : S.tit.plot);
+      var sig = S.tit.id + '|' + S.tit.dir + '|' + S.tit.plot + '|' + S.model + '|' + $('t-ca').value + $('t-va').value + $('t-ct').value + '|' + lang();
+      var anim = lastSig.tit !== sig; lastSig.tit = sig; drawTitPlot(anim); renderKeys(); titWarn();
+    }
+    $('t-ct-l').textContent = PT('lblConcT', { t: tctx.tName });
+    S.tit.v = clamp(S.tit.v, 0, curve.vmax); setTitVolume(S.tit.v, 'quiet'); drawTitPlot(false);
+  }
+  function requestSteps(v) {
+    var now = Date.now(), run = function () {
+      var r = ST.buildTitration({ comp: tctx.comp, fam: tctx.fam, dir: tctx.dir, Ca: tctx.ca, Va: tctx.va, Ct: tctx.ct, v: v, curve: curve, T: PT, model: S.model, tName: tctx.tName }), list = r[S.level];
+      $('t-steps-list').innerHTML = stepsHTML(list); $('t-steps-n').textContent = '\u00b7 ' + PT('stepsCount', { n: list.length }); stepsLast = Date.now();
+    };
+    clearTimeout(stepsT);
+    if (S.tit.playing) { if (now - stepsLast > 350) run(); } else stepsT = setTimeout(run, 30);
+  }
+  function emitDrops(dv) {
+    if (V.reduceMotion || !beaker || dv <= 0) return;
+    var n = Math.round(dv / 0.05); if (n <= 0) return;
+    if (dv > 0.8) { beaker.setMode({ flow: 20 }); clearTimeout(flowT); flowT = setTimeout(function () { beaker.setMode({ flow: 0 }); }, 280); }
+    else { n = Math.min(n, 10); for (var i = 0; i < n; i++) setTimeout(function () { beaker.drop(); }, i * 55); }
+  }
+  function setTitVolume(v, flag) {
+    if (!curve) return;
+    v = clamp(v, 0, curve.vmax); var dv = v - lastTitV; lastTitV = v; S.tit.v = v;
+    var o = opts(), sol = E.titrationSol(tctx.make, tctx.ca, tctx.va, tctx.ct, tctx.dir, v, o), pH = sol.pH;
+    try { beaker.setPlumeColor(titColor(E.titrationPH(tctx.make, tctx.ca, tctx.va, tctx.ct, tctx.dir, Math.min(curve.vmax * 1.2, v + 0.25), o))); } catch (e) { }
+    if (flag !== 'quiet' && !S.tit.playing) emitDrops(dv);
+    $('t-sl').value = Math.round(v / curve.vmax * 1000); plotTit.setCursor(v);
+    $('t-read').innerHTML = PT('tAdded', { t: tctx.tName }) + ': <b>' + v.toFixed(2) + ' mL</b> \u00b7 pH <b>' + E.fmtPH(pH) + '</b> \u00b7 ' + PT('tPct', { x: (v / curve.veq1 * 100).toFixed(1) });
+    var id = resolvedInd(), ind = indObj(id);
+    setStage({ pH: pH, color: titColor(pH), ions: null, burette: true, buretteFill: 1 - 0.9 * v / curve.vmax, stir: true, mixRate: 2.4, level: 0.46 + 0.22 * (v / curve.vmax), instant: S.tit.playing || flag === 'instant',
+      caption: id === 'univ' ? PT('stageUniv') : id === 'none' ? PT('indNone') : nm(ind.name), info: { I: sol.I, g: sol.gH } });
+    requestSteps(v);
+  }
+  function playLabel() { $('t-play').textContent = (S.tit.playing ? '\u275a\u275a ' + PT('tPause') : '\u25b6 ' + PT('tPlay')); }
+  function stopPlay() { S.tit.playing = false; cancelAnimationFrame(playRaf); if ($('t-play')) playLabel(); if (beaker) beaker.setMode({ flow: 0 }); }
+  function startPlay() {
+    if (!curve) return;
+    if (S.tit.v >= curve.vmax - 1e-9) { S.tit.v = 0; lastTitV = 0; }
+    S.tit.playing = true; playLabel(); var last = 0;
+    playRaf = requestAnimationFrame(function tick(ts) {
+      if (!S.tit.playing) return;
+      var dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts; var v = S.tit.v, near = false;
+      for (var i = 0; i < curve.eq.length; i++) if (Math.abs(v - curve.eq[i].v) < 0.03 * curve.veq1) near = true;
+      var v2 = v + (curve.vmax / (near ? 60 : 12)) * dt;
+      if (v2 >= curve.vmax) { v2 = curve.vmax; S.tit.playing = false; playLabel(); }
+      var rate = dt > 0 ? (v2 - v) / dt / 0.05 : 0; beaker.setMode({ flow: S.tit.playing ? Math.max(1, rate) : 0 });
+      setTitVolume(v2);
+      if (S.tit.playing) playRaf = requestAnimationFrame(tick); else beaker.setMode({ flow: 0 });
+    });
+  }
+
+  /* ================= SCALE ================= */
+  function buildEveryday() {
+    var el = $('s-ev'); el.innerHTML = '';
+    D.EVERYDAY.forEach(function (e) { var b = document.createElement('button'); b.type = 'button'; b.className = 'phl-chip'; b.setAttribute('data-ph', e.pH); b.innerHTML = '<span class="phl-ev">' + nm(e.name) + ' <small>~' + e.pH.toFixed(1) + '</small></span>'; el.appendChild(b); });
+  }
+  function validationRows() {
+    if (valRows) return valRows;
+    var F = D.FAMILIES, defs = [
+      ['stdKHP', E.systemFor({ type: 'salt', j: 1 }, F.phthalic, 0.05), 4.005], ['stdPhos', E.bufferSystem(F.phosphoric, 1, 0.025, 0.025, 0), 6.865], ['stdCarb', E.bufferSystem(F.carbonic, 1, 0.025, 0.025, 0), 10.012]];
+    valRows = defs.map(function (d) { var a = E.solve(d[1]).pH, b = E.solve(d[1], { act: true }).pH; return { key: d[0], cert: d[2], ideal: a, real: b }; });
+    return valRows;
+  }
+  function renderScale(fromField) {
+    var p = S.scale.pH, h = Math.pow(10, -p), oh = Math.pow(10, p - 14);
+    setStage({ pH: p, color: V.universalColor(p), ions: { h: h, oh: oh }, caption: PT('stageUniv'), level: 0.62, info: { I: Math.max(h, oh), g: E.gamma(1, Math.max(h, oh)) } });
+    $('s-sl').value = clamp(p, 0, 14); $('s-ind-h').textContent = PT('sInd', { p: E.fmtPH(p) });
+    var sw = '';
+    D.INDICATORS.forEach(function (ind) {
+      var c = V.indicatorColor(ind, p), col = V.rgba(c, c[3]);
+      sw += '<div class="phl-sw"><span class="phl-sw-c" style="background:linear-gradient(' + col + ',' + col + '),repeating-conic-gradient(rgba(128,128,128,.3) 0% 25%,transparent 0% 50%) 0 0/10px 10px"></span><span class="phl-sw-n">' + nm(ind.name) + '<div class="phl-sw-r">pH ' + (ind.pK - 1).toFixed(1) + ' \u2013 ' + (ind.pK + 1).toFixed(1) + '</div></span></div>';
+    });
+    $('s-sw').innerHTML = sw;
+    var fac = Math.pow(10, Math.abs(p - 7));
+    $('s-facts').innerHTML = res(PT('factH'), E.sciHTML(h, 3) + ' <small>M</small>') + res(PT('factOH'), E.sciHTML(oh, 3) + ' <small>M</small>') + res(PT('factIons'), E.sciHTML(h * 6.02214076e23, 3) + ' <small>/ L</small>') +
+      res(Math.abs(p - 7) < 0.005 ? PT('clsNeutral') : PT(p < 7 ? 'factRelAcid' : 'factRelBase'), Math.abs(p - 7) < 0.005 ? '1' : '\u00d7 ' + E.sciHTML(fac, 3), false);
+    var ids = ['ph', 'poh', 'h', 'oh'], vals = [p, 14 - p, h, oh];
+    ids.forEach(function (id, i) { var el = $('cv-' + id); if (el !== fromField) { el.value = i < 2 ? vals[i].toFixed(3).replace(/\.?0+$/, '') : fmtField(vals[i]); setInvalid(el, false); } });
+    // reference tables
+    var neutral = function (p) { var t = String(Math.round(p * 5000) / 10000); return /\./.test(t) ? (/\.\d$/.test(t) ? t + '0' : t) : t + '.00'; };
+    var rows = D.PKW_T.map(function (r) { return [String(r[0]), String(r[1]), neutral(r[1])]; });
+    $('s-kw').innerHTML = '<thead><tr><th>' + PT('colTemp') + '</th><th>' + PT('colPKw') + '</th><th>' + PT('colNeutral') + '</th></tr></thead><tbody>' + rows.map(function (r) { return '<tr' + (r[0] === '25' || r[0] === '37' ? ' class="hi"' : '') + '><td>' + r.join('</td><td>') + '</td></tr>'; }).join('') + '</tbody>';
+    var vr = validationRows();
+    $('s-val').innerHTML = '<thead><tr><th>' + PT('colStd') + '</th><th>' + PT('colCert') + '</th><th>' + PT('colIdealS') + '</th><th>' + PT('colRealS') + '</th><th>' + PT('colDevS') + '</th></tr></thead><tbody>' +
+      vr.map(function (r) { return '<tr><td>' + PT(r.key) + '</td><td>' + r.cert.toFixed(3) + '</td><td>' + r.ideal.toFixed(3) + '</td><td>' + r.real.toFixed(3) + '</td><td>' + E.minus((r.real - r.cert >= 0 ? '+' : '') + (r.real - r.cert).toFixed(3)) + '</td></tr>'; }).join('') + '</tbody>';
+  }
+
+  /* ================= wiring ================= */
+  function renderCurrent() {
+    if (S.tab === 'sol') renderSolution(); else if (S.tab === 'buf') renderBuffer(); else if (S.tab === 'tit') renderTitration(true); else renderScale();
+  }
+  function setTab(t) {
+    if (S.tab === 'tit' && t !== 'tit') stopPlay();
+    S.tab = t; $('beaker').classList.toggle('tall', t === 'tit'); ['sol', 'buf', 'tit', 'scale'].forEach(function (n) { $('p-' + n).hidden = n !== t; });
+    $('tabs').querySelectorAll('.phl-tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === t)); });
+    renderCurrent();
+  }
+  function syncModelButtons() { $('model').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-m') === S.model)); b.style.setProperty('--c', '#3f7de0'); }); }
+  function applyI18n() {
+    lastLang = lang();
+    root.querySelectorAll('[data-i18n]').forEach(function (n) { n.textContent = PT(n.getAttribute('data-i18n')); });
+    if (!inApp) { document.title = PT('title'); document.documentElement.lang = lastLang; $('lang').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lastLang)); }); }
+    $('beaker').setAttribute('aria-label', PT('title')); ['sol', 'buf', 'tit'].forEach(function (t) { $('plot-' + t).setAttribute('aria-label', PT('hPlots')); });
+    buildCats(); buildCompSelect(); buildCustomModes(); buildPairSelect(); buildTitSelect(); buildIndSelect(); buildEveryday(); playLabel();
+    $('bmode').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-m') === S.buf.mode)); b.style.setProperty('--c', '#3f7de0'); });
+    syncModelButtons(); syncLevelButtons(); showCheckStatus(); renderCurrent();
+  }
+  function onEnter() { if (lastLang !== lang()) applyI18n(); else renderCurrent(); if (beaker) beaker.start(); }
+
+  function bind() {
+    var on = function (id, ev, fn) { $(id).addEventListener(ev, fn); };
+    on('tabs', 'click', function (e) { var b = e.target.closest('.phl-tab'); if (b) setTab(b.getAttribute('data-tab')); });
+    on('lang', 'click', function (e) { var b = e.target.closest('button'); if (b) { S.lang = b.getAttribute('data-lang'); applyI18n(); } });
+    on('model', 'click', function (e) { var b = e.target.closest('button'); if (!b) return; S.model = b.getAttribute('data-m'); syncModelButtons(); curve = null; renderCurrent(); });
+    ['sol', 'buf', 'tit'].forEach(function (t) { on('lvl-' + t, 'click', function (e) { var b = e.target.closest('button'); if (!b) return; S.level = b.getAttribute('data-l'); syncLevelButtons(); renderCurrent(); }); });
+    // solution
+    on('cats', 'click', function (e) { var b = e.target.closest('.phl-chip'); if (!b) return; S.sol.cat = b.getAttribute('data-cat'); if (S.sol.cat !== 'custom') S.sol.id = CAT_DEFAULT[S.sol.cat]; buildCats(); buildCompSelect(); renderSolution(); beaker.pour(); });
+    on('comp', 'change', function () { S.sol.id = $('comp').value; renderSolution(); beaker.pour(); });
+    on('conc', 'input', function () { var v = parsePos($('conc')); if (isFinite(v)) { S.sol.c = v; renderSolution(); } });
+    on('conc-sl', 'input', function () { var c = Number(Math.pow(10, Number($('conc-sl').value)).toPrecision(3)); S.sol.c = c; $('conc').value = String(c); setInvalid($('conc'), false); renderSolution(); });
+    on('conc-sl', 'change', function () { beaker.pour(); });
+    on('cu-type', 'change', function () { S.sol.cu.type = $('cu-type').value; S.sol.cu.mode = 'pK'; $('cu-val').value = S.sol.cu.type === 'acid' ? '4.76' : '4.75'; buildCustomModes(); renderSolution(); });
+    on('cu-mode', 'change', function () { S.sol.cu.mode = $('cu-mode').value; renderSolution(); });
+    on('cu-val', 'input', function () { S.sol.cu.val = $('cu-val').value; renderSolution(); });
+    on('sol-pm', 'click', function (e) { var b = e.target.closest('.phl-chip'); if (b) { S.sol.plot = b.getAttribute('data-pm'); renderSolution(); } });
+    // buffer
+    on('bmode', 'click', function (e) { var b = e.target.closest('button'); if (!b) return; S.buf.mode = b.getAttribute('data-m'); $('bmode').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); renderBuffer(); });
+    on('pair', 'change', function () { S.buf.pair = $('pair').value; renderBuffer(); });
+    ['b-ca', 'b-cb', 'b-target', 'b-total', 'b-vol'].forEach(function (id) { on(id, 'input', renderBuffer); });
+    on('bkind', 'click', function (e) { var b = e.target.closest('button'); if (!b) return; S.buf.kind = b.getAttribute('data-k'); renderBuffer(); });
+    on('b-amt', 'input', function () { var v = parsePos($('b-amt'), true, 1e6); S.buf.amt = isFinite(v) ? v : 0; renderBuffer(); });
+    on('b-amt-sl', 'input', function () { var v = Number(Number($('b-amt-sl').value).toPrecision(3)); S.buf.amt = v; $('b-amt').value = String(v); setInvalid($('b-amt'), false); renderBuffer(); });
+    on('buf-pm', 'click', function (e) { var b = e.target.closest('.phl-chip'); if (b) { S.buf.plot = b.getAttribute('data-pm'); renderBuffer(); } });
+    // titration
+    on('t-comp', 'change', function () { S.tit.id = $('t-comp').value; var sp = E.titrationSpec(byId(S.tit.id), famOf(byId(S.tit.id))); S.tit.dir = sp.def; S.tit.v = 0; lastTitV = 0; stopPlay(); renderTitration(true); });
+    on('t-dir', 'click', function (e) { var b = e.target.closest('button'); if (!b || b.disabled) return; S.tit.dir = b.getAttribute('data-d'); S.tit.v = 0; lastTitV = 0; stopPlay(); renderTitration(true); });
+    ['t-ca', 't-va', 't-ct'].forEach(function (id) { on(id, 'input', function () { stopPlay(); renderTitration(true); }); });
+    on('t-ind', 'change', function () { S.tit.ind = $('t-ind').value; renderTitration(false); });
+    on('t-sl', 'input', function () { stopPlay(); if (curve) setTitVolume(Number($('t-sl').value) / 1000 * curve.vmax); });
+    on('t-play', 'click', function () { if (S.tit.playing) stopPlay(); else startPlay(); });
+    on('t-reset', 'click', function () { stopPlay(); lastTitV = 0; setTitVolume(0, 'quiet'); });
+    on('tit-pm', 'click', function (e) { var b = e.target.closest('.phl-chip'); if (b) { S.tit.plot = b.getAttribute('data-pm'); renderTitration(true); } });
+    // scale
+    on('s-sl', 'input', function () { S.scale.pH = Number($('s-sl').value); renderScale(); });
+    on('s-ev', 'click', function (e) { var b = e.target.closest('.phl-chip'); if (b) { S.scale.pH = Number(b.getAttribute('data-ph')); renderScale(); } });
+    var conv = { ph: function (v) { return v; }, poh: function (v) { return 14 - v; }, h: function (v) { return -log10(v); }, oh: function (v) { return 14 + log10(v); } };
+    Object.keys(conv).forEach(function (k) {
+      on('cv-' + k, 'input', function () { var el = $('cv-' + k), v = E.parseNum(el.value), bad = !isFinite(v) || ((k === 'h' || k === 'oh') && v <= 0); setInvalid(el, bad, (k === 'h' || k === 'oh') ? 'invalid' : 'invalidNum'); if (bad) return; S.scale.pH = conv[k](v); renderScale(el); });
+    });
+  }
+
+  /* ---------- the real loading screen ---------- */
+  function whenVisible(cb) {
+    var done = false, test = function () { var r = root.getBoundingClientRect(); if (!done && r.width > 0 && r.height > 0) { done = true; if (ro) ro.disconnect(); cb(); } }, ro = null;
+    if (window.ResizeObserver) { ro = new window.ResizeObserver(test); ro.observe(root); }
+    test();
+  }
+  function showCheckStatus() {
+    var b = $('failbadge'), f = CACHE && CACHE.checks ? CACHE.checks.failed : [];
+    if (!b) return;
+    if (!f.length) { b.hidden = true; b.textContent = ''; return; }
+    b.hidden = false; b.textContent = PT('failBadge', { k: f.length }) + ' (' + f.slice(0, 4).map(function (x) { return x.name || x; }).join(', ') + (f.length > 4 ? ', \u2026' : '') + ')';
+  }
+  function startBoot() {
+    var skip = /[?&]phl-noboot\b/.test(location.search);
+    if (CACHE.ready || skip || !BT) { window.PHLab.ready = true; showCheckStatus(); return; }
+    var ov = $('boot'); ov.hidden = false; ov.classList.remove('out');
+    root.style.setProperty('--phl-boot-top', ($('top').offsetHeight + 12) + 'px');
+    var bm = /[?&]phl-bench=(\d+)/.exec(location.search);
+    if (bm && BT.bench) {                                   // on-device measurement: n real start-ups, result shown on screen + console
+      var host = $('boot-inner'); host.innerHTML = '<pre style="white-space:pre-wrap;font-size:.8rem;padding:12px" id="phl-bench-out">benchmark \u2026</pre>';
+      BT.bench(Math.max(1, Math.min(20, +bm[1])), { T: PT }).then(function (r) {
+        $('bench-out').textContent = 'start-up ms: median ' + Math.round(r.startupMedianMs) + ' \u00b7 p95 ' + Math.round(r.startupP95Ms) + ' \u00b7 max ' + Math.round(r.startupMaxMs) + '\nworst frame gap ms: ' + Math.round(r.worstFrameGapMs) + ' (stalls > 100 ms: ' + r.stallsOver100ms + ')\nheaviest unit: ' + r.heaviestUnit + ' ' + r.heaviestUnitMs.toFixed(1) + ' ms\nfailed checks: ' + r.failedChecks + '\nruns (ms): ' + r.runs.map(function (x) { return Math.round(x.elapsedMs); }).join(', ');
+        window.PHLab.ready = true; showCheckStatus();
+      });
+      return;
+    }
+    BT.run({ T: PT, host: $('boot-inner') }).then(function (r) {
+      window.PHLab.bootInfo = r; showCheckStatus();
+      setTimeout(function () { ov.classList.add('out'); setTimeout(function () { ov.hidden = true; window.PHLab.ready = true; renderCurrent(); if (beaker) beaker.start(); }, 720); }, 700);
+    });
+  }
+
+  function init() {
+    inApp = !!(window.MultiCalc && window.MultiCalc.modules && window.MultiCalc.modules.loaded);
+    if (!inApp) { document.documentElement.classList.add('phl-standalone'); $('lang').hidden = false; var nl = (navigator.language || 'el').slice(0, 2); S.lang = (nl === 'en' || nl === 'es') ? nl : 'el'; }
+    window.PHLab = { version: '2.1', checkStatus: showCheckStatus, state: S, refresh: renderCurrent, setTab: setTab, ready: false };
+    beaker = new V.Beaker($('beaker')); plotSol = new PL.Plot($('plot-sol')); plotBuf = new PL.Plot($('plot-buf')); plotTit = new PL.Plot($('plot-tit'));
+    bind(); applyI18n(); setTab('sol');
+    whenVisible(startBoot);
+    if (typeof window.navTo === 'function' && !window.navTo.__phl) {
+      var orig = window.navTo; window.navTo = function (id) { var r = orig.apply(this, arguments); if (id === ROOT_ID) onEnter(); return r; }; window.navTo.__phl = true;
+    }
+  }
+
+  // Boot: tolerant of injection order — waits for the screen and every sibling script.
+  var tries = 0;
+  function boot() {
+    root = document.getElementById(ROOT_ID); E = window.PHLabEngine; D = window.PHLabData; X = window.PHLabText; ST = window.PHLabSteps; V = window.PHLabViz; PL = window.PHLabPlot; BT = window.PHLabBoot; CACHE = window.PHLabCache;
+    if (!root || !E || !D || !X || !ST || !V || !PL || !BT || !CACHE) { if (tries++ < 300) setTimeout(boot, 50); else if (window.console) console.error('[MODULE-16] dependencies did not load'); return; }
+    if (root.__phlInit) return; root.__phlInit = true;
+    try { window.MultiCalc = window.MultiCalc || {}; } catch (e) { }
+    init();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

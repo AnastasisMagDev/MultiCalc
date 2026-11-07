@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODULE 10 — Percentage Tools</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+html{background:#0f172a;min-height:100%;}
+body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);min-height:100dvh;min-height:100vh;color:white;overflow-x:hidden;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);top:-80px;left:-80px;}
+body::after{width:360px;height:360px;background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);bottom:40px;right:-60px;}
+.screen{display:none;padding:20px;padding-bottom:170px;min-height:100dvh;min-height:100vh;position:relative;z-index:1;}
+.screen.active{display:block;animation:screenIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;}
+@keyframes screenIn{from{opacity:0;transform:scale3d(0.96,0.96,1) translateY(10px);}to{opacity:1;transform:scale3d(1,1,1) translateY(0);}}
+.header{text-align:center;padding:40px 20px 20px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.8rem;color:#fff;box-shadow:0 8px 24px rgba(99,102,241,0.3);position:relative;overflow:hidden;}
+.logo-icon::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);animation:shimmer 3s infinite;}
+@keyframes shimmer{0%{transform:translate(-100%,-100%);}100%{transform:translate(100%,100%);}}
+.logo-text{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#fff,#e2e8f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo span{background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.subtitle{color:#94a3b8;font-size:0.95rem;margin-top:5px;}
+.back-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#94a3b8;font-size:0.95rem;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+.back-btn:hover{color:#e2e8f0;background:rgba(255,255,255,0.1);transform:translateX(-3px);}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-track{background:rgba(15,23,42,0.3);}::-webkit-scrollbar-thumb{background:rgba(71,85,105,0.5);border-radius:4px;}
+.unit-converter-container{max-width:500px;margin:0 auto;background:rgba(15,23,42,0.4);border:1px solid rgba(71,85,105,0.3);border-radius:25px;padding:30px;}
+.unit-title{font-size:1.5rem;font-weight:600;margin-bottom:25px;}
+.tool-input{width:100%;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:12px;padding:15px;font-size:1rem;color:white;outline:none;transition:border-color 0.2s;}
+.tool-input:focus{border-color:#6366f1;background:rgba(30,41,59,0.8);}
+/* MODULE 10 */
+.percentage-options{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;}
+.percent-card{background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:20px;cursor:pointer;text-align:center;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.25s ease,border-color 0.25s ease;}
+.percent-card:hover{background:rgba(51,65,85,0.6);transform:translateY(-6px) scale(1.05);box-shadow:0 16px 36px rgba(0,0,0,0.35),0 0 20px rgba(99,102,241,0.2);border-color:rgba(99,102,241,0.5);}
+.percent-card:active{transform:scale(0.97);}
+.percent-card.active{border-color:#6366f1;background:rgba(99,102,241,0.2);box-shadow:0 0 0 2px rgba(99,102,241,0.7),0 0 20px rgba(99,102,241,0.3);}
+.percent-icon{font-size:2rem;margin-bottom:10px;}
+.percent-name{font-size:0.95rem;font-weight:600;color:#e2e8f0;}
+@media(max-width:480px){.screen{padding:15px;padding-bottom:140px;}.percentage-options{grid-template-columns:1fr;}}
+/* Toggle (VAT add/remove) */
+.pct-toggle-row{display:flex;gap:10px;margin-bottom:14px;}
+.pct-toggle-btn{flex:1;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:12px;padding:12px;color:#94a3b8;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;text-align:center;}
+.pct-toggle-btn.active{border-color:#6366f1;background:rgba(99,102,241,0.2);color:#e2e8f0;}
+/* Result sub-cards (reused for discount / tip / reverse / vat breakdowns) */
+.pct-subcards{margin-top:10px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.pct-subcard{border-radius:8px;padding:8px 14px;}
+.pct-subcard .lbl{font-size:0.75rem;opacity:0.6;}
+.pct-subcard .val{font-size:1rem;}
+
+/* ── Light-theme contrast overrides (auto-added) ── */
+body.theme-light .back-btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+body.theme-light .back-btn:hover{background:#334155;border-color:#475569;color:#ffffff;}
+body.theme-light .subtitle{color:#475569;}
+body.theme-light .logo-text{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;}
+body.theme-light .unit-converter-container{background:rgba(15,23,42,0.88);}
+body.theme-light .tool-input{background:rgba(30,41,59,0.88);}
+body.theme-light .tool-input:focus{background:rgba(30,41,59,0.92);}
+body.theme-light .percent-card{background:rgba(30,41,59,0.88);}
+body.theme-light .percent-card:hover{background:rgba(51,65,85,0.92);}
+</style>
+</head>
+<body>
+<div id="scr-percent" class="screen active">
+    <div class="header">
+        <div class="logo"><div class="logo-icon">∑</div><div class="logo-text">Multi<span>Calc</span></div></div>
+        <div class="subtitle t-header-sub">Math • Physics • Units • Currency</div>
+    </div>
+    <button class="back-btn" type="button">← <span class="t-back">Πίσω</span></button>
+    <div class="unit-converter-container">
+        <div class="unit-title t-pct-title">Εργαλεία Ποσοστών</div>
+        <div class="percentage-options">
+            <div class="percent-card active" onclick="selectPercentTool('basic',this)"><div class="percent-icon">%</div><div class="percent-name t-pct-basic">Βασικό %</div></div>
+            <div class="percent-card" onclick="selectPercentTool('increase',this)"><div class="percent-icon">📈</div><div class="percent-name t-pct-increase">Αύξηση</div></div>
+            <div class="percent-card" onclick="selectPercentTool('decrease',this)"><div class="percent-icon">📉</div><div class="percent-name t-pct-decrease">Μείωση</div></div>
+            <div class="percent-card" onclick="selectPercentTool('discount',this)"><div class="percent-icon">🏷️</div><div class="percent-name t-pct-discount">Έκπτωση</div></div>
+            <div class="percent-card" onclick="selectPercentTool('findpct',this)"><div class="percent-icon">🔍</div><div class="percent-name t-pct-findpct">X είναι ?% του Y</div></div>
+            <div class="percent-card" onclick="selectPercentTool('tip',this)"><div class="percent-icon">🧾</div><div class="percent-name t-pct-tip">Φιλοδώρημα</div></div>
+            <div class="percent-card" onclick="selectPercentTool('reverse',this)"><div class="percent-icon">↩️</div><div class="percent-name t-pct-reverse">Αντίστροφο %</div></div>
+            <div class="percent-card" onclick="selectPercentTool('vat',this)"><div class="percent-icon">🧮</div><div class="percent-name t-pct-vat">ΦΠΑ</div></div>
+        </div>
+        <div id="percent-inputs"></div>
+        <div id="percent-result" style="display:none;background:rgba(30,41,59,0.8);border:1px solid rgba(99,102,241,0.3);border-radius:15px;padding:20px;margin-top:15px;text-align:center;"></div>
+    </div>
+
+    <div class="fun-facts-slot"></div>
+</div>
+<script>
+/* ── Light-theme contrast guard ─────────────────────────────
+   Detects whether the currently active body background is a
+   light color (any theme, present or future) and toggles
+   body.theme-light so panels/text/back-btn switch to a closed,
+   readable palette. getComputedStyle always normalizes colors
+   to rgb()/rgba() — never hex — so we parse that, not hex.
+   Fully-transparent stops (alpha 0, e.g. body's own unset
+   background-color) are skipped so they don't drag the
+   average down as if they were a real black stop.
+   A MutationObserver on body's style attribute acts as the
+   "signal": whenever ANYTHING changes the body background
+   (theme picker, app boot, future code), every already-loaded
+   module reacts instantly, with no fixed timing assumptions. */
+function mcRelLuminanceRGB(r,g,b){
+    const lin=c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+}
+function mcExtractRGB(str){
+    const out=[];
+    (str.match(/rgba?\([^)]+\)/g)||[]).forEach(m=>{
+        const n=m.match(/[\d.]+/g).map(Number);
+        if(n.length>=4 && n[3]===0) return;
+        out.push([n[0],n[1],n[2]]);
+    });
+    (str.match(/#[0-9a-fA-F]{6}/g)||[]).forEach(h=>{
+        out.push([parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+    });
+    return out;
+}
+function mcCheckThemeLightness(){
+    const cs=getComputedStyle(document.body);
+    const str=(cs.backgroundImage&&cs.backgroundImage!=='none'?cs.backgroundImage:'')+' '+cs.backgroundColor;
+    const colors=mcExtractRGB(str);
+    if(!colors.length){document.body.classList.remove('theme-light');return;}
+    const avg=colors.reduce((s,[r,g,b])=>s+mcRelLuminanceRGB(r,g,b),0)/colors.length;
+    document.body.classList.toggle('theme-light',avg>0.18);
+}
+mcCheckThemeLightness();
+window.addEventListener('load',mcCheckThemeLightness);
+setTimeout(mcCheckThemeLightness,300);
+try{
+    new MutationObserver(mcCheckThemeLightness)
+        .observe(document.body,{attributes:true,attributeFilter:['style','class']});
+}catch(e){}
+
+/* ══════════════════════════════════════════════════
+   i18n — uses the shared T(key) helper from MODULE-01
+   when running in-app; falls back to Greek when this
+   module is opened standalone (T() doesn't exist yet). */
+function PT(key, fallback){
+    return (typeof T === 'function') ? T(key) : fallback;
+}
+function PT_currentLang(){
+    return (typeof MultiCalc !== 'undefined' && MultiCalc.state) ? MultiCalc.state.currentLang : 'el';
+}
+var PCT_STATIC = [
+    ['.t-pct-title',    'percentTools',    'Εργαλεία Ποσοστών'],
+    ['.t-pct-basic',    'percentBasic',    'Βασικό %'],
+    ['.t-pct-increase', 'percentIncrease', 'Αύξηση'],
+    ['.t-pct-decrease', 'percentDecrease', 'Μείωση'],
+    ['.t-pct-discount', 'percentDiscount', 'Έκπτωση'],
+    ['.t-pct-findpct',  'percentFindpct',  'X είναι ?% του Y'],
+    ['.t-pct-tip',      'percentTip',      'Φιλοδώρημα'],
+    ['.t-pct-reverse',  'percentReverse',  'Αντίστροφο %'],
+    ['.t-pct-vat',      'percentVat',      'ΦΠΑ']
+];
+var _pctLastLang = null;
+function applyPercentI18n(force){
+    PCT_STATIC.forEach(function(row){
+        var el = document.querySelector('#scr-percent '+row[0]);
+        if (el) el.innerText = PT(row[1], row[2]);
+    });
+    var lang = PT_currentLang();
+    if (force || lang !== _pctLastLang) {
+        var activeCard = document.querySelector('#scr-percent .percent-card.active') || document.querySelector('#scr-percent .percent-card');
+        selectPercentTool(currentTool, activeCard);
+        _pctLastLang = lang;
+    }
+}
+/* Hook "user navigated to my screen" so a language switch made
+   while away (always via scr-menu, per MODULE-01's setLang()) is
+   picked up next time this screen becomes active. Composes safely
+   with any other module's own navTo wrap, same technique used
+   elsewhere in the app. */
+(function(){
+    var _origNavTo = window.navTo;
+    if (typeof _origNavTo === 'function') {
+        window.navTo = function(id, isBack){
+            _origNavTo(id, isBack);
+            if (id === 'scr-percent') applyPercentI18n(false);
+        };
+    }
+})();
+
+let currentTool='basic';
+let vatMode='add';
+function parseNum(s){if(s===undefined||s===null||s==='')return NaN;return parseFloat(s.toString().replace(',','.').trim());}
+function fmt(n){if(Math.abs(n)>=1000)return n.toLocaleString('el-GR',{maximumFractionDigits:2});return parseFloat(n.toFixed(4)).toString();}
+
+function selectPercentTool(tool,el){
+    currentTool=tool;
+    document.querySelectorAll('#scr-percent .percent-card').forEach(c=>c.classList.remove('active'));
+    if(el)el.classList.add('active');
+    const eg=PT('egShort','π.χ.');
+    const inp=(id,ph,label='')=>`<div style="margin-bottom:12px;">${label?`<label style="color:#94a3b8;font-size:0.8rem;display:block;margin-bottom:4px;">${label}</label>`:''}<input type="text" inputmode="decimal" id="${id}" class="tool-input" placeholder="${ph}" oninput="calculatePercent()"></div>`;
+    const toggleRow=()=>`<div class="pct-toggle-row">
+        <div class="pct-toggle-btn ${vatMode==='add'?'active':''}" data-mode="add" onclick="setVatMode('add')">${PT('percentAddVat','Προσθήκη ΦΠΑ')}</div>
+        <div class="pct-toggle-btn ${vatMode==='remove'?'active':''}" data-mode="remove" onclick="setVatMode('remove')">${PT('percentRemoveVat','Αφαίρεση ΦΠΑ')}</div>
+    </div>`;
+    const layouts={
+        basic:   inp('p-val1','15',PT('percentLblPercent','Ποσοστό (X%)'))+`<div style="text-align:center;padding:8px;font-size:1.4rem;opacity:0.4;">% of</div>`+inp('p-val2','200',PT('percentLblNumber','Αριθμός (Y)')),
+        increase:inp('p-val1','100',PT('percentLblNumber','Αριθμός (Y)'))+`<div style="text-align:center;padding:8px;font-size:1.4rem;opacity:0.4;">+ X%</div>`+inp('p-val2','20',PT('percentLblIncreasePct','Ποσοστό αύξησης (X%)')),
+        decrease:inp('p-val1','100',PT('percentLblNumber','Αριθμός (Y)'))+`<div style="text-align:center;padding:8px;font-size:1.4rem;opacity:0.4;">− X%</div>`+inp('p-val2','20',PT('percentLblDecreasePct','Ποσοστό μείωσης (X%)')),
+        discount:inp('p-val1','89.99',PT('percentLblOriginalPrice','Αρχική Τιμή (€)'))+`<div style="text-align:center;padding:8px;font-size:1.4rem;opacity:0.4;">🏷️</div>`+inp('p-val2','30',PT('percentLblDiscountPct','Έκπτωση %')),
+        findpct: inp('p-val1','30',PT('percentLblNumberX','Αριθμός (X)'))+`<div style="text-align:center;padding:8px;font-size:1.4rem;opacity:0.4;">÷</div>`+inp('p-val2','200',PT('percentLblTotalY','Σύνολο (Y)')),
+        tip:     inp('p-val1','50',PT('percentLblBillAmount','Ποσό Λογαριασμού (€)'))+inp('p-val2','15',PT('percentLblTipPct','Ποσοστό Φιλοδωρήματος (%)'))+inp('p-val3','1',PT('percentLblPeople','Αριθμός Ατόμων')),
+        reverse: inp('p-val1','80',PT('percentLblFinalPrice','Τελική Τιμή (μετά την έκπτωση) (€)'))+inp('p-val2','20',PT('percentLblDiscountPct','Έκπτωση %')),
+        vat:     toggleRow()+inp('p-val1','100',`${PT('amount','Ποσό')} (€)`)+inp('p-val2','24',PT('percentVatRateLbl','Συντελεστής ΦΠΑ (%)')),
+    };
+    document.getElementById('percent-inputs').innerHTML=`<div style="padding:4px 0 12px;">${layouts[tool]}</div>`;
+    document.getElementById('percent-result').style.display='none';
+}
+
+function setVatMode(mode){
+    vatMode=mode;
+    document.querySelectorAll('#scr-percent .pct-toggle-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+    calculatePercent();
+}
+
+function subcard(color,label,value){
+    return `<div class="pct-subcard" style="background:rgba(${color},0.15);border:1px solid rgba(${color},0.3);"><div class="lbl">${label}</div><div class="val" style="color:rgb(${color});">${value}</div></div>`;
+}
+
+function calculatePercent(){
+    const v1=parseNum(document.getElementById('p-val1')?.value);
+    const v2=parseNum(document.getElementById('p-val2')?.value);
+    const v3=parseNum(document.getElementById('p-val3')?.value);
+    const rd=document.getElementById('percent-result');
+    if(isNaN(v1)&&isNaN(v2)){rd.style.display='none';return;}
+    let result,steps=[];
+    if(currentTool==='basic'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        result=(v1/100)*v2;
+        steps=[`${v1}% × ${v2}`,`= (${v1} ÷ 100) × ${v2}`,`= ${fmt(result)}`];
+    }else if(currentTool==='increase'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        const added=v1*(v2/100);result=v1+added;
+        steps=[`${PT('percentStepInitial','Αρχική')}: ${v1}`,`${PT('percentIncrease','Αύξηση')}: ${v2}% (+${fmt(added)})`,`= ${v1} + ${fmt(added)} = ${fmt(result)}`];
+    }else if(currentTool==='decrease'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        const removed=v1*(v2/100);result=v1-removed;
+        steps=[`${PT('percentStepInitial','Αρχική')}: ${v1}`,`${PT('percentDecrease','Μείωση')}: ${v2}% (−${fmt(removed)})`,`= ${v1} − ${fmt(removed)} = ${fmt(result)}`];
+    }else if(currentTool==='discount'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        if(v2<0||v2>100){rd.innerHTML=`<div style="color:#ef4444;">⚠️ ${PT('percentErrDiscountRange','Το ποσοστό έκπτωσης πρέπει να είναι 0–100%')}</div>`;rd.style.display='block';return;}
+        const disc=v1*(v2/100);result=v1-disc;
+        rd.innerHTML=`<div style="font-size:2rem;font-weight:700;color:#10b981;">${fmt(result)} €</div><div class="pct-subcards">`+
+            subcard('239,68,68',PT('percentCardOriginalPrice','Αρχική τιμή'),`<span style="text-decoration:line-through;">${fmt(v1)} €</span>`)+
+            subcard('16,185,129',PT('percentCardSavings','Εξοικονόμηση'),`−${fmt(disc)} €`)+
+            `</div>`;
+        rd.style.display='block';return;
+    }else if(currentTool==='findpct'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        if(v2===0){rd.innerHTML=`<div style="color:#ef4444;">⚠️ ${PT('percentErrDivZero','Δεν γίνεται διαίρεση με το μηδέν')}</div>`;rd.style.display='block';return;}
+        result=(v1/v2)*100;
+        steps=[`${v1} ÷ ${v2} × 100`,`= ${fmt(v1/v2)} × 100`,`= ${fmt(result)}%`];
+    }else if(currentTool==='tip'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        const people=(isNaN(v3)||v3<1)?1:v3;
+        const tipAmt=v1*(v2/100);
+        const total=v1+tipAmt;
+        const per=total/people;
+        rd.innerHTML=`<div style="font-size:2rem;font-weight:700;color:#818cf8;">${fmt(tipAmt)} €</div><div class="pct-subcards">`+
+            subcard('99,102,241',PT('percentTotalWithTip','Σύνολο με Φιλοδώρημα'),`${fmt(total)} €`)+
+            subcard('16,185,129',PT('percentPerPerson','Ανά Άτομο'),`${fmt(per)} €`)+
+            `</div>`;
+        rd.style.display='block';return;
+    }else if(currentTool==='reverse'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        if(v2<0||v2>=100){rd.innerHTML=`<div style="color:#ef4444;">⚠️ ${PT('percentErrDiscountRange','Το ποσοστό έκπτωσης πρέπει να είναι 0–100%')}</div>`;rd.style.display='block';return;}
+        const original=v1/(1-v2/100);
+        const savings=original-v1;
+        rd.innerHTML=`<div style="font-size:0.85rem;opacity:0.6;margin-bottom:4px;">${PT('percentResultOriginalWas','Η αρχική τιμή ήταν')}</div><div style="font-size:2rem;font-weight:700;color:#818cf8;">${fmt(original)} €</div><div class="pct-subcards">`+
+            subcard('16,185,129',PT('percentCardSavings','Εξοικονόμηση'),`${fmt(savings)} €`)+
+            `</div>`;
+        rd.style.display='block';return;
+    }else if(currentTool==='vat'){
+        if(isNaN(v1)||isNaN(v2)){rd.style.display='none';return;}
+        if(v2<0){rd.style.display='none';return;}
+        let net,vatAmt,gross;
+        if(vatMode==='add'){ net=v1; vatAmt=v1*(v2/100); gross=net+vatAmt; }
+        else { gross=v1; net=v1/(1+v2/100); vatAmt=gross-net; }
+        rd.innerHTML=`<div style="font-size:0.85rem;opacity:0.6;margin-bottom:4px;">${PT('percentGrossAmount','Συνολική Αξία')}</div><div style="font-size:2rem;font-weight:700;color:#818cf8;">${fmt(gross)} €</div><div class="pct-subcards">`+
+            subcard('99,102,241',PT('percentNetAmount','Καθαρή Αξία'),`${fmt(net)} €`)+
+            subcard('16,185,129',PT('percentVatAmountLbl','Ποσό ΦΠΑ'),`${fmt(vatAmt)} €`)+
+            `</div>`;
+        rd.style.display='block';return;
+    }
+    if(isNaN(result)){rd.style.display='none';return;}
+    const isPercent=currentTool==='findpct';
+    rd.innerHTML=`<div style="font-size:2rem;font-weight:700;color:#818cf8;">${fmt(result)}${isPercent?'%':''}</div><div style="margin-top:10px;text-align:left;font-size:0.8rem;opacity:0.55;font-family:monospace;background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;line-height:1.8;">${steps.map((s,i)=>i===steps.length-1?`<strong style="color:#a5b4fc;">${s}</strong>`:s).join('<br>')}</div>`;
+    rd.style.display='block';
+}
+// Init on load
+applyPercentI18n(true);
+_pctLastLang = PT_currentLang();
+</script>
+</body>
+</html>

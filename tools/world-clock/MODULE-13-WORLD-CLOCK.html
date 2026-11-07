@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MultiCalc — World Chronometer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05070d;
+    --bg-grid: rgba(79,216,196,0.035);
+    --panel:#0d131d;
+    --panel-alt:#121b28;
+    --border:#1e2938;
+    --border-soft:#16202c;
+    --text:#e8edf4;
+    --text-dim:#8b96a8;
+    --text-faint:#5a6577;
+    --measured:#4fd8c4;
+    --measured-glow: rgba(79,216,196,0.4);
+    --resolution:#7fd0e8;
+    --synthetic:#a48cff;
+    --synthetic-glow: rgba(164,140,255,0.45);
+    --warn:#e0a458;
+    --danger:#e06868;
+    --font-mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --font-sans:'Manrope', system-ui, -apple-system, sans-serif;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+
+  body{
+    background:
+      radial-gradient(circle at 20% -10%, rgba(79,216,196,0.07), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(164,140,255,0.06), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* faint instrument-grid backdrop */
+  body::before{
+    content:"";
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 42px 42px;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(circle at 50% 0%, black, transparent 75%);
+  }
+
+  a{ color: inherit; }
+
+  .wc-wrap{
+    position: relative;
+    z-index: 1;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 20px 18px 64px;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 6px 2px 22px;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 28px;
+  }
+  .brand{
+    display:flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .brand .backlink{
+    font-size: 11px;
+    color: var(--text-faint);
+    text-decoration:none;
+    letter-spacing:.04em;
+  }
+  .brand .backlink:hover{ color: var(--measured); }
+  .brand h1{
+    margin:0;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: .01em;
+  }
+  .brand .module-tag{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--measured);
+    letter-spacing: .12em;
+    background: rgba(79,216,196,0.08);
+    border: 1px solid rgba(79,216,196,0.25);
+    padding: 2px 7px;
+    border-radius: 5px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  .zone-toggle:focus-visible{
+    outline: 2px solid var(--resolution);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Section shell ---------- */
+  section.wc-panel{
+    background: linear-gradient(180deg, var(--panel), var(--panel-alt));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 22px 24px;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .wc-eyebrow{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .wc-eyebrow .wc-dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--measured);
+    box-shadow: 0 0 8px var(--measured-glow);
+  }
+  h2.section-title{
+    margin: 2px 0 18px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: .02em;
+  }
+
+  /* ---------- Chronometer ---------- */
+  .chrono-row{
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align:center;
+  }
+  /* Each value + its own caption live in one column, so the label
+     always sits directly under its number regardless of font size. */
+  .chrono-group{
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+  }
+  .chrono-cap{
+    font-size: 10px;
+    letter-spacing: .08em;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+  .chrono-main-wrap{
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+  }
+  .chrono-seg{
+    font-size: clamp(30px, 8vw, 54px);
+    font-weight: 700;
+    color: var(--text);
+  }
+  .chrono-sep{
+    font-size: clamp(24px, 6vw, 40px);
+    color: var(--text-faint);
+    padding: 0 1px;
+  }
+  .chrono-sep.wc-decimal-dot{
+    align-self:flex-end;
+    padding-bottom: .08em;
+  }
+  .chrono-sub{
+    font-size: clamp(18px, 4.4vw, 28px);
+    font-weight: 600;
+    color: var(--measured);
+  }
+  .chrono-micro{
+    font-size: clamp(15px, 3.6vw, 22px);
+    font-weight: 600;
+    color: var(--resolution);
+    opacity: .88;
+  }
+  .chrono-nano{
+    font-size: clamp(13px, 3.2vw, 19px);
+    font-weight: 600;
+    color: var(--synthetic);
+    opacity: .8;
+    text-shadow: 0 0 12px var(--synthetic-glow);
+    animation: nanoflicker 1.4s ease-in-out infinite;
+  }
+  @keyframes nanoflicker{
+    0%, 100% { opacity: .55; }
+    50% { opacity: .95; }
+  }
+  .cap-ms{ color: var(--measured); }
+  .cap-us{ color: var(--resolution); }
+  .cap-ns{ color: var(--synthetic); }
+  .cap-hms{ color: var(--text-faint); }
+
+  .zone-line{
+    text-align:center;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .zone-line b{ color: var(--text); font-weight:700; }
+  .zone-raw{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 3px;
+    letter-spacing: .02em;
+  }
+  .utc-line{
+    text-align:center;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+
+  .wc-legend{
+    display:flex;
+    justify-content:center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+  .wc-legend .wc-legend-item{ display:flex; align-items:center; gap:6px; }
+  .wc-legend .wc-swatch{ width:9px; height:9px; border-radius:50%; }
+  .wc-legend .wc-swatch.measured{ background:var(--measured); box-shadow:0 0 6px var(--measured-glow); }
+  .wc-legend .wc-swatch.resolution{ background:var(--resolution); }
+  .wc-legend .wc-swatch.synthetic{ background:var(--synthetic); box-shadow:0 0 6px var(--synthetic-glow); }
+
+  /* ---------- Earth Age ---------- */
+  .earth-headline{
+    text-align:center;
+  }
+  .earth-number{
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size: clamp(28px, 7.4vw, 46px);
+    color: var(--measured);
+    letter-spacing: .01em;
+  }
+  .earth-unit{
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-left: 8px;
+    font-weight: 600;
+  }
+  .earth-illustrative{
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: clamp(13px, 3.4vw, 17px);
+    color: var(--synthetic);
+    opacity: .85;
+  }
+  .earth-uncertainty{
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--text-faint);
+    text-align:center;
+    max-width: 560px;
+    margin-left:auto; margin-right:auto;
+    line-height:1.6;
+  }
+  .earth-uncertainty b{ color: var(--warn); font-weight:700; }
+  .earth-bar-wrap{
+    max-width: 480px;
+    margin: 20px auto 0;
+  }
+  .earth-bar{
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-soft);
+    overflow:hidden;
+    position:relative;
+  }
+  .earth-bar-fill{
+    position:absolute; inset:0 auto 0 0;
+    width: 32.9%; /* 4.54bn / 13.8bn (age of universe) years */
+    background: linear-gradient(90deg, var(--measured), var(--resolution));
+    border-radius: 999px;
+  }
+  .earth-bar-labels{
+    display:flex; justify-content:space-between;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 6px;
+  }
+
+  /* ---------- Time zones ---------- */
+  .tz-controls{
+    display:flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .tz-search{
+    flex: 1;
+    min-width: 180px;
+    position: relative;
+  }
+  .tz-search input{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+  }
+  .tz-search input::placeholder{ color: var(--text-faint); }
+  .tz-count{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    display:flex;
+    align-items:center;
+    padding: 0 4px;
+    white-space:nowrap;
+  }
+
+  .tz-groups{ }
+  .tz-continent{
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.012);
+  }
+  .zone-toggle{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    background: var(--panel-alt);
+    border: none;
+    color: var(--text);
+    padding: 11px 14px;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    text-align:left;
+  }
+  .zone-toggle .n{
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-faint);
+    font-size: 11px;
+  }
+  .zone-toggle .wc-caret{
+    transition: transform .15s ease;
+    color: var(--text-faint);
+    font-size: 11px;
+  }
+  .tz-continent.open .wc-caret{ transform: rotate(90deg); }
+  .tz-list{
+    display:none;
+  }
+  .tz-continent.open .tz-list{ display:block; }
+  .tz-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
+  .tz-name{
+    color: var(--text-dim);
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .tz-name b{
+    color: var(--text);
+    font-weight:600;
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .tz-country{
+    display:block;
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 1px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .tz-time{
+    font-family: var(--font-mono);
+    color: var(--measured);
+    font-weight: 600;
+    white-space:nowrap;
+    display:flex;
+    gap:8px;
+    align-items:baseline;
+  }
+  .tz-offset{
+    font-size: 11px;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+  .tz-dst{
+    font-size: 9.5px;
+    color: var(--warn);
+    border: 1px solid rgba(224,164,88,0.4);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-family: var(--font-mono);
+  }
+  .tz-empty{
+    padding: 22px 14px;
+    text-align:center;
+    color: var(--text-faint);
+    font-size: 13px;
+  }
+
+  footer{
+    margin-top: 30px;
+    text-align:center;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    line-height: 1.7;
+  }
+  footer .warn-strip{
+    color: var(--warn);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .chrono-nano{ animation: none; }
+  }
+
+  ::selection{ background: var(--synthetic-glow); }
+
+  /* ---------- Splash: device-to-world-servers connect animation ---------- */
+  .splash-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--bg);
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    transition: opacity .4s ease;
+  }
+  .splash-overlay.hide{
+    opacity: 0;
+    pointer-events: none;
+  }
+  #splashCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+  .splash-label{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    font-family: var(--font-mono);
+    pointer-events:none;
+  }
+  .splash-title{
+    font-size: 12px;
+    letter-spacing: .16em;
+    color: var(--measured);
+    text-shadow: 0 0 10px var(--measured-glow);
+  }
+  .splash-sub{
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: .05em;
+  }
+
+  .wc-wrap{ transition: opacity .45s ease, transform .45s ease; }
+  .wc-wrap.pre-reveal{
+    opacity: 0;
+    transform: translateY(10px);
+    /* CSS-only safety net: reveals content on its own even if the
+       splash script fails to run, so the module never gets stuck
+       behind a black screen. */
+    animation: forceReveal 0s 2.6s forwards;
+  }
+  @keyframes forceReveal{ to{ opacity:1; transform:none; } }
+
+  /* Local .screen show/hide rule — mirrors the same rule every other
+     MultiCalc module carries for standalone use. When this file is
+     loaded inside MULTICALC-APP, the app's own (identical-in-effect)
+     .screen rule and its navTo() control visibility instead; this
+     rule is redundant-but-harmless in that context. */
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+
+  @media (prefers-reduced-motion: reduce){
+    .splash-overlay{ transition: opacity .15s ease; }
+    .wc-wrap.pre-reveal{ animation-delay: 0s; }
+  }
+
+  [data-i18n]{ }
+</style>
+</head>
+<body>
+
+<div id="splashOverlay" class="splash-overlay" style="display:none" aria-hidden="true">
+  <canvas id="splashCanvas"></canvas>
+  <div class="splash-label">
+    <div class="splash-title" data-i18n="splash_syncing">ΣΥΓΧΡΟΝΙΣΜΟΣ ΜΕ ΠΑΓΚΟΣΜΙΟΥΣ ΣΕΡΒΕΡ ΩΡΑΣ</div>
+    <div class="splash-sub" id="splashCount">0 / 0</div>
+  </div>
+</div>
+
+<div class="wc-wrap pre-reveal screen active" id="scr-worldclock">
+
+  <header>
+    <div class="brand">
+      <button class="back-btn" type="button">&larr; <span class="t-back">MultiCalc</span></button>
+      <h1 data-i18n="title">Παγκόσμιος Χρονομετρητής<span class="module-tag">MODULE 13</span></h1>
+    </div>
+  </header>
+
+  <!-- ============ CHRONOMETER ============ -->
+  <section class="wc-panel" aria-labelledby="chrono-title">
+    <div class="wc-eyebrow"><span class="wc-dot"></span><span data-i18n="chrono_eyebrow">ΤΟΠΙΚΟΣ ΧΡΟΝΟΣ · ΖΩΝΤΑΝΟ</span></div>
+    <h2 class="section-title" id="chrono-title" data-i18n="chrono_title">Master Chronometer</h2>
+
+    <div class="chrono-row" id="chronoRow">
+      <div class="chrono-main-wrap">
+        <div>
+          <span class="chrono-seg" id="segH">--</span><span class="chrono-sep">:</span><span class="chrono-seg" id="segM">--</span><span class="chrono-sep">:</span><span class="chrono-seg" id="segS">--</span>
+        </div>
+        <div class="chrono-cap cap-hms" data-i18n="cap_hms">ώρες : λεπτά : δευτ.</div>
+      </div>
+      <span class="chrono-sep wc-decimal-dot">.</span>
+      <div class="chrono-group">
+        <span class="chrono-sub" id="segMs">---</span>
+        <div class="chrono-cap cap-ms" data-i18n="cap_ms">ms</div>
+      </div>
+      <div class="chrono-group">
+        <span class="chrono-micro" id="segUs">---</span>
+        <div class="chrono-cap cap-us" data-i18n="cap_us">μs</div>
+      </div>
+      <div class="chrono-group">
+        <span class="chrono-nano" id="segNs">---</span>
+        <div class="chrono-cap cap-ns" data-i18n="cap_ns">ns</div>
+      </div>
+    </div>
+
+    <div class="zone-line">
+      <span data-i18n="zone_guess_label">Πιθανή τοποθεσία:</span> <b id="zoneGuess">—</b>
+      <span class="zone-raw" id="zoneRaw"></span>
+    </div>
+    <div class="utc-line" id="utcLine">UTC —</div>
+
+    <div class="wc-legend">
+      <div class="wc-legend-item"><span class="wc-swatch measured"></span><span data-i18n="legend_measured">μετρημένο (ρολόι συστήματος)</span></div>
+      <div class="wc-legend-item"><span class="wc-swatch resolution"></span><span data-i18n="legend_resolution">περιορισμένης ανάλυσης browser</span></div>
+      <div class="wc-legend-item"><span class="wc-swatch synthetic"></span><span data-i18n="legend_synthetic">υπολογισμένο, όχι πραγματικό</span></div>
+    </div>
+  </section>
+
+  <!-- ============ EARTH AGE ============ -->
+  <section class="wc-panel" aria-labelledby="earth-title">
+    <div class="wc-eyebrow"><span class="wc-dot" style="background:var(--synthetic);box-shadow:0 0 8px var(--synthetic-glow)"></span><span data-i18n="earth_eyebrow">ΓΕΩΧΡΟΝΟΛΟΓΙΑ</span></div>
+    <h2 class="section-title" id="earth-title" data-i18n="earth_title">Ηλικία της Γης</h2>
+
+    <div class="earth-headline">
+      <span class="earth-number" id="earthYears">4.540.000.000</span><span class="earth-unit" data-i18n="earth_years_unit">χρόνια</span>
+    </div>
+    <div class="earth-illustrative" id="earthIllustrative">+ 000ημ 00:00:00</div>
+
+    <div class="earth-bar-wrap">
+      <div class="earth-bar"><div class="earth-bar-fill"></div></div>
+      <div class="earth-bar-labels">
+        <span>0</span>
+        <span data-i18n="earth_bar_now">σήμερα, ~4,54 δισ. έτη</span>
+        <span>13,8Β</span>
+      </div>
+    </div>
+
+    <p class="earth-uncertainty" data-i18n="earth_disclaimer">
+      Το <b>4,54 δισ. έτη</b> είναι πραγματική επιστημονική εκτίμηση (ραδιοχρονολόγηση ζιρκονίων &amp; μετεωριτών, αβεβαιότητα ±50 εκατ. έτη) — αυτό το νούμερο είναι σωστό. Μόνο ο μικρός μετρητής ημερών/ωρών/δευτερολέπτων από κάτω είναι <b>διακοσμητικός</b>: δείχνει ψευδο-ακρίβεια δευτερολέπτου που δεν στηρίζεται πουθενά, αφού η πραγματική αβεβαιότητα είναι εκατομμύρια χρόνια.
+    </p>
+  </section>
+
+  <!-- ============ WORLD TIME ZONES ============ -->
+  <section class="wc-panel" aria-labelledby="tz-title">
+    <div class="wc-eyebrow"><span class="wc-dot"></span><span data-i18n="tz_eyebrow">IANA TIME ZONE DATABASE</span></div>
+    <h2 class="section-title" id="tz-title" data-i18n="tz_title">Ζώνες Ώρας — Όλος ο Κόσμος</h2>
+
+    <div class="tz-controls">
+      <div class="tz-search">
+        <input type="text" id="tzSearch" data-i18n-ph="tz_search_ph" placeholder="Αναζήτηση πόλης, χώρας ή ζώνης...">
+      </div>
+      <div class="tz-count" id="tzCount">— zones</div>
+    </div>
+
+    <div class="tz-groups" id="tzGroups"></div>
+    <div class="tz-empty" id="tzEmpty" style="display:none" data-i18n="tz_empty">Καμία ζώνη δεν ταιριάζει με την αναζήτηση.</div>
+  </section>
+
+  <footer>
+    <div data-i18n="footer_1">MultiCalc · MODULE-13 · World Chronometer — αυτόνομο module, ανοίγει ανεξάρτητα ή μέσα από το MULTICALC-APP.</div>
+    <div class="warn-strip" data-i18n="footer_2">Τα ψηφία μικροδευτερολέπτων/νανοδευτερολέπτων υπόκεινται σε όρια ασφαλείας του browser και σε μαθηματική παρεμβολή — δείτε το legend.</div>
+  </footer>
+
+  <div class="fun-facts-slot"></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     App-context detection. MULTICALC-APP.html initializes a
+     protected MultiCalc.modules.loaded/.failed registry before any
+     module script runs, and boots modules strictly in sequence —
+     so by the time this script executes, that registry reliably
+     tells us whether we're running inside the orchestrated app
+     (injected as one of several screens) or opened standalone as
+     our own page. The two contexts need different behavior for the
+     splash animation and the back button (see below).
+     ========================================================= */
+  var insideApp = !!(window.MultiCalc && window.MultiCalc.modules && window.MultiCalc.modules.loaded);
+
+  /* Standalone safety net: ensure window.MultiCalc exists as a plain
+     object so _splashExit can be attached to it further down without
+     throwing, when this file is opened directly with no orchestrator
+     present. Harmless in-app: the app's protected setter no-ops on
+     this line and the real runtime object is left untouched. */
+  window.MultiCalc = window.MultiCalc || {};
+
+  /* =========================================================
+     SPLASH: "device connecting to world servers" animation,
+     played on entering the module and again (in reverse) on
+     leaving it via the back link. Uses only the module's own
+     palette (teal = measured/live, resolution-blue = landed
+     connection, violet = arrival flash) so it reads as part of
+     the same instrument rather than a bolted-on loading screen.
+     Runs in its own scope so nothing here can collide with the
+     rest of the module's variables. Degrades safely: reduced-
+     motion users and any script failure both fall through to an
+     instant reveal (see the CSS forceReveal keyframe too).
+     ========================================================= */
+  (function initSplash(){
+    var overlay = document.getElementById('splashOverlay');
+    var canvas = document.getElementById('splashCanvas');
+    var wrapEl = document.querySelector('.wc-wrap');
+    var countEl = document.getElementById('splashCount');
+    var backlinkEl = document.querySelector('.back-btn');
+    if (!overlay || !canvas || !wrapEl) return;
+
+    var reduceMotion = false;
+    try { reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
+
+    if (reduceMotion || !canvas.getContext){
+      // No animation capability at all — reveal immediately in either
+      // context, and never wire up the overlay/exit machinery below.
+      wrapEl.classList.remove('pre-reveal');
+      overlay.style.display = 'none';
+      return;
+    }
+
+    // Approximate [lat, lng] for ~38 major world cities — enough to
+    // read as a real world map when projected, not a random scatter.
+    var NODES = [
+      [51.5,-0.1],[48.9,2.3],[52.5,13.4],[38.0,23.7],[55.8,37.6],[41.0,28.9],
+      [30.0,31.2],[33.6,-7.6],[6.5,3.4],[-1.3,36.8],[-26.2,28.0],
+      [25.2,55.3],[19.1,72.9],[28.6,77.2],[13.8,100.5],[1.35,103.8],
+      [-6.2,106.8],[22.3,114.2],[31.2,121.5],[39.9,116.4],[37.6,127.0],[35.7,139.7],
+      [-33.9,151.2],[-36.8,174.8],[21.3,-157.9],[61.2,-149.9],
+      [34.1,-118.2],[37.8,-122.4],[19.4,-99.1],[40.7,-74.0],[43.7,-79.4],[41.9,-87.6],
+      [4.7,-74.1],[-12.0,-77.0],[-23.5,-46.6],[-34.6,-58.4],[-33.4,-70.7],[64.1,-21.9]
+    ];
+
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var W, H, cx, cy;
+
+    function resize(){
+      var r = overlay.getBoundingClientRect();
+      W = canvas.width = Math.max(1, r.width * dpr);
+      H = canvas.height = Math.max(1, r.height * dpr);
+      canvas.style.width = r.width + 'px';
+      canvas.style.height = r.height + 'px';
+      cx = W/2; cy = H/2;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function project(lat, lng){
+      return [ (lng+180)/360 * W, (90-lat)/180 * H ];
+    }
+
+    var ENTER_MS = 950;
+
+    /* Plays the "connecting to world servers" animation as an overlay,
+       then fades it out and calls onDone. Reusable for both the initial
+       standalone load and every subsequent in-app visit — it never
+       touches wrapEl itself, so the caller decides what "revealed"
+       means in its context (see the two call sites below). */
+    function playEntranceOverlay(onDone){
+      overlay.style.display = 'flex';
+      overlay.classList.remove('hide');
+      resize();
+
+      var skipped = false;
+      function onClick(){ skipped = true; }
+      overlay.addEventListener('click', onClick);
+
+      var startTs = null;
+      function enterFrame(ts){
+        if (!startTs) startTs = ts;
+        var elapsed = ts - startTs;
+        ctx.clearRect(0,0,W,H);
+
+        var pulse = 1 + 0.18*Math.sin(elapsed/110);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5*dpr*pulse, 0, Math.PI*2);
+        ctx.fillStyle = '#4fd8c4';
+        ctx.shadowColor = '#4fd8c4'; ctx.shadowBlur = 16*dpr;
+        ctx.fill(); ctx.shadowBlur = 0;
+
+        var connected = 0;
+        var spreadWindow = ENTER_MS * 0.55;
+        NODES.forEach(function(n, i){
+          var target = project(n[0], n[1]);
+          var lineStart = (i / NODES.length) * spreadWindow;
+          var t = (elapsed - lineStart) / 240;
+          if (t <= 0) return;
+          var tt = Math.min(t, 1);
+          var ease = 1 - Math.pow(1-tt, 3);
+          var px = cx + (target[0]-cx)*ease;
+          var py = cy + (target[1]-cy)*ease;
+
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(px, py);
+          ctx.strokeStyle = 'rgba(79,216,196,' + (0.45*(1-tt*0.3)) + ')';
+          ctx.lineWidth = 1 * dpr;
+          ctx.stroke();
+
+          if (tt >= 1){
+            connected++;
+            var flash = Math.max(0, 1 - (t-1)*2.2);
+            ctx.beginPath();
+            ctx.arc(target[0], target[1], (1.8 + flash*3)*dpr, 0, Math.PI*2);
+            ctx.fillStyle = flash > 0.08 ? '#a48cff' : '#7fd0e8';
+            ctx.shadowColor = '#7fd0e8'; ctx.shadowBlur = 6*dpr;
+            ctx.fill(); ctx.shadowBlur = 0;
+          }
+        });
+        if (countEl) {
+          var label = (typeof DICT !== 'undefined' && typeof currentLang !== 'undefined' && DICT[currentLang]) ? DICT[currentLang].splash_servers : 'servers';
+          countEl.textContent = connected + ' / ' + NODES.length + ' ' + label;
+        }
+
+        if (elapsed < ENTER_MS + 200 && !skipped){
+          requestAnimationFrame(enterFrame);
+        } else {
+          overlay.removeEventListener('click', onClick);
+          overlay.classList.add('hide');
+          setTimeout(function(){
+            if (overlay) overlay.style.display = 'none';
+            if (onDone) onDone();
+          }, 420);
+        }
+      }
+      requestAnimationFrame(enterFrame);
+    }
+
+    if (!insideApp){
+      // Standalone: content stays hidden behind pre-reveal until the
+      // animation finishes, exactly as before. Hard timeout guarantees
+      // it can never get stuck if something goes wrong.
+      var hardTimeout = setTimeout(function(){
+        wrapEl.classList.remove('pre-reveal');
+        overlay.classList.add('hide');
+        overlay.style.display = 'none';
+      }, 3000);
+      playEntranceOverlay(function(){
+        clearTimeout(hardTimeout);
+        wrapEl.classList.remove('pre-reveal');
+      });
+    } else {
+      /* In-app: this script runs once, invisibly, during MULTICALC-APP's
+         boot (long before the user ever sees this screen), so content
+         must never be left hidden behind pre-reveal waiting for a splash
+         that already finished off-screen. Reveal immediately... */
+      wrapEl.classList.remove('pre-reveal');
+      overlay.style.display = 'none';
+
+      /* ...and instead play the same connect animation as a genuine
+         entrance effect every time the user actually navigates here,
+         by wrapping navTo(). This is the moment John's original "plays
+         when you enter the module" request maps to inside a persistent
+         SPA-style app — a one-time boot-time splash would run invisibly
+         and never be seen, which was the bug being fixed here. */
+      if (typeof window.navTo === 'function' && !window.navTo._wcWrapped){
+        var _origNavTo = window.navTo;
+        window.navTo = function(target){
+          _origNavTo.apply(this, arguments);
+          if (target === 'scr-worldclock'){
+            playEntranceOverlay();
+          }
+        };
+        window.navTo._wcWrapped = true;
+      }
+    }
+
+    // ---- Exit: mirror animation, then navigate (standalone only —
+    // in-app back navigation goes through the global delegation and
+    // never touches this). ----
+    window.MultiCalc._splashExit = function(href){
+      overlay.style.display = 'flex';
+      overlay.classList.remove('hide');
+      wrapEl.classList.add('pre-reveal');
+      resize();
+
+      var EXIT_MS = 480;
+      var exitStart = null;
+      var navigated = false;
+      function go(){
+        if (navigated) return;
+        navigated = true;
+        window.location.href = href;
+      }
+      function exitFrame(ts){
+        if (!exitStart) exitStart = ts;
+        var progress = Math.min((ts - exitStart) / EXIT_MS, 1);
+        ctx.clearRect(0,0,W,H);
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5*dpr*(1 - progress*0.3), 0, Math.PI*2);
+        ctx.fillStyle = '#4fd8c4';
+        ctx.shadowColor = '#4fd8c4'; ctx.shadowBlur = 14*dpr;
+        ctx.fill(); ctx.shadowBlur = 0;
+
+        NODES.forEach(function(n){
+          var target = project(n[0], n[1]);
+          var ease = 1 - progress;
+          var px = cx + (target[0]-cx)*ease;
+          var py = cy + (target[1]-cy)*ease;
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(cx, cy);
+          ctx.strokeStyle = 'rgba(164,140,255,' + (0.5*(1-progress)) + ')';
+          ctx.lineWidth = 1 * dpr;
+          ctx.stroke();
+        });
+
+        if (progress < 1){
+          requestAnimationFrame(exitFrame);
+        } else {
+          go();
+        }
+      }
+      requestAnimationFrame(exitFrame);
+      setTimeout(go, EXIT_MS + 600); // safety net
+    };
+
+    /* backlinkEl wiring — only fires in standalone mode in practice
+       (in-app, .back-btn has no click listener attached here at all,
+       so the app's own global delegation handles it untouched). */
+    if (!insideApp && backlinkEl){
+      backlinkEl.addEventListener('click', function(e){
+        e.preventDefault();
+        if (!reduceMotion && window.MultiCalc._splashExit){
+          window.MultiCalc._splashExit('MULTICALC-APP.html');
+        } else {
+          window.location.href = 'MULTICALC-APP.html';
+        }
+      });
+    }
+  })();
+
+  /* =========================================================
+     Translations (module-local; never overwrites a global T)
+     ========================================================= */
+  var DICT = {
+    el: {
+      title: 'Παγκόσμιος Χρονομετρητής',
+      chrono_eyebrow: 'ΤΟΠΙΚΟΣ ΧΡΟΝΟΣ · ΖΩΝΤΑΝΟ',
+      chrono_title: 'Master Chronometer',
+      cap_hms: 'ώρες : λεπτά : δευτ.',
+      cap_ms: 'ms', cap_us: 'μs', cap_ns: 'ns',
+      zone_guess_label: 'Πιθανή τοποθεσία:',
+      legend_measured: 'μετρημένο (ρολόι συστήματος)',
+      legend_resolution: 'περιορισμένης ανάλυσης browser',
+      legend_synthetic: 'υπολογισμένο, όχι πραγματικό',
+      earth_eyebrow: 'ΓΕΩΧΡΟΝΟΛΟΓΙΑ',
+      earth_title: 'Ηλικία της Γης',
+      earth_years_unit: 'χρόνια',
+      earth_bar_now: 'σήμερα, ~4,54 δισ. έτη',
+      earth_disclaimer: 'Το <b>4,54 δισ. έτη</b> είναι πραγματική επιστημονική εκτίμηση (ραδιοχρονολόγηση ζιρκονίων &amp; μετεωριτών, αβεβαιότητα ±50 εκατ. έτη) — αυτό το νούμερο είναι σωστό. Μόνο ο μικρός μετρητής ημερών/ωρών/δευτερολέπτων από κάτω είναι <b>διακοσμητικός</b>: δείχνει ψευδο-ακρίβεια δευτερολέπτου που δεν στηρίζεται πουθενά, αφού η πραγματική αβεβαιότητα είναι εκατομμύρια χρόνια.',
+      tz_eyebrow: 'IANA TIME ZONE DATABASE',
+      tz_title: 'Ζώνες Ώρας — Όλος ο Κόσμος',
+      tz_search_ph: 'Αναζήτηση πόλης, χώρας ή ζώνης...',
+      tz_empty: 'Καμία ζώνη δεν ταιριάζει με την αναζήτηση.',
+      footer_1: 'MultiCalc · MODULE-13 · World Chronometer — αυτόνομο module, ανοίγει ανεξάρτητα ή μέσα από το MULTICALC-APP.',
+      footer_2: 'Τα ψηφία μικροδευτερολέπτων/νανοδευτερολέπτων υπόκεινται σε όρια ασφαλείας του browser και σε μαθηματική παρεμβολή — δείτε το legend.',
+      splash_syncing: 'ΣΥΓΧΡΟΝΙΣΜΟΣ ΜΕ ΠΑΓΚΟΣΜΙΟΥΣ ΣΕΡΒΕΡ ΩΡΑΣ',
+      splash_servers: 'σέρβερ',
+      continents: { Africa:'Αφρική', America:'Αμερική', Antarctica:'Ανταρκτική', Arctic:'Αρκτική', Asia:'Ασία', Atlantic:'Ατλαντικός', Australia:'Αυστραλία', Europe:'Ευρώπη', Indian:'Ινδικός Ωκεανός', Pacific:'Ειρηνικός', Etc:'Άλλες (UTC offsets)' },
+      zones_label: 'ζώνες',
+      dst: 'DST'
+    },
+    en: {
+      title: 'World Chronometer',
+      chrono_eyebrow: 'LOCAL TIME · LIVE',
+      chrono_title: 'Master Chronometer',
+      cap_hms: 'hours : min : sec',
+      cap_ms: 'ms', cap_us: 'µs', cap_ns: 'ns',
+      zone_guess_label: 'Likely location:',
+      legend_measured: 'measured (system clock)',
+      legend_resolution: 'browser-resolution limited',
+      legend_synthetic: 'computed, not real',
+      earth_eyebrow: 'GEOCHRONOLOGY',
+      earth_title: 'Age of Earth',
+      earth_years_unit: 'years',
+      earth_bar_now: 'today, ~4.54Bn years',
+      earth_disclaimer: 'The <b>4.54 billion years</b> is a real scientific estimate (radiometric dating of zircons &amp; meteorites, ±50 million years of uncertainty) — that number is accurate. Only the small day/hour/second counter below it is <b>decorative</b>: it shows second-level precision that doesn\'t actually exist, since the real uncertainty spans millions of years.',
+      tz_eyebrow: 'IANA TIME ZONE DATABASE',
+      tz_title: 'Time Zones — Whole World',
+      tz_search_ph: 'Search city, country or zone...',
+      tz_empty: 'No zone matches your search.',
+      footer_1: 'MultiCalc · MODULE-13 · World Chronometer — standalone module, opens independently or inside MULTICALC-APP.',
+      footer_2: 'Microsecond/nanosecond digits are subject to browser security limits and mathematical interpolation — see legend.',
+      splash_syncing: 'SYNCING WITH GLOBAL TIME SERVERS',
+      splash_servers: 'servers',
+      continents: { Africa:'Africa', America:'Americas', Antarctica:'Antarctica', Arctic:'Arctic', Asia:'Asia', Atlantic:'Atlantic', Australia:'Australia', Europe:'Europe', Indian:'Indian Ocean', Pacific:'Pacific', Etc:'Other (UTC offsets)' },
+      zones_label: 'zones',
+      dst: 'DST'
+    },
+    es: {
+      title: 'Cronómetro Mundial',
+      chrono_eyebrow: 'HORA LOCAL · EN VIVO',
+      chrono_title: 'Master Chronometer',
+      cap_hms: 'horas : min : seg',
+      cap_ms: 'ms', cap_us: 'µs', cap_ns: 'ns',
+      zone_guess_label: 'Ubicación probable:',
+      legend_measured: 'medido (reloj del sistema)',
+      legend_resolution: 'resolución limitada del navegador',
+      legend_synthetic: 'calculado, no real',
+      earth_eyebrow: 'GEOCRONOLOGÍA',
+      earth_title: 'Edad de la Tierra',
+      earth_years_unit: 'años',
+      earth_bar_now: 'hoy, ~4.540 M de años',
+      earth_disclaimer: 'Los <b>4.540 millones de años</b> son una estimación científica real (datación radiométrica de circones y meteoritos, incertidumbre de ±50 millones de años) — esa cifra es correcta. Solo el pequeño contador de días/horas/segundos de abajo es <b>decorativo</b>: muestra una precisión al segundo que no existe realmente, ya que la incertidumbre real abarca millones de años.',
+      tz_eyebrow: 'BASE DE DATOS IANA TIME ZONE',
+      tz_title: 'Zonas Horarias — Todo el Mundo',
+      tz_search_ph: 'Buscar ciudad, país o zona...',
+      tz_empty: 'Ninguna zona coincide con tu búsqueda.',
+      footer_1: 'MultiCalc · MODULE-13 · World Chronometer — módulo independiente, se abre solo o dentro de MULTICALC-APP.',
+      footer_2: 'Los dígitos de microsegundos/nanosegundos están sujetos a límites de seguridad del navegador e interpolación matemática — ver leyenda.',
+      splash_syncing: 'SINCRONIZANDO CON SERVIDORES GLOBALES',
+      splash_servers: 'servidores',
+      continents: { Africa:'África', America:'América', Antarctica:'Antártida', Arctic:'Ártico', Asia:'Asia', Atlantic:'Atlántico', Australia:'Australia', Europe:'Europa', Indian:'Océano Índico', Pacific:'Pacífico', Etc:'Otras (offsets UTC)' },
+      zones_label: 'zonas',
+      dst: 'DST'
+    }
+  };
+
+  var currentLang = 'el';
+  if (insideApp && window.MultiCalc.state && ['el','en','es'].indexOf(window.MultiCalc.state.currentLang) !== -1){
+    currentLang = window.MultiCalc.state.currentLang;
+  }
+
+  function T(key){
+    var d = DICT[currentLang] || DICT.el;
+    return (key in d) ? d[key] : key;
+  }
+
+  function applyTranslations(){
+    document.documentElement.lang = currentLang;
+    var nodes = document.querySelectorAll('[data-i18n]');
+    for (var i=0; i<nodes.length; i++){
+      var el = nodes[i];
+      var key = el.getAttribute('data-i18n');
+      if (key === 'title'){
+        // preserve the MODULE 13 tag element inside h1
+        var tag = el.querySelector('.module-tag');
+        el.textContent = T('title') + ' ';
+        if (tag) el.appendChild(tag);
+        continue;
+      }
+      var val = T(key);
+      if (val.indexOf('<b>') !== -1 || val.indexOf('&amp;') !== -1){
+        el.innerHTML = val;
+      } else {
+        el.textContent = val;
+      }
+    }
+    var ph = document.querySelectorAll('[data-i18n-ph]');
+    for (var j=0; j<ph.length; j++){
+      ph[j].setAttribute('placeholder', T(ph[j].getAttribute('data-i18n-ph')));
+    }
+    document.title = 'MultiCalc — ' + T('title');
+    rebuildTimezonePanel(); // continent labels + zone counts are localized
+    if (typeof updateLocationGuess === 'function') updateLocationGuess();
+  }
+
+  /* =========================================================
+     MASTER CHRONOMETER
+     Tier 1 (measured): h/m/s/ms — from Date, real system clock.
+     Tier 2 (resolution-limited): microseconds — derived from
+       performance.now() fractional milliseconds. Real API, but
+       browsers deliberately coarsen its resolution (commonly to
+       ~100µs or 1ms, per Spectre/Meltdown timing-attack mitigations),
+       so this digit may step rather than vary smoothly.
+     Tier 3 (synthetic): nanoseconds — there is no real nanosecond
+       time source available in a browser. This tier is a smooth,
+       deterministic interpolation for visual continuity only, and
+       is styled/flagged accordingly. It never claims to be measured.
+     ========================================================= */
+  var segH=document.getElementById('segH'), segM=document.getElementById('segM'),
+      segS=document.getElementById('segS'), segMs=document.getElementById('segMs'),
+      segUs=document.getElementById('segUs'), segNs=document.getElementById('segNs'),
+      utcLine=document.getElementById('utcLine'), zoneGuessEl=document.getElementById('zoneGuess'),
+      zoneRawEl=document.getElementById('zoneRaw');
+
+  function pad(n, len){
+    n = String(Math.floor(n));
+    while (n.length < len) n = '0' + n;
+    return n;
+  }
+
+  /* =========================================================
+     "Secret feature": guess the user's country/city from their
+     IANA time zone. Nothing is transmitted anywhere — this reads
+     Intl.DateTimeFormat().resolvedOptions().timeZone, a value the
+     browser already exposes locally, and looks it up in a static
+     zone -> ISO-3166 country-code table (standard IANA tzdata
+     assignments). Country names are localized via Intl.DisplayNames
+     rather than a hand-typed dictionary, since that API already
+     covers every language this module supports. Two zones tied to
+     disputed territory (Europe/Simferopol, Asia/Famagusta) are
+     deliberately left unmapped so the module never asserts a
+     sovereignty claim — those just fall back to city-only display.
+     ========================================================= */
+  var ZONE_COUNTRY = {
+    'Africa/Abidjan':'CI','Africa/Accra':'GH','Africa/Addis_Ababa':'ET','Africa/Algiers':'DZ',
+    'Africa/Asmera':'ER','Africa/Bamako':'ML','Africa/Bangui':'CF','Africa/Banjul':'GM',
+    'Africa/Bissau':'GW','Africa/Blantyre':'MW','Africa/Brazzaville':'CG','Africa/Bujumbura':'BI',
+    'Africa/Cairo':'EG','Africa/Casablanca':'MA','Africa/Ceuta':'ES','Africa/Conakry':'GN',
+    'Africa/Dakar':'SN','Africa/Dar_es_Salaam':'TZ','Africa/Djibouti':'DJ','Africa/Douala':'CM',
+    'Africa/El_Aaiun':'EH','Africa/Freetown':'SL','Africa/Gaborone':'BW','Africa/Harare':'ZW',
+    'Africa/Johannesburg':'ZA','Africa/Juba':'SS','Africa/Kampala':'UG','Africa/Khartoum':'SD',
+    'Africa/Kigali':'RW','Africa/Kinshasa':'CD','Africa/Lagos':'NG','Africa/Libreville':'GA',
+    'Africa/Lome':'TG','Africa/Luanda':'AO','Africa/Lubumbashi':'CD','Africa/Lusaka':'ZM',
+    'Africa/Malabo':'GQ','Africa/Maputo':'MZ','Africa/Maseru':'LS','Africa/Mbabane':'SZ',
+    'Africa/Mogadishu':'SO','Africa/Monrovia':'LR','Africa/Nairobi':'KE','Africa/Ndjamena':'TD',
+    'Africa/Niamey':'NE','Africa/Nouakchott':'MR','Africa/Ouagadougou':'BF','Africa/Porto-Novo':'BJ',
+    'Africa/Sao_Tome':'ST','Africa/Tripoli':'LY','Africa/Tunis':'TN','Africa/Windhoek':'NA',
+
+    'America/Adak':'US','America/Anchorage':'US','America/Anguilla':'AI','America/Antigua':'AG',
+    'America/Araguaina':'BR','America/Argentina/La_Rioja':'AR','America/Argentina/Rio_Gallegos':'AR',
+    'America/Argentina/Salta':'AR','America/Argentina/San_Juan':'AR','America/Argentina/San_Luis':'AR',
+    'America/Argentina/Tucuman':'AR','America/Argentina/Ushuaia':'AR','America/Aruba':'AW',
+    'America/Asuncion':'PY','America/Bahia':'BR','America/Bahia_Banderas':'MX','America/Barbados':'BB',
+    'America/Belem':'BR','America/Belize':'BZ','America/Blanc-Sablon':'CA','America/Boa_Vista':'BR',
+    'America/Bogota':'CO','America/Boise':'US','America/Buenos_Aires':'AR','America/Cambridge_Bay':'CA',
+    'America/Campo_Grande':'BR','America/Cancun':'MX','America/Caracas':'VE','America/Catamarca':'AR',
+    'America/Cayenne':'GF','America/Cayman':'KY','America/Chicago':'US','America/Chihuahua':'MX',
+    'America/Ciudad_Juarez':'MX','America/Coral_Harbour':'CA','America/Cordoba':'AR','America/Costa_Rica':'CR',
+    'America/Coyhaique':'CL','America/Creston':'CA','America/Cuiaba':'BR','America/Curacao':'CW',
+    'America/Danmarkshavn':'GL','America/Dawson':'CA','America/Dawson_Creek':'CA','America/Denver':'US',
+    'America/Detroit':'US','America/Dominica':'DM','America/Edmonton':'CA','America/Eirunepe':'BR',
+    'America/El_Salvador':'SV','America/Fort_Nelson':'CA','America/Fortaleza':'BR','America/Glace_Bay':'CA',
+    'America/Godthab':'GL','America/Goose_Bay':'CA','America/Grand_Turk':'TC','America/Grenada':'GD',
+    'America/Guadeloupe':'GP','America/Guatemala':'GT','America/Guayaquil':'EC','America/Guyana':'GY',
+    'America/Halifax':'CA','America/Havana':'CU','America/Hermosillo':'MX','America/Indiana/Knox':'US',
+    'America/Indiana/Marengo':'US','America/Indiana/Petersburg':'US','America/Indiana/Tell_City':'US',
+    'America/Indiana/Vevay':'US','America/Indiana/Vincennes':'US','America/Indiana/Winamac':'US',
+    'America/Indianapolis':'US','America/Inuvik':'CA','America/Iqaluit':'CA','America/Jamaica':'JM',
+    'America/Jujuy':'AR','America/Juneau':'US','America/Kentucky/Monticello':'US','America/Kralendijk':'BQ',
+    'America/La_Paz':'BO','America/Lima':'PE','America/Los_Angeles':'US','America/Louisville':'US',
+    'America/Lower_Princes':'SX','America/Maceio':'BR','America/Managua':'NI','America/Manaus':'BR',
+    'America/Marigot':'MF','America/Martinique':'MQ','America/Matamoros':'MX','America/Mazatlan':'MX',
+    'America/Mendoza':'AR','America/Menominee':'US','America/Merida':'MX','America/Metlakatla':'US',
+    'America/Mexico_City':'MX','America/Miquelon':'PM','America/Moncton':'CA','America/Monterrey':'MX',
+    'America/Montevideo':'UY','America/Montserrat':'MS','America/Nassau':'BS','America/New_York':'US',
+    'America/Nome':'US','America/Noronha':'BR','America/North_Dakota/Beulah':'US','America/North_Dakota/Center':'US',
+    'America/North_Dakota/New_Salem':'US','America/Ojinaga':'MX','America/Panama':'PA','America/Paramaribo':'SR',
+    'America/Phoenix':'US','America/Port-au-Prince':'HT','America/Port_of_Spain':'TT','America/Porto_Velho':'BR',
+    'America/Puerto_Rico':'PR','America/Punta_Arenas':'CL','America/Rankin_Inlet':'CA','America/Recife':'BR',
+    'America/Regina':'CA','America/Resolute':'CA','America/Rio_Branco':'BR','America/Santarem':'BR',
+    'America/Santiago':'CL','America/Santo_Domingo':'DO','America/Sao_Paulo':'BR','America/Scoresbysund':'GL',
+    'America/Sitka':'US','America/St_Barthelemy':'BL','America/St_Johns':'CA','America/St_Kitts':'KN',
+    'America/St_Lucia':'LC','America/St_Thomas':'VI','America/St_Vincent':'VC','America/Swift_Current':'CA',
+    'America/Tegucigalpa':'HN','America/Thule':'GL','America/Tijuana':'MX','America/Toronto':'CA',
+    'America/Tortola':'VG','America/Vancouver':'CA','America/Whitehorse':'CA','America/Winnipeg':'CA',
+    'America/Yakutat':'US',
+
+    'Antarctica/Casey':'AQ','Antarctica/Davis':'AQ','Antarctica/DumontDUrville':'AQ','Antarctica/Macquarie':'AU',
+    'Antarctica/Mawson':'AQ','Antarctica/McMurdo':'AQ','Antarctica/Palmer':'AQ','Antarctica/Rothera':'AQ',
+    'Antarctica/Syowa':'AQ','Antarctica/Troll':'AQ','Antarctica/Vostok':'AQ',
+
+    'Arctic/Longyearbyen':'SJ',
+
+    'Asia/Aden':'YE','Asia/Almaty':'KZ','Asia/Amman':'JO','Asia/Anadyr':'RU','Asia/Aqtau':'KZ',
+    'Asia/Aqtobe':'KZ','Asia/Ashgabat':'TM','Asia/Atyrau':'KZ','Asia/Baghdad':'IQ','Asia/Bahrain':'BH',
+    'Asia/Baku':'AZ','Asia/Bangkok':'TH','Asia/Barnaul':'RU','Asia/Beirut':'LB','Asia/Bishkek':'KG',
+    'Asia/Brunei':'BN','Asia/Calcutta':'IN','Asia/Chita':'RU','Asia/Colombo':'LK','Asia/Damascus':'SY',
+    'Asia/Dhaka':'BD','Asia/Dili':'TL','Asia/Dubai':'AE','Asia/Dushanbe':'TJ','Asia/Gaza':'PS',
+    'Asia/Hebron':'PS','Asia/Hong_Kong':'HK','Asia/Hovd':'MN','Asia/Irkutsk':'RU','Asia/Jakarta':'ID',
+    'Asia/Jayapura':'ID','Asia/Jerusalem':'IL','Asia/Kabul':'AF','Asia/Kamchatka':'RU','Asia/Karachi':'PK',
+    'Asia/Katmandu':'NP','Asia/Khandyga':'RU','Asia/Krasnoyarsk':'RU','Asia/Kuala_Lumpur':'MY','Asia/Kuching':'MY',
+    'Asia/Kuwait':'KW','Asia/Macau':'MO','Asia/Magadan':'RU','Asia/Makassar':'ID','Asia/Manila':'PH',
+    'Asia/Muscat':'OM','Asia/Nicosia':'CY','Asia/Novokuznetsk':'RU','Asia/Novosibirsk':'RU','Asia/Omsk':'RU',
+    'Asia/Oral':'KZ','Asia/Phnom_Penh':'KH','Asia/Pontianak':'ID','Asia/Pyongyang':'KP','Asia/Qatar':'QA',
+    'Asia/Qostanay':'KZ','Asia/Qyzylorda':'KZ','Asia/Rangoon':'MM','Asia/Riyadh':'SA','Asia/Saigon':'VN',
+    'Asia/Sakhalin':'RU','Asia/Samarkand':'UZ','Asia/Seoul':'KR','Asia/Shanghai':'CN','Asia/Singapore':'SG',
+    'Asia/Srednekolymsk':'RU','Asia/Taipei':'TW','Asia/Tashkent':'UZ','Asia/Tbilisi':'GE','Asia/Tehran':'IR',
+    'Asia/Thimphu':'BT','Asia/Tokyo':'JP','Asia/Tomsk':'RU','Asia/Ulaanbaatar':'MN','Asia/Urumqi':'CN',
+    'Asia/Ust-Nera':'RU','Asia/Vientiane':'LA','Asia/Vladivostok':'RU','Asia/Yakutsk':'RU','Asia/Yekaterinburg':'RU',
+    'Asia/Yerevan':'AM',
+
+    'Atlantic/Azores':'PT','Atlantic/Bermuda':'BM','Atlantic/Canary':'ES','Atlantic/Cape_Verde':'CV',
+    'Atlantic/Faeroe':'FO','Atlantic/Madeira':'PT','Atlantic/Reykjavik':'IS','Atlantic/South_Georgia':'GS',
+    'Atlantic/St_Helena':'SH','Atlantic/Stanley':'FK',
+
+    'Australia/Adelaide':'AU','Australia/Brisbane':'AU','Australia/Broken_Hill':'AU','Australia/Darwin':'AU',
+    'Australia/Eucla':'AU','Australia/Hobart':'AU','Australia/Lindeman':'AU','Australia/Lord_Howe':'AU',
+    'Australia/Melbourne':'AU','Australia/Perth':'AU','Australia/Sydney':'AU',
+
+    'Europe/Amsterdam':'NL','Europe/Andorra':'AD','Europe/Astrakhan':'RU','Europe/Athens':'GR',
+    'Europe/Belgrade':'RS','Europe/Berlin':'DE','Europe/Bratislava':'SK','Europe/Brussels':'BE',
+    'Europe/Bucharest':'RO','Europe/Budapest':'HU','Europe/Busingen':'DE','Europe/Chisinau':'MD',
+    'Europe/Copenhagen':'DK','Europe/Dublin':'IE','Europe/Gibraltar':'GI','Europe/Guernsey':'GG',
+    'Europe/Helsinki':'FI','Europe/Isle_of_Man':'IM','Europe/Istanbul':'TR','Europe/Jersey':'JE',
+    'Europe/Kaliningrad':'RU','Europe/Kiev':'UA','Europe/Kirov':'RU','Europe/Lisbon':'PT',
+    'Europe/Ljubljana':'SI','Europe/London':'GB','Europe/Luxembourg':'LU','Europe/Madrid':'ES',
+    'Europe/Malta':'MT','Europe/Mariehamn':'AX','Europe/Minsk':'BY','Europe/Monaco':'MC',
+    'Europe/Moscow':'RU','Europe/Oslo':'NO','Europe/Paris':'FR','Europe/Podgorica':'ME',
+    'Europe/Prague':'CZ','Europe/Riga':'LV','Europe/Rome':'IT','Europe/Samara':'RU',
+    'Europe/San_Marino':'SM','Europe/Sarajevo':'BA','Europe/Saratov':'RU','Europe/Skopje':'MK',
+    'Europe/Sofia':'BG','Europe/Stockholm':'SE','Europe/Tallinn':'EE','Europe/Tirane':'AL',
+    'Europe/Ulyanovsk':'RU','Europe/Vaduz':'LI','Europe/Vatican':'VA','Europe/Vienna':'AT',
+    'Europe/Vilnius':'LT','Europe/Volgograd':'RU','Europe/Warsaw':'PL','Europe/Zagreb':'HR',
+    'Europe/Zurich':'CH',
+
+    'Indian/Antananarivo':'MG','Indian/Chagos':'IO','Indian/Christmas':'CX','Indian/Cocos':'CC',
+    'Indian/Comoro':'KM','Indian/Kerguelen':'TF','Indian/Mahe':'SC','Indian/Maldives':'MV',
+    'Indian/Mauritius':'MU','Indian/Mayotte':'YT','Indian/Reunion':'RE',
+
+    'Pacific/Apia':'WS','Pacific/Auckland':'NZ','Pacific/Bougainville':'PG','Pacific/Chatham':'NZ',
+    'Pacific/Easter':'CL','Pacific/Efate':'VU','Pacific/Enderbury':'KI','Pacific/Fakaofo':'TK',
+    'Pacific/Fiji':'FJ','Pacific/Funafuti':'TV','Pacific/Galapagos':'EC','Pacific/Gambier':'PF',
+    'Pacific/Guadalcanal':'SB','Pacific/Guam':'GU','Pacific/Honolulu':'US','Pacific/Kiritimati':'KI',
+    'Pacific/Kosrae':'FM','Pacific/Kwajalein':'MH','Pacific/Majuro':'MH','Pacific/Marquesas':'PF',
+    'Pacific/Midway':'UM','Pacific/Nauru':'NR','Pacific/Niue':'NU','Pacific/Norfolk':'NF',
+    'Pacific/Noumea':'NC','Pacific/Pago_Pago':'AS','Pacific/Palau':'PW','Pacific/Pitcairn':'PN',
+    'Pacific/Ponape':'FM','Pacific/Port_Moresby':'PG','Pacific/Rarotonga':'CK','Pacific/Saipan':'MP',
+    'Pacific/Tahiti':'PF','Pacific/Tarawa':'KI','Pacific/Tongatapu':'TO','Pacific/Truk':'FM',
+    'Pacific/Wake':'UM','Pacific/Wallis':'WF'
+  };
+
+  /* =========================================================
+     City-name localization. IANA zone ids only ever carry a
+     Latin-script English name (e.g. "Athens", "Moscow") — never
+     the destination country's own language, despite how it might
+     look. For a Greek or Spanish reader that's not always
+     recognizable, so this table gives the real, established
+     Greek/Spanish name for major cities and national capitals
+     (~180 entries — one per country plus the largest cities of
+     multi-zone countries). It intentionally does NOT attempt to
+     invent Greek/Spanish spellings for the long tail of smaller
+     zones (small US counties, minor towns, Pacific atolls, etc.):
+     most of those have no established exonym in either language,
+     and guessing phonetic spellings for hundreds of obscure places
+     risks being wrong more often than it helps. Those simply keep
+     their original Latin-script name, exactly as before. English
+     is unaffected either way — it already matches the source data.
+     ========================================================= */
+  var CITY_NAMES = {
+    'Europe/Amsterdam':{el:'Άμστερνταμ',es:'Ámsterdam'},'Europe/Andorra':{el:'Ανδόρα',es:'Andorra'},
+    'Europe/Athens':{el:'Αθήνα',es:'Atenas'},'Europe/Belgrade':{el:'Βελιγράδι',es:'Belgrado'},
+    'Europe/Berlin':{el:'Βερολίνο',es:'Berlín'},'Europe/Bratislava':{el:'Μπρατισλάβα',es:'Bratislava'},
+    'Europe/Brussels':{el:'Βρυξέλλες',es:'Bruselas'},'Europe/Bucharest':{el:'Βουκουρέστι',es:'Bucarest'},
+    'Europe/Budapest':{el:'Βουδαπέστη',es:'Budapest'},'Europe/Chisinau':{el:'Κισινάου',es:'Chisináu'},
+    'Europe/Copenhagen':{el:'Κοπεγχάγη',es:'Copenhague'},'Europe/Dublin':{el:'Δουβλίνο',es:'Dublín'},
+    'Europe/Gibraltar':{el:'Γιβραλτάρ',es:'Gibraltar'},'Europe/Helsinki':{el:'Ελσίνκι',es:'Helsinki'},
+    'Europe/Istanbul':{el:'Κωνσταντινούπολη',es:'Estambul'},'Europe/Kaliningrad':{el:'Καλίνινγκραντ',es:'Kaliningrado'},
+    'Europe/Kiev':{el:'Κίεβο',es:'Kiev'},'Europe/Kirov':{el:'Κίροφ',es:'Kírov'},
+    'Europe/Lisbon':{el:'Λισαβόνα',es:'Lisboa'},'Europe/Ljubljana':{el:'Λιουμπλιάνα',es:'Liubliana'},
+    'Europe/London':{el:'Λονδίνο',es:'Londres'},'Europe/Luxembourg':{el:'Λουξεμβούργο',es:'Luxemburgo'},
+    'Europe/Madrid':{el:'Μαδρίτη',es:'Madrid'},'Europe/Malta':{el:'Μάλτα',es:'Malta'},
+    'Europe/Minsk':{el:'Μινσκ',es:'Minsk'},'Europe/Monaco':{el:'Μονακό',es:'Mónaco'},
+    'Europe/Moscow':{el:'Μόσχα',es:'Moscú'},'Europe/Oslo':{el:'Όσλο',es:'Oslo'},
+    'Europe/Paris':{el:'Παρίσι',es:'París'},'Europe/Podgorica':{el:'Ποντγκόριτσα',es:'Podgorica'},
+    'Europe/Prague':{el:'Πράγα',es:'Praga'},'Europe/Riga':{el:'Ρίγα',es:'Riga'},
+    'Europe/Rome':{el:'Ρώμη',es:'Roma'},'Europe/Samara':{el:'Σαμάρα',es:'Samara'},
+    'Europe/San_Marino':{el:'Άγιος Μαρίνος',es:'San Marino'},'Europe/Sarajevo':{el:'Σεράγεβο',es:'Sarajevo'},
+    'Europe/Skopje':{el:'Σκόπια',es:'Skopie'},'Europe/Sofia':{el:'Σόφια',es:'Sofía'},
+    'Europe/Stockholm':{el:'Στοκχόλμη',es:'Estocolmo'},'Europe/Tallinn':{el:'Ταλίν',es:'Tallin'},
+    'Europe/Tirane':{el:'Τίρανα',es:'Tirana'},'Europe/Vaduz':{el:'Βαντούζ',es:'Vaduz'},
+    'Europe/Vatican':{el:'Βατικανό',es:'Vaticano'},'Europe/Vienna':{el:'Βιέννη',es:'Viena'},
+    'Europe/Vilnius':{el:'Βίλνιους',es:'Vilna'},'Europe/Volgograd':{el:'Βόλγκογκραντ',es:'Volgogrado'},
+    'Europe/Warsaw':{el:'Βαρσοβία',es:'Varsovia'},'Europe/Zagreb':{el:'Ζάγκρεμπ',es:'Zagreb'},
+    'Europe/Zurich':{el:'Ζυρίχη',es:'Zúrich'},
+
+    'Atlantic/Reykjavik':{el:'Ρέικιαβικ',es:'Reikiavik'},'Atlantic/Faeroe':{el:'Φερόες',es:'Feroe'},
+    'Atlantic/Azores':{el:'Αζόρες',es:'Azores'},'Atlantic/Madeira':{el:'Μαδέρα',es:'Madeira'},
+    'Atlantic/Canary':{el:'Κανάρια Νησιά',es:'Canarias'},'Atlantic/Bermuda':{el:'Βερμούδες',es:'Bermudas'},
+    'Atlantic/Cape_Verde':{el:'Πράσινο Ακρωτήριο',es:'Cabo Verde'},'Atlantic/Stanley':{el:'Στάνλεϊ',es:'Stanley'},
+    'Atlantic/St_Helena':{el:'Αγία Ελένη',es:'Santa Elena'},
+
+    'Africa/Abidjan':{el:'Αμπιτζάν',es:'Abiyán'},'Africa/Accra':{el:'Άκρα',es:'Acra'},
+    'Africa/Addis_Ababa':{el:'Αντίς Αμπέμπα',es:'Adís Abeba'},'Africa/Algiers':{el:'Αλγέρι',es:'Argel'},
+    'Africa/Cairo':{el:'Κάιρο',es:'El Cairo'},'Africa/Casablanca':{el:'Καζαμπλάνκα',es:'Casablanca'},
+    'Africa/Dakar':{el:'Ντακάρ',es:'Dakar'},'Africa/Dar_es_Salaam':{el:'Νταρ ες Σαλάμ',es:'Dar es Salam'},
+    'Africa/Djibouti':{el:'Τζιμπουτί',es:'Yibuti'},'Africa/Harare':{el:'Χαράρε',es:'Harare'},
+    'Africa/Johannesburg':{el:'Γιοχάνεσμπουργκ',es:'Johannesburgo'},'Africa/Kampala':{el:'Καμπάλα',es:'Kampala'},
+    'Africa/Khartoum':{el:'Χαρτούμ',es:'Jartum'},'Africa/Kigali':{el:'Κιγκάλι',es:'Kigali'},
+    'Africa/Kinshasa':{el:'Κινσάσα',es:'Kinsasa'},'Africa/Lagos':{el:'Λάγος',es:'Lagos'},
+    'Africa/Libreville':{el:'Λιμπρεβίλ',es:'Libreville'},'Africa/Luanda':{el:'Λουάντα',es:'Luanda'},
+    'Africa/Lusaka':{el:'Λουσάκα',es:'Lusaka'},'Africa/Maputo':{el:'Μαπούτο',es:'Maputo'},
+    'Africa/Mogadishu':{el:'Μογκαντίσου',es:'Mogadiscio'},'Africa/Monrovia':{el:'Μονρόβια',es:'Monrovia'},
+    'Africa/Nairobi':{el:'Ναϊρόμπι',es:'Nairobi'},'Africa/Ndjamena':{el:'Νζαμένα',es:'Yamena'},
+    'Africa/Niamey':{el:'Νιαμέι',es:'Niamey'},'Africa/Nouakchott':{el:'Νουακσότ',es:'Nuakchot'},
+    'Africa/Tripoli':{el:'Τρίπολη',es:'Trípoli'},'Africa/Tunis':{el:'Τύνιδα',es:'Túnez'},
+    'Africa/Windhoek':{el:'Βίντχουκ',es:'Windhoek'},
+    'Africa/Porto-Novo':{el:'Πόρτο Νόβο',es:'Porto-Novo'},'Africa/Malabo':{el:'Μαλάμπο',es:'Malabo'},
+    'Africa/Bangui':{el:'Μπανγκί',es:'Bangui'},'Africa/Brazzaville':{el:'Μπραζαβίλ',es:'Brazzaville'},
+    'Africa/Bujumbura':{el:'Μπουζουμπούρα',es:'Buyumbura'},'Africa/Freetown':{el:'Φρίταουν',es:'Freetown'},
+    'Africa/Conakry':{el:'Κόνακρι',es:'Conakry'},'Africa/Bamako':{el:'Μπαμάκο',es:'Bamako'},
+    'Africa/Ouagadougou':{el:'Ουαγκαντούγκου',es:'Uagadugú'},'Africa/Bissau':{el:'Μπισάου',es:'Bisáu'},
+    'Africa/Banjul':{el:'Μπανζούλ',es:'Banjul'},'Africa/Blantyre':{el:'Μπλαντάιρ',es:'Blantyre'},
+    'Africa/Gaborone':{el:'Γκαμπορόνε',es:'Gaborone'},'Africa/Maseru':{el:'Μασέρου',es:'Maseru'},
+    'Africa/Mbabane':{el:'Μπαμπάνε',es:'Mbabane'},'Africa/Sao_Tome':{el:'Σάο Τομέ',es:'Santo Tomé'},
+    'Africa/Douala':{el:'Ντουάλα',es:'Duala'},'Africa/Asmera':{el:'Ασμάρα',es:'Asmara'},
+    'Africa/Juba':{el:'Τζούμπα',es:'Yuba'},'Africa/Lubumbashi':{el:'Λουμπουμπάσι',es:'Lubumbashi'},
+    'Africa/El_Aaiun':{el:'Ελ Αγιούν',es:'El Aaiún'},
+
+    'Asia/Amman':{el:'Αμμάν',es:'Amán'},'Asia/Baghdad':{el:'Βαγδάτη',es:'Bagdad'},
+    'Asia/Baku':{el:'Μπακού',es:'Bakú'},'Asia/Bangkok':{el:'Μπανγκόκ',es:'Bangkok'},
+    'Asia/Beirut':{el:'Βηρυτός',es:'Beirut'},'Asia/Bishkek':{el:'Μπισκέκ',es:'Biskek'},
+    'Asia/Colombo':{el:'Κολόμπο',es:'Colombo'},'Asia/Damascus':{el:'Δαμασκός',es:'Damasco'},
+    'Asia/Dhaka':{el:'Ντάκα',es:'Daca'},'Asia/Dubai':{el:'Ντουμπάι',es:'Dubái'},
+    'Asia/Dushanbe':{el:'Ντουσάνμπε',es:'Dusambé'},'Asia/Hong_Kong':{el:'Χονγκ Κονγκ',es:'Hong Kong'},
+    'Asia/Irkutsk':{el:'Ιρκούτσκ',es:'Irkutsk'},'Asia/Jakarta':{el:'Τζακάρτα',es:'Yakarta'},
+    'Asia/Jerusalem':{el:'Ιερουσαλήμ',es:'Jerusalén'},'Asia/Kabul':{el:'Καμπούλ',es:'Kabul'},
+    'Asia/Karachi':{el:'Καράτσι',es:'Karachi'},'Asia/Katmandu':{el:'Κατμαντού',es:'Katmandú'},
+    'Asia/Krasnoyarsk':{el:'Κρασνογιάρσκ',es:'Krasnoyarsk'},'Asia/Kuala_Lumpur':{el:'Κουάλα Λουμπούρ',es:'Kuala Lumpur'},
+    'Asia/Kuwait':{el:'Κουβέιτ',es:'Kuwait'},'Asia/Macau':{el:'Μακάο',es:'Macao'},
+    'Asia/Manila':{el:'Μανίλα',es:'Manila'},'Asia/Muscat':{el:'Μασκάτ',es:'Mascate'},
+    'Asia/Novosibirsk':{el:'Νοβοσιμπίρσκ',es:'Novosibirsk'},'Asia/Omsk':{el:'Ομσκ',es:'Omsk'},
+    'Asia/Phnom_Penh':{el:'Πνομ Πενχ',es:'Nom Pen'},'Asia/Pyongyang':{el:'Πιονγκγιάνγκ',es:'Pionyang'},
+    'Asia/Qatar':{el:'Κατάρ',es:'Catar'},'Asia/Riyadh':{el:'Ριάντ',es:'Riad'},
+    'Asia/Seoul':{el:'Σεούλ',es:'Seúl'},'Asia/Shanghai':{el:'Σανγκάη',es:'Shanghái'},
+    'Asia/Singapore':{el:'Σιγκαπούρη',es:'Singapur'},'Asia/Taipei':{el:'Ταϊπέι',es:'Taipéi'},
+    'Asia/Tashkent':{el:'Τασκένδη',es:'Taskent'},'Asia/Tbilisi':{el:'Τιφλίδα',es:'Tiflis'},
+    'Asia/Tehran':{el:'Τεχεράνη',es:'Teherán'},'Asia/Tokyo':{el:'Τόκιο',es:'Tokio'},
+    'Asia/Ulaanbaatar':{el:'Ουλάν Μπατόρ',es:'Ulán Bator'},'Asia/Vientiane':{el:'Βιεντιάν',es:'Vientián'},
+    'Asia/Vladivostok':{el:'Βλαδιβοστόκ',es:'Vladivostok'},'Asia/Yekaterinburg':{el:'Αικατερίνμπουργκ',es:'Ekaterimburgo'},
+    'Asia/Yerevan':{el:'Ερεβάν',es:'Ereván'},'Asia/Almaty':{el:'Αλμάτι',es:'Almaty'},
+    'Asia/Ashgabat':{el:'Ασγκαμπάτ',es:'Asjabad'},'Asia/Yakutsk':{el:'Γιακούτσκ',es:'Yakutsk'},
+    'Asia/Aden':{el:'Άντεν',es:'Adén'},'Asia/Thimphu':{el:'Θίμφου',es:'Timbu'},
+    'Asia/Rangoon':{el:'Ρανγκούν',es:'Rangún'},'Asia/Calcutta':{el:'Καλκούτα',es:'Calcuta'},
+    'Asia/Magadan':{el:'Μαγκαντάν',es:'Magadán'},'Asia/Sakhalin':{el:'Σαχαλίνη',es:'Sajalín'},
+    'Asia/Kamchatka':{el:'Καμτσάτκα',es:'Kamchatka'},'Asia/Chita':{el:'Τσιτά',es:'Chitá'},
+    'Asia/Novokuznetsk':{el:'Νοβοκουζνέτσκ',es:'Novokuznetsk'},'Asia/Barnaul':{el:'Μπαρναούλ',es:'Barnaul'},
+    'Asia/Tomsk':{el:'Τόμσκ',es:'Tomsk'},'Asia/Oral':{el:'Ουράλσκ',es:'Oral'},
+    'Asia/Qyzylorda':{el:'Κιζιλόρντα',es:'Kizilorda'},'Asia/Samarkand':{el:'Σαμαρκάνδη',es:'Samarcanda'},
+    'Asia/Brunei':{el:'Μπρουνέι',es:'Brunéi'},'Asia/Dili':{el:'Ντίλι',es:'Dili'},
+    'Asia/Gaza':{el:'Γάζα',es:'Gaza'},'Asia/Hebron':{el:'Χεβρώνα',es:'Hebrón'},
+    'Asia/Nicosia':{el:'Λευκωσία',es:'Nicosia'},'Asia/Bahrain':{el:'Μπαχρέιν',es:'Baréin'},
+    'Asia/Urumqi':{el:'Ουρούμτσι',es:'Ürümqi'},
+
+    'America/New_York':{el:'Νέα Υόρκη',es:'Nueva York'},'America/Los_Angeles':{el:'Λος Άντζελες',es:'Los Ángeles'},
+    'America/Chicago':{el:'Σικάγο',es:'Chicago'},'America/Denver':{el:'Ντένβερ',es:'Denver'},
+    'America/Anchorage':{el:'Άνκορατζ',es:'Anchorage'},'America/Toronto':{el:'Τορόντο',es:'Toronto'},
+    'America/Vancouver':{el:'Βανκούβερ',es:'Vancouver'},'America/Mexico_City':{el:'Πόλη του Μεξικού',es:'Ciudad de México'},
+    'America/Bogota':{el:'Μπογκοτά',es:'Bogotá'},'America/Lima':{el:'Λίμα',es:'Lima'},
+    'America/Santiago':{el:'Σαντιάγο',es:'Santiago'},'America/Buenos_Aires':{el:'Μπουένος Άιρες',es:'Buenos Aires'},
+    'America/Sao_Paulo':{el:'Σάο Πάολο',es:'São Paulo'},'America/Caracas':{el:'Καράκας',es:'Caracas'},
+    'America/Havana':{el:'Αβάνα',es:'La Habana'},'America/Panama':{el:'Παναμάς',es:'Panamá'},
+    'America/Guatemala':{el:'Γουατεμάλα',es:'Guatemala'},'America/Managua':{el:'Μανάγκουα',es:'Managua'},
+    'America/Costa_Rica':{el:'Σαν Χοσέ',es:'San José'},'America/Montevideo':{el:'Μοντεβιδέο',es:'Montevideo'},
+    'America/Asuncion':{el:'Ασουνσιόν',es:'Asunción'},'America/La_Paz':{el:'Λα Πας',es:'La Paz'},
+    'America/Guayaquil':{el:'Γουαγιακίλ',es:'Guayaquil'},'America/Port-au-Prince':{el:'Πορτ-ο-Πρενς',es:'Puerto Príncipe'},
+    'America/Santo_Domingo':{el:'Σάντο Ντομίνγκο',es:'Santo Domingo'},'America/Jamaica':{el:'Τζαμάικα',es:'Jamaica'},
+    'America/Nassau':{el:'Νασάου',es:'Nasáu'},'Pacific/Honolulu':{el:'Χονολουλού',es:'Honolulu'},
+    'America/El_Salvador':{el:'Ελ Σαλβαδόρ',es:'San Salvador'},'America/Tegucigalpa':{el:'Τεγκουσιγκάλπα',es:'Tegucigalpa'},
+    'America/Recife':{el:'Ρεσίφε',es:'Recife'},'America/Manaus':{el:'Μανάους',es:'Manaos'},
+    'America/Puerto_Rico':{el:'Πουέρτο Ρίκο',es:'Puerto Rico'},'America/Curacao':{el:'Κουρασάο',es:'Curazao'},
+    'America/Aruba':{el:'Αρούμπα',es:'Aruba'},'America/Guadeloupe':{el:'Γουαδελούπη',es:'Guadalupe'},
+    'America/Martinique':{el:'Μαρτινίκα',es:'Martinica'},'America/Port_of_Spain':{el:'Πορτ οφ Σπέιν',es:'Puerto España'},
+    'America/Paramaribo':{el:'Παραμαρίμπο',es:'Paramaribo'},'America/Cayenne':{el:'Καγιέν',es:'Cayena'},
+    'America/Grand_Turk':{el:'Γκραντ Τερκ',es:'Gran Turca'},'America/Phoenix':{el:'Φοίνιξ',es:'Phoenix'},
+    'America/Detroit':{el:'Ντιτρόιτ',es:'Detroit'},'America/Boise':{el:'Μπόις',es:'Boise'},
+    'America/Juneau':{el:'Τζούνο',es:'Juneau'},'America/Halifax':{el:'Χάλιφαξ',es:'Halifax'},
+    'America/Winnipeg':{el:'Γουίνιπεγκ',es:'Winnipeg'},'America/Edmonton':{el:'Έντμοντον',es:'Edmonton'},
+    'America/Regina':{el:'Ρετζάινα',es:'Regina'},'America/St_Johns':{el:'Σεντ Τζονς',es:'San Juan de Terranova'},
+    'America/Whitehorse':{el:'Γουάιτχορς',es:'Whitehorse'},'America/Belize':{el:'Μπελίζ',es:'Belice'},
+    'America/Barbados':{el:'Μπαρμπάντος',es:'Barbados'},'America/Grenada':{el:'Γρενάδα',es:'Granada'},
+    'America/Dominica':{el:'Ντομίνικα',es:'Dominica'},'America/St_Lucia':{el:'Αγία Λουκία',es:'Santa Lucía'},
+    'America/St_Kitts':{el:'Σεντ Κιτς',es:'San Cristóbal'},'America/St_Vincent':{el:'Άγιος Βικέντιος',es:'San Vicente'},
+    'America/Antigua':{el:'Αντίγκουα',es:'Antigua'},'America/Anguilla':{el:'Ανγκουίλα',es:'Anguila'},
+    'America/Montserrat':{el:'Μοντσερράτ',es:'Montserrat'},'America/Cayman':{el:'Κέιμαν',es:'Caimán'},
+    'America/Tortola':{el:'Τορτόλα',es:'Tórtola'},
+
+    'Australia/Sydney':{el:'Σίδνεϊ',es:'Sídney'},'Australia/Melbourne':{el:'Μελβούρνη',es:'Melbourne'},
+    'Australia/Brisbane':{el:'Μπρίσμπεϊν',es:'Brisbane'},'Australia/Perth':{el:'Περθ',es:'Perth'},
+    'Australia/Adelaide':{el:'Αδελαΐδα',es:'Adelaida'},'Australia/Darwin':{el:'Ντάργουιν',es:'Darwin'},
+    'Australia/Hobart':{el:'Χόμπαρτ',es:'Hobart'},
+    'Pacific/Auckland':{el:'Ώκλαντ',es:'Auckland'},'Pacific/Fiji':{el:'Φίτζι',es:'Fiyi'},
+    'Pacific/Guam':{el:'Γκουάμ',es:'Guam'},'Pacific/Apia':{el:'Άπια',es:'Apia'},
+    'Pacific/Tongatapu':{el:'Τονγκατάπου',es:'Tongatapu'},'Pacific/Noumea':{el:'Νουμέα',es:'Numea'},
+    'Pacific/Port_Moresby':{el:'Πορτ Μόρεσμπι',es:'Port Moresby'},
+    'Australia/Broken_Hill':{el:'Μπρόκεν Χιλ',es:'Broken Hill'},'Pacific/Rarotonga':{el:'Ραροτόνγκα',es:'Rarotonga'},
+    'Pacific/Tahiti':{el:'Ταϊτή',es:'Tahití'},'Pacific/Pago_Pago':{el:'Πάγκο Πάγκο',es:'Pago Pago'},
+    'Pacific/Palau':{el:'Παλάου',es:'Palaos'},'Pacific/Efate':{el:'Εφάτε',es:'Éfate'},
+    'Pacific/Guadalcanal':{el:'Γουαδαλκανάλ',es:'Guadalcanal'},'Pacific/Funafuti':{el:'Φουναφούτι',es:'Funafuti'},
+    'Pacific/Majuro':{el:'Ματζούρο',es:'Majuro'},'Pacific/Nauru':{el:'Ναούρου',es:'Nauru'},
+
+    'Indian/Antananarivo':{el:'Ανταναναρίβο',es:'Antananarivo'},'Indian/Mahe':{el:'Σεϋχέλλες',es:'Seychelles'},
+    'Indian/Maldives':{el:'Μαλδίβες',es:'Maldivas'},'Indian/Mauritius':{el:'Μαυρίκιος',es:'Mauricio'},
+    'Indian/Reunion':{el:'Ρεϋνιόν',es:'Reunión'},'Indian/Comoro':{el:'Κομόρες',es:'Comoras'},
+    'Indian/Chagos':{el:'Τσάγκος',es:'Chagos'},'Indian/Christmas':{el:'Νησί Χριστουγέννων',es:'Isla de Navidad'},
+    'Indian/Cocos':{el:'Νησιά Κόκος',es:'Islas Cocos'}
+  };
+
+  /* =========================================================
+     Regional compass direction — where a country typically sits
+     within its own continent/world region (e.g. Greece = ΝΑ, i.e.
+     South-Eastern Europe), the same kind of label an atlas uses
+     ("Western Europe", "Southeast Asia", "Southern Africa"). This
+     is a standard geographic classification, not a live bearing
+     computed from the viewer's position — it reads the same for
+     everyone, which is what makes it a stable "fact about the
+     place" rather than something that changes per user. Κ/C marks
+     a handful of landlocked "Central" regions (Central Africa,
+     Central Asia, Central America) where that is the standard
+     term rather than a compass point. A few huge, multi-region
+     countries (US, Canada, Russia, Brazil, Australia, Chile,
+     Argentina) get specific per-zone overrides below, since one
+     label for the whole country would misrepresent most of their
+     cities (Vladivostok is nothing like Moscow's part of Russia).
+     Very small/scattered island territories are left out rather
+     than force a guess.
+     ========================================================= */
+  var COUNTRY_DIRECTION = {
+    // Europe
+    GR:'ΝΑ',AL:'ΝΑ',BA:'ΝΑ',HR:'ΝΑ',ME:'ΝΑ',MK:'ΝΑ',RS:'ΝΑ',SI:'ΝΑ',CY:'ΝΑ',TR:'ΝΑ',
+    DK:'Β',EE:'Β',FI:'Β',IS:'Β',IE:'Β',LV:'Β',LT:'Β',NO:'Β',SE:'Β',GB:'Β',FO:'Β',SJ:'Β',
+    AT:'Δ',BE:'Δ',FR:'Δ',DE:'Δ',LI:'Δ',LU:'Δ',MC:'Δ',NL:'Δ',CH:'Δ',
+    AD:'Ν',IT:'Ν',MT:'Ν',PT:'Ν',SM:'Ν',VA:'Ν',ES:'Ν',
+    BY:'Α',BG:'Α',CZ:'Α',HU:'Α',MD:'Α',PL:'Α',RO:'Α',SK:'Α',UA:'Α',
+    // Africa
+    DZ:'Β',EG:'Β',LY:'Β',MA:'Β',TN:'Β',EH:'Β',
+    SN:'Δ',GM:'Δ',GW:'Δ',GN:'Δ',SL:'Δ',LR:'Δ',CI:'Δ',GH:'Δ',TG:'Δ',BJ:'Δ',ML:'Δ',MR:'Δ',BF:'Δ',NE:'Δ',CV:'Δ',NG:'Δ',
+    CM:'Κ',CF:'Κ',TD:'Κ',CG:'Κ',CD:'Κ',GA:'Κ',GQ:'Κ',ST:'Κ',
+    ET:'Α',ER:'Α',DJ:'Α',SO:'Α',KE:'Α',UG:'Α',RW:'Α',BI:'Α',TZ:'Α',SS:'Α',SD:'Α',MG:'Α',KM:'Α',SC:'Α',MU:'Α',YT:'Α',RE:'Α',IO:'Α',
+    ZA:'Ν',NA:'Ν',BW:'Ν',ZW:'Ν',ZM:'Ν',MW:'Ν',MZ:'Ν',LS:'Ν',SZ:'Ν',AO:'ΝΔ',
+    // Asia
+    IL:'Δ',PS:'Δ',LB:'Δ',SY:'Δ',JO:'Δ',IQ:'Δ',SA:'Δ',YE:'Δ',OM:'Δ',AE:'Δ',QA:'Δ',BH:'Δ',KW:'Δ',GE:'Δ',AM:'Δ',AZ:'Δ',
+    KZ:'Κ',UZ:'Κ',TM:'Κ',KG:'Κ',TJ:'Κ',AF:'Κ',
+    IN:'Ν',PK:'Ν',BD:'Ν',LK:'Ν',NP:'Ν',BT:'Ν',MV:'Ν',
+    TH:'ΝΑ',VN:'ΝΑ',LA:'ΝΑ',KH:'ΝΑ',MM:'ΝΑ',MY:'ΝΑ',SG:'ΝΑ',ID:'ΝΑ',BN:'ΝΑ',PH:'ΝΑ',TL:'ΝΑ',
+    CN:'Α',JP:'Α',KR:'Α',KP:'Α',TW:'Α',HK:'Α',MO:'Α',MN:'Α',
+    // Americas
+    MX:'Κ',GT:'Κ',BZ:'Κ',HN:'Κ',SV:'Κ',NI:'Κ',CR:'Κ',PA:'Κ',
+    CU:'ΝΑ',JM:'ΝΑ',HT:'ΝΑ',DO:'ΝΑ',PR:'ΝΑ',BS:'ΝΑ',TT:'ΝΑ',BB:'ΝΑ',
+    AG:'ΝΑ',AI:'ΝΑ',AW:'ΝΑ',BL:'ΝΑ',BQ:'ΝΑ',CW:'ΝΑ',DM:'ΝΑ',GD:'ΝΑ',GP:'ΝΑ',KN:'ΝΑ',KY:'ΝΑ',LC:'ΝΑ',MF:'ΝΑ',MQ:'ΝΑ',MS:'ΝΑ',SX:'ΝΑ',TC:'ΝΑ',VC:'ΝΑ',VG:'ΝΑ',VI:'ΝΑ',
+    CO:'Β',VE:'Β',GY:'Β',SR:'Β',GF:'Β',EC:'Β',
+    PE:'Δ',BO:'Δ',PY:'Κ',UY:'Ν',
+    GL:'Β',
+    // Oceania
+    NZ:'ΝΑ',FJ:'ΝΑ',PG:'ΝΑ',SB:'ΝΑ',VU:'ΝΑ',NC:'ΝΑ',WS:'ΝΑ',TO:'ΝΑ',KI:'ΝΑ',TV:'ΝΑ',NR:'ΝΑ',PW:'ΝΑ',FM:'ΝΑ',MH:'ΝΑ',MP:'ΝΑ',GU:'ΝΑ',PF:'ΝΑ',CK:'ΝΑ',NU:'ΝΑ',PN:'ΝΑ',WF:'ΝΑ',
+    // Misc
+    AQ:'Ν',TF:'Ν',GS:'Ν',SH:'Δ',FK:'Ν',UM:'ΝΑ',BM:'Β',CX:'ΝΑ',CC:'ΝΑ'
+  };
+  var COUNTRY_DIRECTION_ES = {
+    ΝΑ:'SE',Β:'N',Δ:'O',Ν:'S',Α:'E',ΝΔ:'SO',ΒΑ:'NE',ΒΔ:'NO',Κ:'C'
+  };
+  var ZONE_DIRECTION_OVERRIDE = {
+    // United States — East/Central/Mountain/Pacific/Alaska/Hawaii
+    'America/New_York':'Α','America/Detroit':'Α','America/Indianapolis':'Α','America/Indiana/Knox':'Α',
+    'America/Indiana/Marengo':'Α','America/Indiana/Petersburg':'Α','America/Indiana/Tell_City':'Α',
+    'America/Indiana/Vevay':'Α','America/Indiana/Vincennes':'Α','America/Indiana/Winamac':'Α',
+    'America/Kentucky/Monticello':'Α','America/Louisville':'Α',
+    'America/Chicago':'Κ','America/Menominee':'Κ','America/North_Dakota/Beulah':'Κ',
+    'America/North_Dakota/Center':'Κ','America/North_Dakota/New_Salem':'Κ',
+    'America/Denver':'Δ','America/Boise':'Δ','America/Phoenix':'Δ',
+    'America/Los_Angeles':'Δ','America/Metlakatla':'Δ','America/Sitka':'Δ','America/Juneau':'Δ',
+    'America/Anchorage':'ΒΔ','America/Nome':'ΒΔ','America/Adak':'ΒΔ','America/Yakutat':'ΒΔ',
+    'Pacific/Honolulu':'ΝΔ',
+    // Canada
+    'America/Halifax':'Α','America/Moncton':'Α','America/Glace_Bay':'Α','America/St_Johns':'Α',
+    'America/Goose_Bay':'Α','America/Toronto':'Α','America/Iqaluit':'Β',
+    'America/Winnipeg':'Κ','America/Regina':'Κ','America/Swift_Current':'Κ','America/Resolute':'Β',
+    'America/Edmonton':'Δ','America/Vancouver':'Δ','America/Whitehorse':'ΒΔ','America/Dawson':'ΒΔ',
+    'America/Rankin_Inlet':'Β','America/Cambridge_Bay':'Β','America/Inuvik':'Β',
+    // Russia — Europe through Far East
+    'Europe/Moscow':'Α','Europe/Kaliningrad':'Α','Europe/Samara':'Α','Europe/Kirov':'Α',
+    'Europe/Volgograd':'Α','Europe/Saratov':'Α','Europe/Astrakhan':'Α','Europe/Ulyanovsk':'Α',
+    'Asia/Yekaterinburg':'ΒΑ','Asia/Omsk':'ΒΑ','Asia/Novosibirsk':'ΒΑ','Asia/Barnaul':'ΒΑ',
+    'Asia/Tomsk':'ΒΑ','Asia/Novokuznetsk':'ΒΑ','Asia/Krasnoyarsk':'ΒΑ','Asia/Irkutsk':'ΒΑ',
+    'Asia/Chita':'ΒΑ','Asia/Yakutsk':'ΒΑ','Asia/Vladivostok':'ΒΑ','Asia/Khandyga':'ΒΑ',
+    'Asia/Sakhalin':'ΒΑ','Asia/Magadan':'ΒΑ','Asia/Srednekolymsk':'ΒΑ','Asia/Kamchatka':'ΒΑ',
+    'Asia/Anadyr':'ΒΑ','Asia/Ust-Nera':'ΒΑ',
+    // Brazil
+    'America/Sao_Paulo':'Α','America/Bahia':'Α','America/Fortaleza':'Α','America/Recife':'Α',
+    'America/Maceio':'Α','America/Belem':'Α','America/Araguaina':'Α','America/Noronha':'Α',
+    'America/Cuiaba':'Κ','America/Campo_Grande':'Κ','America/Manaus':'Δ','America/Porto_Velho':'Δ',
+    'America/Boa_Vista':'Β','America/Rio_Branco':'Δ','America/Eirunepe':'Δ','America/Santarem':'Δ',
+    // Australia (east/centre/west)
+    'Australia/Sydney':'ΝΑ','Australia/Melbourne':'ΝΑ','Australia/Brisbane':'ΝΑ','Australia/Hobart':'ΝΑ',
+    'Australia/Lord_Howe':'ΝΑ','Australia/Broken_Hill':'Ν','Australia/Adelaide':'Ν',
+    'Australia/Darwin':'Β','Australia/Perth':'Δ','Australia/Eucla':'Δ',
+    // Chile / Argentina (long north–south spread)
+    'America/Santiago':'Ν','Pacific/Easter':'Δ','America/Punta_Arenas':'Ν','America/Coyhaique':'Ν',
+    'America/Buenos_Aires':'Ν','America/Cordoba':'Ν','America/Mendoza':'Δ','America/Argentina/Salta':'Δ',
+    'America/Jujuy':'Δ','America/Catamarca':'Δ','America/Argentina/La_Rioja':'Δ',
+    'America/Argentina/San_Juan':'Δ','America/Argentina/San_Luis':'Δ','America/Argentina/Tucuman':'Δ',
+    'America/Argentina/Rio_Gallegos':'Ν','America/Argentina/Ushuaia':'Ν'
+  };
+
+  function getDirection(zone, lang){
+    var dir = ZONE_DIRECTION_OVERRIDE[zone];
+    if (!dir){
+      var cc = ZONE_COUNTRY[zone];
+      dir = cc ? COUNTRY_DIRECTION[cc] : null;
+    }
+    if (!dir) return '';
+    if (lang === 'es') return COUNTRY_DIRECTION_ES[dir] || dir;
+    if (lang === 'en'){
+      var map = {Β:'N',ΒΑ:'NE',Α:'E',ΝΑ:'SE',Ν:'S',ΝΔ:'SW',Δ:'W',ΒΔ:'NW',Κ:'C'};
+      return map[dir] || dir;
+    }
+    return dir.split('').join('.') + '.'; // EL style, matches the user's own "Ν.Α." example
+  }
+
+  /* Localized name for a zone's place, honoring translations where
+     they exist and falling back to the original data cleanly
+     otherwise. `full` controls whether an untranslated fallback
+     shows the multi-segment path (nice for disambiguating rows in
+     the full zone browser, e.g. "Argentina / Ushuaia") or just the
+     final segment (nicer for the single-line location guess). */
+  function getDisplayCityName(zone, lang, full){
+    var entry = CITY_NAMES[zone];
+    if (entry && lang !== 'en' && entry[lang]) return entry[lang];
+    if (full){
+      var parts = zone.split('/');
+      return parts.slice(1).join(' / ').replace(/_/g,' ') || zone;
+    }
+    return humanizeZoneCity(zone);
+  }
+
+  var detectedZone = '—';
+  try { detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '—'; } catch(e){}
+
+  function humanizeZoneCity(zone){
+    var parts = zone.split('/');
+    return (parts[parts.length - 1] || zone).replace(/_/g,' ');
+  }
+
+  function updateLocationGuess(){
+    var city = getDisplayCityName(detectedZone, currentLang, false);
+    var countryCode = ZONE_COUNTRY[detectedZone];
+    var text = city;
+    if (countryCode){
+      try {
+        var dn = new Intl.DisplayNames([currentLang], { type: 'region' });
+        var countryName = dn.of(countryCode);
+        if (countryName) text = city + ', ' + countryName;
+      } catch(e){ /* Intl.DisplayNames unsupported — fall back to city only */ }
+    }
+    zoneGuessEl.textContent = text;
+    zoneRawEl.textContent = detectedZone;
+  }
+  updateLocationGuess();
+
+  function tickChronometer(){
+    var now = new Date();
+    var perf = (typeof performance !== 'undefined' && performance.now) ? performance.now() : now.getTime();
+
+    segH.textContent = pad(now.getHours(), 2);
+    segM.textContent = pad(now.getMinutes(), 2);
+    segS.textContent = pad(now.getSeconds(), 2);
+    segMs.textContent = pad(now.getMilliseconds(), 3);
+
+    var fracMs = perf - Math.floor(perf); // fractional part of the current ms, per performance.now()
+    var micros = Math.floor(fracMs * 1000); // 0-999, resolution depends on browser clamp
+    segUs.textContent = pad(micros, 3);
+
+    // Deterministic synthetic sub-microsecond filler: smooth, non-random,
+    // but not tied to any real hardware clock at this resolution.
+    var synthetic = Math.floor(((perf * 997.0) % 1) * 1000);
+    segNs.textContent = pad(synthetic, 3);
+
+    var utcStr = now.getUTCHours ? (pad(now.getUTCHours(),2)+':'+pad(now.getUTCMinutes(),2)+':'+pad(now.getUTCSeconds(),2)) : '';
+    utcLine.textContent = 'UTC ' + utcStr;
+
+    requestAnimationFrame(tickChronometer);
+  }
+  requestAnimationFrame(tickChronometer);
+
+  /* =========================================================
+     AGE OF EARTH
+     Best current scientific estimate: 4.54 billion years,
+     ± 50 million years (radiometric dating — Canyon Diablo /
+     oldest zircons). Anchored to a fixed reference timestamp,
+     then advanced by real elapsed time since. The "billions of
+     years" figure is the scientifically meaningful one; the
+     ticking days/hours/seconds below it are explicitly framed
+     as illustrative, since they sit many orders of magnitude
+     below the actual uncertainty band.
+     ========================================================= */
+  var EARTH_AGE_YEARS_AT_ANCHOR = 4540000000;
+  var ANCHOR_MS = Date.UTC(2024, 0, 1, 0, 0, 0);
+  var MS_PER_YEAR = 365.2425 * 24 * 3600 * 1000; // Gregorian mean year
+
+  var earthYearsEl = document.getElementById('earthYears');
+  var earthIllustrativeEl = document.getElementById('earthIllustrative');
+
+  function formatIntLocalized(n){
+    var s = String(Math.floor(n));
+    var out = '';
+    var sep = (currentLang === 'en') ? ',' : '.';
+    for (var i=0; i<s.length; i++){
+      if (i>0 && (s.length-i) % 3 === 0) out += sep;
+      out += s[i];
+    }
+    return out;
+  }
+
+  function tickEarthAge(){
+    var elapsedMs = Date.now() - ANCHOR_MS;
+    var elapsedYearsFloat = elapsedMs / MS_PER_YEAR;
+    var totalYears = EARTH_AGE_YEARS_AT_ANCHOR + Math.floor(elapsedYearsFloat);
+    earthYearsEl.textContent = formatIntLocalized(totalYears);
+
+    var yearsFrac = elapsedYearsFloat - Math.floor(elapsedYearsFloat);
+    var msIntoYear = yearsFrac * MS_PER_YEAR;
+    var totalSec = Math.floor(msIntoYear / 1000);
+    var days = Math.floor(totalSec / 86400);
+    var h = Math.floor((totalSec % 86400) / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    var s = totalSec % 60;
+    earthIllustrativeEl.textContent = '+ ' + pad(days,3) + 'd ' + pad(h,2)+':'+pad(m,2)+':'+pad(s,2);
+  }
+  tickEarthAge();
+  setInterval(tickEarthAge, 1000);
+
+  /* =========================================================
+     WORLD TIME ZONES — full IANA database via
+     Intl.supportedValuesOf('timeZone') (ES2022+), with a
+     graceful-degradation fallback list for older engines.
+     ========================================================= */
+  var FALLBACK_ZONES = [
+    'Africa/Cairo','Africa/Johannesburg','Africa/Lagos','Africa/Nairobi',
+    'America/Argentina/Buenos_Aires','America/Bogota','America/Chicago','America/Denver',
+    'America/Los_Angeles','America/Mexico_City','America/New_York','America/Sao_Paulo','America/Toronto',
+    'Asia/Bangkok','Asia/Dubai','Asia/Hong_Kong','Asia/Istanbul','Asia/Jakarta','Asia/Kolkata',
+    'Asia/Seoul','Asia/Shanghai','Asia/Singapore','Asia/Tokyo',
+    'Atlantic/Reykjavik','Australia/Sydney','Australia/Perth',
+    'Europe/Athens','Europe/Berlin','Europe/London','Europe/Madrid','Europe/Moscow',
+    'Europe/Paris','Europe/Rome','Pacific/Auckland','Pacific/Honolulu','UTC'
+  ];
+
+  function getAllZones(){
+    var z = FALLBACK_ZONES;
+    try {
+      if (typeof Intl.supportedValuesOf === 'function'){
+        var supported = Intl.supportedValuesOf('timeZone');
+        if (supported && supported.length) z = supported;
+      }
+    } catch(e){}
+    if (z.indexOf('UTC') === -1) z = z.concat(['UTC']);
+    return z;
+  }
+
+  var ALL_ZONES = getAllZones();
+
+  function continentOf(zone){
+    var idx = zone.indexOf('/');
+    if (idx === -1) return 'Etc';
+    var c = zone.slice(0, idx);
+    if (['Africa','America','Antarctica','Arctic','Asia','Atlantic','Australia','Europe','Indian','Pacific'].indexOf(c) !== -1) return c;
+    return 'Etc';
+  }
+
+  var CONTINENT_ORDER = ['Europe','America','Asia','Africa','Australia','Pacific','Atlantic','Indian','Arctic','Antarctica','Etc'];
+
+  var grouped = {};
+  ALL_ZONES.forEach(function(z){
+    var c = continentOf(z);
+    (grouped[c] = grouped[c] || []).push(z);
+  });
+  Object.keys(grouped).forEach(function(c){ grouped[c].sort(); });
+
+  var tzGroupsEl = document.getElementById('tzGroups');
+  var tzCountEl = document.getElementById('tzCount');
+  var tzEmptyEl = document.getElementById('tzEmpty');
+  var tzSearchEl = document.getElementById('tzSearch');
+
+  var offsetFormatters = {}; // cache per zone
+  var timeFormatters = {};   // cache per zone
+
+  function getOffsetString(zone){
+    try {
+      if (!offsetFormatters[zone]){
+        offsetFormatters[zone] = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' });
+      }
+      var parts = offsetFormatters[zone].formatToParts(new Date());
+      var tzPart = parts.find(function(p){ return p.type === 'timeZoneName'; });
+      return tzPart ? tzPart.value.replace('GMT','UTC') : '';
+    } catch(e){ return ''; }
+  }
+
+  function getZoneTime(zone){
+    try {
+      if (!timeFormatters[zone]){
+        timeFormatters[zone] = new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+      }
+      return timeFormatters[zone].format(new Date());
+    } catch(e){ return '--:--:--'; }
+  }
+
+  function isDST(zone){
+    try {
+      var jan = new Date(Date.UTC(new Date().getUTCFullYear(),0,1));
+      var jul = new Date(Date.UTC(new Date().getUTCFullYear(),6,1));
+      var offAt = function(d){
+        var f = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName:'shortOffset' });
+        var p = f.formatToParts(d).find(function(x){return x.type==='timeZoneName';});
+        return p ? p.value : '';
+      };
+      var janOff = offAt(jan), julOff = offAt(jul), nowOff = offAt(new Date());
+      if (janOff === julOff) return false;
+      return nowOff !== janOff ? (nowOff === julOff) : false;
+    } catch(e){ return false; }
+  }
+
+  var openContinents = {}; // track expand/collapse state across re-renders
+
+  function buildZoneRow(zone){
+    var row = document.createElement('div');
+    row.className = 'tz-row';
+    row.setAttribute('data-zone', zone);
+
+    var nameWrap = document.createElement('div');
+    nameWrap.className = 'tz-name';
+    var display = getDisplayCityName(zone, currentLang, true);
+    nameWrap.innerHTML = '<b>' + display + '</b>';
+    nameWrap.title = zone;
+
+    var countryCode = ZONE_COUNTRY[zone];
+    var subBits = [];
+    if (countryCode){
+      try {
+        var dn = new Intl.DisplayNames([currentLang], { type: 'region' });
+        var cName = dn.of(countryCode);
+        if (cName) subBits.push(cName);
+      } catch(e){}
+    }
+    var dirLabel = getDirection(zone, currentLang);
+    if (dirLabel) subBits.push(dirLabel);
+    if (subBits.length){
+      var subEl = document.createElement('span');
+      subEl.className = 'tz-country';
+      subEl.textContent = subBits.join(' · ');
+      nameWrap.appendChild(subEl);
+    }
+
+    var timeWrap = document.createElement('div');
+    timeWrap.className = 'tz-time';
+    var timeSpan = document.createElement('span');
+    timeSpan.className = 'tz-time-value';
+    timeSpan.textContent = getZoneTime(zone);
+    var offSpan = document.createElement('span');
+    offSpan.className = 'tz-offset';
+    offSpan.textContent = getOffsetString(zone);
+    timeWrap.appendChild(timeSpan);
+    timeWrap.appendChild(offSpan);
+    if (isDST(zone)){
+      var dstTag = document.createElement('span');
+      dstTag.className = 'tz-dst';
+      dstTag.textContent = T('dst');
+      timeWrap.appendChild(dstTag);
+    }
+
+    row.appendChild(nameWrap);
+    row.appendChild(timeWrap);
+    return row;
+  }
+
+  function rebuildTimezonePanel(){
+    var query = (tzSearchEl.value || '').trim().toLowerCase();
+    tzGroupsEl.innerHTML = '';
+    var totalShown = 0;
+
+    CONTINENT_ORDER.forEach(function(c){
+      var zones = grouped[c];
+      if (!zones || !zones.length) return;
+      var filtered = query ? zones.filter(function(z){
+        var raw = z.toLowerCase().replace(/_/g,' ');
+        var localized = getDisplayCityName(z, currentLang, true).toLowerCase();
+        return raw.indexOf(query) !== -1 || localized.indexOf(query) !== -1;
+      }) : zones;
+      if (!filtered.length) return;
+
+      totalShown += filtered.length;
+
+      var box = document.createElement('div');
+      box.className = 'tz-continent' + (openContinents[c] || query ? ' open' : '');
+
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'zone-toggle';
+      var contDict = DICT[currentLang].continents;
+      toggle.innerHTML = '<span>' + (contDict[c] || c) + '</span><span class="n">' + filtered.length + ' ' + T('zones_label') + '</span><span class="wc-caret">&#9656;</span>';
+      toggle.addEventListener('click', function(){
+        box.classList.toggle('open');
+        openContinents[c] = box.classList.contains('open');
+      });
+
+      var list = document.createElement('div');
+      list.className = 'tz-list';
+      filtered.forEach(function(z){ list.appendChild(buildZoneRow(z)); });
+
+      box.appendChild(toggle);
+      box.appendChild(list);
+      tzGroupsEl.appendChild(box);
+    });
+
+    tzCountEl.textContent = totalShown + ' / ' + ALL_ZONES.length + ' ' + T('zones_label');
+    tzEmptyEl.style.display = totalShown ? 'none' : 'block';
+  }
+
+  tzSearchEl.addEventListener('input', rebuildTimezonePanel);
+
+  function refreshVisibleZoneTimes(){
+    var rows = tzGroupsEl.querySelectorAll('.tz-continent.open .tz-row');
+    rows.forEach(function(row){
+      var zone = row.getAttribute('data-zone');
+      var valueSpan = row.querySelector('.tz-time-value');
+      if (valueSpan) valueSpan.textContent = getZoneTime(zone);
+    });
+  }
+  setInterval(refreshVisibleZoneTimes, 1000);
+
+  /* =========================================================
+     Init
+     ========================================================= */
+  applyTranslations();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MultiCalc</title>
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║  MultiCalc — index.html  (η βασική οθόνη της εφαρμογής)             ║
+║                                                                      ║
+║  Εδώ ζει το γενικό περιβάλλον: splash, runtime, εκκίνηση και ο      ║
+║  χώρος (#app-screens) όπου εμφανίζονται τα modules.                 ║
+║                                                                      ║
+║  modules.js        → ο κατάλογος των modules (διαδρομές, ονόματα,    ║
+║                      κατηγορία, σειρά, ενεργό/ανενεργό)              ║
+║  module-loader.js  → ο μηχανισμός που τα διαβάζει και τα φορτώνει,   ║
+║                      και διαχειρίζεται τα σφάλματα φόρτωσης          ║
+║                                                                      ║
+║  ΓΙΑ ΝΑ ΑΠΕΝΕΡΓΟΠΟΙΗΣΕΙΣ MODULE: enabled:false στο modules.js.       ║
+╚══════════════════════════════════════════════════════════════════════╝
+-->
+<style>
+/* Critical-path CSS — εμφανίζεται πριν φορτωθεί οτιδήποτε */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:#0f172a;min-height:100dvh;min-height:100vh;color:white;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+.screen{display:none!important;}
+.screen.active,
+.screen.active-back,
+.screen.exiting,
+.screen.exiting-back{display:block!important;}
+
+/* ── Splash ── */
+#app-splash{
+    position:fixed;inset:0;background:
+        radial-gradient(ellipse 900px 700px at 18% 12%, rgba(99,102,241,0.16) 0%, transparent 60%),
+        radial-gradient(ellipse 800px 650px at 85% 88%, rgba(168,85,247,0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 600px 600px at 90% 8%, rgba(34,211,238,0.08) 0%, transparent 55%),
+        #0a0f1e;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:99999;transition:opacity 0.5s ease;overflow:hidden;
+}
+#app-splash.fade-out{opacity:0;pointer-events:none;}
+
+/* Faint scientific dot-grid, vignetted toward the edges, slow ambient drift */
+#app-splash::before{
+    content:'';position:absolute;inset:-10%;z-index:0;
+    background-image:radial-gradient(rgba(148,163,184,0.14) 1px, transparent 1px);
+    background-size:28px 28px;
+    -webkit-mask-image:radial-gradient(ellipse 60% 55% at 50% 50%, #000 0%, transparent 78%);
+            mask-image:radial-gradient(ellipse 60% 55% at 50% 50%, #000 0%, transparent 78%);
+    animation:gridDrift 40s linear infinite;
+    pointer-events:none;
+}
+@keyframes gridDrift{from{transform:translate(0,0);}to{transform:translate(-28px,-28px);}}
+
+/* Canvas layer — floating formulas, constants & ambient sparkle dust */
+#sp-canvas{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;}
+
+/* Full-screen collision flash — a plain DOM overlay so a bright "camera
+   flash" can cover the whole splash instantly, cheaper & crisper than a
+   giant canvas radial gradient. Toggled briefly by the explosion JS. */
+#sp-flash{
+    position:absolute;inset:0;z-index:3;pointer-events:none;
+    background:radial-gradient(circle at 50% 42%,
+        rgba(255,255,255,0.98) 0%,
+        rgba(255,238,200,0.75) 26%,
+        rgba(255,170,90,0.35) 48%,
+        transparent 70%);
+    opacity:0;
+}
+#sp-flash.hit{animation:spFlash 0.62s cubic-bezier(0.16,1,0.3,1) both;}
+@keyframes spFlash{
+    0%  {opacity:0;}
+    6%  {opacity:1;}
+    22% {opacity:0.55;}
+    100%{opacity:0;}
+}
+
+/* Foreground content card */
+.sp-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
+    padding:38px 44px 34px;border-radius:28px;
+    background:rgba(15,23,42,0.35);
+    border:1px solid rgba(148,163,184,0.12);
+    box-shadow:0 30px 90px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+    animation:cardRise 0.7s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes cardRise{from{opacity:0;transform:translateY(18px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+.sp-content.sp-impact{animation:cardImpact 0.32s cubic-bezier(0.36,0.07,0.19,0.97) both;}
+@keyframes cardImpact{
+    0%{transform:translate(0,0) scale(1);}
+    15%{transform:translate(-3px,2px) scale(1.008);}
+    30%{transform:translate(3px,-2px) scale(1.012);}
+    45%{transform:translate(-2.5px,1.5px) scale(1.006);}
+    60%{transform:translate(2px,-1px);}
+    75%{transform:translate(-1px,0.5px);}
+    100%{transform:translate(0,0) scale(1);}
+}
+
+/* ── Atom orbit rig around the icon — canvas-driven (see JS section 0b)
+   so the orbit motion (with comet trails) can smoothly transition into
+   a physics-based collision/explosion when loading reaches 100%. ── */
+.sp-atom{position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
+#sp-atom-canvas{position:absolute;top:50%;left:50%;width:320px;height:320px;margin:-160px 0 0 -160px;z-index:1;pointer-events:none;}
+
+/* Slow diffuse halo behind the icon, independent rhythm from the icon's
+   own pulse, for a layered "energy field" feel */
+.sp-halo{
+    position:absolute;top:50%;left:50%;width:112px;height:112px;margin:-56px 0 0 -56px;
+    border-radius:50%;z-index:1;pointer-events:none;
+    background:radial-gradient(circle, rgba(168,85,247,0.35) 0%, rgba(99,102,241,0.12) 45%, transparent 72%);
+    animation:haloBreathe 3.6s ease-in-out infinite;
+    filter:blur(2px);
+}
+@keyframes haloBreathe{
+    0%,100%{transform:scale(0.88);opacity:0.55;}
+    50%    {transform:scale(1.18);opacity:0.95;}
+}
+
+.sp-icon{
+    position:relative;z-index:2;width:72px;height:72px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 40px rgba(99,102,241,0.5);
+    animation:spPulse 2.4s ease-in-out infinite;
+}
+.sp-icon svg{width:100%;height:100%;}
+@keyframes spPulse{
+    0%,100%{box-shadow:0 0 34px rgba(99,102,241,0.4);transform:scale(1);}
+    50%    {box-shadow:0 0 58px rgba(168,85,247,0.7);transform:scale(1.045);}
+}
+
+.sp-title{
+    margin-top:22px;font-size:2.1rem;font-weight:700;letter-spacing:0.08em;
+    background:linear-gradient(135deg,#fff,#e2e8f0);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    perspective:500px;
+}
+@keyframes titleReveal{
+    0%  {letter-spacing:0.42em;filter:blur(6px);opacity:0;}
+    100%{letter-spacing:-0.01em;filter:blur(0);opacity:1;}
+}
+.sp-title span{
+    background:linear-gradient(135deg,#818cf8,#e879f9);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.sp-title .lt{display:inline-block;opacity:0;animation:ltForm 0.7s cubic-bezier(0.22,1,0.36,1) both;}
+@keyframes ltForm{
+    0%{opacity:0;transform:rotateX(-70deg) rotateY(22deg) translateZ(-50px) translateY(-14px);}
+    60%{opacity:1;}
+    100%{opacity:1;transform:rotateX(0) rotateY(0) translateZ(0) translateY(0);}
+}
+.sp-tagline{margin-top:4px;font-size:0.74rem;letter-spacing:2.5px;text-transform:uppercase;color:#475569;font-weight:600;
+    opacity:0;animation:fadeUp 0.6s 0.75s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.sp-status{margin-top:22px;font-size:0.82rem;color:#94a3b8;letter-spacing:0.4px;min-height:1.2em;
+    font-variant-numeric:tabular-nums;transition:opacity 0.2s ease;}
+
+/* ── Segmented progress bar — one slim segment per module, lights up
+   individually as each module finishes loading, with a brief spark
+   sweep across the segment the instant it completes. ── */
+.sp-bar-wrap{margin-top:14px;width:260px;display:flex;gap:3px;}
+.sp-seg{
+    flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);
+    position:relative;overflow:hidden;
+    transition:background 0.35s ease, box-shadow 0.35s ease;
+}
+.sp-seg.filled{
+    background:linear-gradient(90deg,#6366f1,#a855f7,#22d3ee);
+    box-shadow:0 0 9px rgba(129,140,248,0.65);
+}
+.sp-seg.fail{background:linear-gradient(90deg,#ef4444,#f87171);box-shadow:0 0 9px rgba(239,68,68,0.5);}
+.sp-seg.spark::after{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.85),transparent);
+    animation:segSpark 0.5s ease-out;
+}
+@keyframes segSpark{from{transform:translateX(-120%);}to{transform:translateX(120%);}}
+
+.sp-modules{
+    margin-top:16px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+    max-width:340px;min-height:28px;
+}
+.sp-chip{
+    position:relative;display:inline-flex;align-items:center;gap:4px;
+    font-size:0.66rem;font-weight:600;padding:4px 10px 4px 8px;border-radius:20px;letter-spacing:0.2px;
+    border:1px solid rgba(99,102,241,0.22);background:rgba(99,102,241,0.07);color:#64748b;
+    transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.sp-chip::before{content:'○';font-size:0.62rem;opacity:0.5;}
+.sp-chip.ok{border-color:rgba(16,185,129,0.45);background:rgba(16,185,129,0.1);color:#34d399;
+    box-shadow:0 0 10px rgba(16,185,129,0.15);}
+.sp-chip.ok::before{content:'●';opacity:1;}
+.sp-chip.fail{border-color:rgba(239,68,68,0.45);background:rgba(239,68,68,0.1);color:#f87171;}
+.sp-chip.fail::before{content:'✕';}
+.sp-chip.ping::after{
+    content:'';position:absolute;inset:-2px;border-radius:20px;
+    border:1.5px solid currentColor;opacity:0.85;
+    animation:chipPing 0.55s ease-out;
+}
+@keyframes chipPing{from{transform:scale(1);opacity:0.85;}to{transform:scale(1.35);opacity:0;}}
+
+@media(max-width:480px){
+    .sp-content{padding:28px 26px 26px;border-radius:22px;}
+    .sp-atom{width:120px;height:120px;}
+    #sp-atom-canvas{width:230px;height:230px;margin:-115px 0 0 -115px;}
+    .sp-halo{width:88px;height:88px;margin:-44px 0 0 -44px;}
+    .sp-icon{width:60px;height:60px;}
+    .sp-title{font-size:1.7rem;margin-top:16px;}
+    .sp-bar-wrap{width:210px;}
+}
+
+</style>
+
+<!-- Diagnostic chip (ΠΡΟΑΙΡΕΤΙΚΟ, ανεξάρτητο): ζει μόνο στο console — δες system/diagnostics/.
+     Πρώτο στο <head>, ώστε να προλαβαίνει κάθε σφάλμα. Αν το αρχείο λείπει, ο browser
+     το προσπερνά και το app τρέχει κανονικά. -->
+<script src="system/diagnostics/diagnostics.js"></script>
+</head>
+<body>
+
+<!-- Splash Screen -->
+<div id="app-splash">
+    <canvas id="sp-canvas"></canvas>
+    <div id="sp-flash"></div>
+    <div class="sp-content">
+        <div class="sp-atom">
+            <div class="sp-halo"></div>
+            <canvas id="sp-atom-canvas"></canvas>
+            <div class="sp-icon">
+                <svg viewBox="0 0 100 100">
+                <defs>
+                    <radialGradient id="spCore" cx="38%" cy="32%" r="65%">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop offset="30%" stop-color="#ddd6fe"/>
+                        <stop offset="65%" stop-color="#a78bfa"/>
+                        <stop offset="100%" stop-color="#6d28d9"/>
+                    </radialGradient>
+                </defs>
+                <circle cx="50" cy="50" r="42" fill="url(#spCore)"/>
+                <circle cx="42" cy="38" r="9" fill="#ffffff" opacity="0.85"/>
+            </svg>
+            </div>
+        </div>
+        <div class="sp-title"><span class="lt" style="animation-delay:0.000s">M</span><span class="lt" style="animation-delay:0.045s">u</span><span class="lt" style="animation-delay:0.090s">l</span><span class="lt" style="animation-delay:0.135s">t</span><span class="lt" style="animation-delay:0.180s">i</span><span><span class="lt" style="animation-delay:0.225s">C</span><span class="lt" style="animation-delay:0.270s">a</span><span class="lt" style="animation-delay:0.315s">l</span><span class="lt" style="animation-delay:0.360s">c</span></span></div>
+        <div class="sp-tagline">Math · Physics · Units · Currency</div>
+        <div class="sp-status" id="sp-status">Initializing runtime…</div>
+        <div class="sp-bar-wrap" id="sp-bar-wrap"></div>
+        <div class="sp-modules" id="sp-modules"></div>
+    </div>
+</div>
+
+<!-- All module screens are injected here -->
+<div id="app-screens"></div>
+
+<!-- Κατάλογος modules (δεδομένα) + μηχανισμός φόρτωσης.
+     Φορτώνονται πρώτα· ο inline κώδικας παρακάτω τα χρησιμοποιεί. -->
+<script src="modules.js"></script>
+<script src="module-loader.js"></script>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   0. SPLASH FX — floating math & physics formulas on a canvas layer
+   Purely decorative, runs independently of the module boot sequence.
+   Stopped explicitly when the splash fades out (see section 6, boot).
+   ════════════════════════════════════════════════════════════════════ */
+var __stopSplashFX = (function() {
+    var canvas = document.getElementById('sp-canvas');
+    if (!canvas || !canvas.getContext) return function(){};
+    var ctx = canvas.getContext('2d');
+    var running = true;
+    var particles = [];
+    var dust = [];
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    /* Curated set of the most striking formulas & constants from
+       mathematics and physics — the visual centerpiece of the boot. */
+    var FORMULAS = [
+        'E = mc²', 'F = ma', 'PV = nRT', 'v = fλ',
+        'F = G·m₁m₂/r²', 'E = hf', 'p = mv', 'KE = ½mv²',
+        'ΔS ≥ 0', 'ΔxΔp ≥ ℏ/2', 'λ = h/p', 'S = k·ln(W)',
+        'F = qE + qv×B', '1/λ = R(1/n₁²−1/n₂²)',
+        'a² + b² = c²', 'e^(iπ) + 1 = 0', '∫₀^∞ e^-x² dx = √π/2',
+        'Σ 1/n² = π²/6', "lim sin(x)/x = 1", 'd/dx[eˣ] = eˣ',
+        'φ = (1+√5)/2', 'n! = n·(n−1)!', '∇·E = ρ/ε₀',
+        'π ≈ 3.14159265…', 'e ≈ 2.71828183…', '√2 ≈ 1.41421356…',
+        'φ ≈ 1.61803399…', 'c = 299 792 458 m/s',
+        'G = 6.674×10⁻¹¹', 'ℏ = 1.0546×10⁻³⁴ J·s',
+        'Nₐ = 6.0221×10²³', 'k_B = 1.3806×10⁻²³ J/K',
+        'α ≈ 1/137.036', 'σ = 5.670×10⁻⁸ W/m²K⁴',
+    ];
+
+    var COLORS = ['#a5b4fc','#c4b5fd','#67e8f9','#f0abfc','#6ee7b7'];
+
+    function resize() {
+        var w = window.innerWidth, h = window.innerHeight;
+        canvas.width  = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width  = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    /* ── Ambient sparkle dust — tiny twinkling motes, near-static,
+       drawn behind the formulas for a "starfield" depth layer. ── */
+    function buildDust() {
+        dust = [];
+        var n = 30;
+        for (var i = 0; i < n; i++) {
+            dust.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                r: 0.6 + Math.random() * 1.4,
+                phase: Math.random() * Math.PI * 2,
+                speed: 0.0012 + Math.random() * 0.0018,
+                drift: (Math.random() - 0.5) * 0.006,
+            });
+        }
+    }
+    buildDust();
+
+    function spawn() {
+        if (particles.length >= 18) return;
+        var w = window.innerWidth, h = window.innerHeight;
+        particles.push({
+            text:  FORMULAS[Math.floor(Math.random() * FORMULAS.length)],
+            x:     20 + Math.random() * (w - 40),
+            y:     h + 20 + Math.random() * 60,
+            vx:    (Math.random() - 0.5) * 0.010,
+            vy:    -(0.020 + Math.random() * 0.028),
+            size:  13 + Math.random() * 15,
+            rot:   (Math.random() - 0.5) * 0.10,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            born:  performance.now(),
+            life:  7000 + Math.random() * 5000,
+        });
+    }
+
+    /* Pre-seed so the screen isn't empty on first paint */
+    for (var i = 0; i < 7; i++) { spawn(); particles[i].y -= Math.random() * window.innerHeight; }
+    var spawnTimer = setInterval(spawn, 420);
+
+    var lastT = performance.now();
+    /** @param {number} now */
+    function frame(now) {
+        if (!running) return;
+        var dt = Math.min(now - lastT, 50); // clamp to avoid jumps on tab-throttle
+        lastT = now;
+
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        /* Sparkle dust — cheap sine-wave twinkle, near-stationary */
+        for (var d = 0; d < dust.length; d++) {
+            var m = dust[d];
+            m.y += m.drift * dt;
+            if (m.y < -4) m.y = window.innerHeight + 4;
+            if (m.y > window.innerHeight + 4) m.y = -4;
+            var tw = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(now * m.speed + m.phase));
+            ctx.save();
+            ctx.globalAlpha = tw * 0.55;
+            ctx.fillStyle = '#e0e7ff';
+            ctx.shadowColor = '#c4b5fd';
+            ctx.shadowBlur = 5;
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        for (var i2 = particles.length - 1; i2 >= 0; i2--) {
+            var p = particles[i2];
+            /* born = performance.now() (timer), now = rAF frame timestamp (can be a few ms EARLIER) →
+               ο χρόνος ζωής μπορεί να βγει αρνητικός και να δώσει αρνητική ακτίνα στο arc() παρακάτω. */
+            var age = Math.max(0, now - p.born);
+            if (age >= p.life) { particles.splice(i2, 1); continue; }
+
+            var lr = age / p.life;
+            var alpha = lr < 0.18 ? lr / 0.18
+                      : lr > 0.72 ? Math.max(0, 1 - (lr - 0.72) / 0.28)
+                      : 1;
+
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+
+            /* Materialize burst-ring right as a formula fades in */
+            if (age < 320) {
+                var mt = age / 320;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = (1 - mt) * 0.5;
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4 + mt * (p.size * 1.1), 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.globalAlpha = alpha * 0.62;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.font = '600 ' + p.size + 'px "Cambria Math","STIX Two Math",Georgia,serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 14;
+            ctx.fillText(p.text, 0, 0);
+            ctx.restore();
+        }
+
+        requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    return function stop() {
+        running = false;
+        clearInterval(spawnTimer);
+        window.removeEventListener('resize', resize);
+        try { ctx.clearRect(0, 0, canvas.width, canvas.height); } catch(e) {}
+    };
+})();
+
+/* ════════════════════════════════════════════════════════════════════
+   0b. ATOM ORBIT + COLLISION EXPLOSION — orbiting particles around Σ
+   that converge, collide, and burst outward once loading reaches 100%.
+   Exposes:
+     window.__triggerAtomExplosion()  — called by the boot sequence at 100%
+     window.__stopAtomsFX()           — called when the splash fades out
+   ════════════════════════════════════════════════════════════════════ */
+window.__stopAtomsFX = (function() {
+    var canvas = document.getElementById('sp-atom-canvas');
+    if (!canvas || !canvas.getContext) {
+        window.__triggerAtomExplosion = function(){};
+        window.__setAtomEnergy = function(){};
+        return function(){};
+    }
+    var ctx = canvas.getContext('2d');
+    var running = true;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cx = 0, cy = 0; // local canvas-space center (canvas is CSS-centered on the icon)
+
+    var CONVERGE_MS   = 260;
+    var BURST_MS      = 1000;   // main energetic fragment burst
+    var N_FRAGMENTS   = 60;
+    var TRAIL_LEN     = 4;      // orbiting-atom comet tail length
+    var FRAG_TRAIL_LEN= 3;      // spark trail length (kept short — many sparks)
+    var RAY_MS        = 380;    // sunburst light-ray duration
+    var N_EMBERS      = 12;     // rising smoke/embers after the blast
+
+    /* Cool palette while orbiting — brand identity (indigo/violet/cyan) */
+    var COOL_COLORS = ['#a5b4fc','#c4b5fd','#67e8f9','#f0abfc','#6ee7b7','#fda4af'];
+
+    /* ── Nuclear heat gradient: white-hot → pale yellow → orange → red → ember.
+       `t` = 1 fresh/hottest .. 0 cooled/faded. This is what makes the burst
+       actually read as an explosion rather than a firework. ── */
+    /** @param {number} a
+     *  @param {number} b
+     *  @param {number} u */
+    function lerp(a, b, u) { return a + (b - a) * u; }
+    var HEAT_STOPS = [
+        { t: 1.00, r: 255, g: 255, b: 255 },
+        { t: 0.72, r: 255, g: 231, b: 168 },
+        { t: 0.50, r: 255, g: 168, b: 64  },
+        { t: 0.28, r: 255, g: 90,  b: 40  },
+        { t: 0.00, r: 64,  g: 20,  b: 14  },
+    ];
+    /** @param {number} t */
+    function heatColor(t) {
+        t = Math.max(0, Math.min(1, t));
+        for (var i = 0; i < HEAT_STOPS.length - 1; i++) {
+            var a = HEAT_STOPS[i], b = HEAT_STOPS[i + 1];
+            if (t <= a.t && t >= b.t) {
+                var u = (a.t === b.t) ? 0 : (t - b.t) / (a.t - b.t);
+                return 'rgb(' + Math.round(lerp(b.r, a.r, u)) + ',' +
+                                 Math.round(lerp(b.g, a.g, u)) + ',' +
+                                 Math.round(lerp(b.b, a.b, u)) + ')';
+            }
+        }
+        return t > 0.5 ? 'rgb(255,255,255)' : 'rgb(64,20,14)';
+    }
+
+    /* 3 orbital "planes", 2 atoms each */
+    var PLANES = [
+        { rot: 0,               squash: 0.34, speed: 0.00085 },
+        { rot: (Math.PI/3),     squash: 0.34, speed: -0.00062 },
+        { rot: (2*Math.PI/3),   squash: 0.34, speed: 0.00071 },
+    ];
+
+    var atoms = [];
+    var fragments = [];
+    var embers = [];
+    var pops = [];
+    var phase = 'orbit'; // 'orbit' → 'converge' → 'burst' → 'done'
+    var convergeStart = 0, burstStart = 0;
+    var energy = 0; // 0..1, driven by real boot progress — see __setAtomEnergy
+
+    function resize() {
+        var rect = canvas.getBoundingClientRect();
+        canvas.width  = rect.width  * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx = rect.width  / 2;
+        cy = rect.height / 2;
+        var baseR = Math.min(rect.width, rect.height) * 0.30;
+        /* Both atoms in a plane share EXACTLY the same radius as that
+           plane's drawn guide ring (drawOrbitGuides always uses baseR) —
+           they sit on opposite sides via their angle offset (π apart),
+           so they stay visually locked onto their ring instead of one
+           of them "floating" on an invisible larger orbit. */
+        atoms.forEach(function(a) {
+            a.rx = baseR;
+            a.ry = baseR;
+        });
+    }
+
+    function buildAtoms() {
+        atoms = [];
+        for (var p = 0; p < PLANES.length; p++) {
+            for (var k = 0; k < 2; k++) {
+                atoms.push({
+                    plane: p,
+                    angle: (k === 0 ? 0 : Math.PI) + p * 0.5,
+                    rx: 60, ry: 60,
+                    size: 4.2 + Math.random() * 1.6,
+                    color: COOL_COLORS[(p * 2 + k) % COOL_COLORS.length],
+                    trail: [],
+                });
+            }
+        }
+    }
+    buildAtoms();
+    resize();
+    window.addEventListener('resize', resize);
+
+    function drawOrbitGuides() {
+        for (var p = 0; p < PLANES.length; p++) {
+            var pl = PLANES[p];
+            var baseR = Math.min(canvas.width, canvas.height) / dpr * 0.30;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(pl.rot);
+            ctx.scale(1, pl.squash);
+            ctx.beginPath();
+            ctx.arc(0, 0, baseR, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(148,163,184,0.16)';
+            ctx.lineWidth = 1 / pl.squash;
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    /** @param {object} a
+     *  @param {number} radiusScale */
+    function posForAtom(a, radiusScale) {
+        var pl = PLANES[a.plane];
+        var ex = Math.cos(a.angle) * a.rx * radiusScale;
+        var ey = Math.sin(a.angle) * a.ry * radiusScale * pl.squash;
+        var x  = ex * Math.cos(pl.rot) - ey * Math.sin(pl.rot);
+        var y  = ex * Math.sin(pl.rot) + ey * Math.cos(pl.rot);
+        return { x: cx + x, y: cy + y };
+    }
+
+    /** @param {object} pos
+     *  @param {number} size
+     *  @param {string} color
+     *  @param {number} [glow] */
+    function drawGlow(pos, size, color, glow) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        var g = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size * (glow || 1));
+        g.addColorStop(0, '#ffffff');
+        g.addColorStop(0.35, color);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, size * (glow || 1), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    /** @param {Array} trail
+     *  @param {number} baseSize
+     *  @param {string} color */
+    function drawTrail(trail, baseSize, color) {
+        for (var i = 0; i < trail.length; i++) {
+            var t = trail[i];
+            var age = (i + 1) / (trail.length + 1);
+            drawGlow(t, baseSize * (0.35 + age * 0.5), color, 1.1 * age);
+        }
+    }
+    /** @param {object} a
+     *  @param {object} pos
+     *  @param {number} len */
+    function pushTrail(a, pos, len) {
+        a.trail.push({ x: pos.x, y: pos.y });
+        if (a.trail.length > len) a.trail.shift();
+    }
+
+    function spawnBlast() {
+        fragments = [];
+        embers = [];
+        pops = [];
+
+        for (var i = 0; i < N_FRAGMENTS; i++) {
+            var ang = Math.random() * Math.PI * 2;
+            var isChunk = i < Math.round(N_FRAGMENTS * 0.2);
+            var speed = isChunk ? (0.05 + Math.random() * 0.08) : (0.11 + Math.random() * 0.21);
+            fragments.push({
+                x: cx, y: cy,
+                vx: Math.cos(ang) * speed,
+                vy: Math.sin(ang) * speed,
+                size: isChunk ? (3.6 + Math.random() * 2.4) : (1.3 + Math.random() * 1.4),
+                chunk: isChunk,
+                trail: [],
+                phaseOff: Math.random() * Math.PI * 2,
+                popAt: (!isChunk && Math.random() < 0.13) ? (150 + Math.random() * 380) : -1,
+                popped: false,
+            });
+        }
+
+        for (var e = 0; e < N_EMBERS; e++) {
+            var eang = Math.random() * Math.PI * 2;
+            embers.push({
+                x: cx, y: cy,
+                vx: Math.cos(eang) * (0.018 + Math.random() * 0.03),
+                vy: Math.sin(eang) * (0.018 + Math.random() * 0.03) - 0.024,
+                size: 2 + Math.random() * 2,
+                life: 1500 + Math.random() * 600,
+            });
+        }
+    }
+
+    /* ── Public: tie orbit energy to real boot progress (0-100). Atoms
+       spin faster and glow brighter as loading nears completion —
+       visual tension that pays off at the detonation. ── */
+    /** @param {number} pct */
+    window.__setAtomEnergy = function(pct) {
+        energy = Math.max(0, Math.min(1, (pct || 0) / 100));
+    };
+
+    /* ── Public trigger — called once when boot progress hits 100% ── */
+    window.__triggerAtomExplosion = function() {
+        if (phase !== 'orbit') return;
+        phase = 'converge';
+        convergeStart = performance.now();
+        var icon = document.querySelector('.sp-icon');
+        if (icon) {
+            icon.style.transition = 'box-shadow 0.24s ease, transform 0.24s ease';
+            icon.style.boxShadow = '0 0 90px rgba(255,244,214,0.95), 0 0 44px rgba(255,150,60,0.85)';
+            icon.style.transform = 'scale(1.12)';
+        }
+    };
+
+    function triggerImpactEffects() {
+        var card = document.querySelector('.sp-content');
+        if (card) {
+            card.classList.add('sp-impact');
+            setTimeout(function(){ card.classList.remove('sp-impact'); }, 340);
+        }
+        var flashEl = document.getElementById('sp-flash');
+        if (flashEl) {
+            flashEl.classList.remove('hit');
+            void flashEl.offsetWidth;
+            flashEl.classList.add('hit');
+        }
+    }
+
+    /** @param {number} t */
+    function easeInQuad(t) { return t * t; }
+
+    var lastT = performance.now();
+    /** @param {number} now */
+    function frame(now) {
+        if (!running) return;
+        var dt = Math.min(now - lastT, 50);
+        lastT = now;
+
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+
+        if (phase === 'orbit') {
+            var speedMul = 1 + energy * 2.4;
+            var glowMul  = 1 + energy * 0.75;
+            drawOrbitGuides();
+            atoms.forEach(function(a) {
+                var pl = PLANES[a.plane];
+                a.angle += pl.speed * dt * speedMul;
+                var pos = posForAtom(a, 1);
+                drawTrail(a.trail, a.size, a.color);
+                pushTrail(a, pos, TRAIL_LEN);
+                drawGlow(pos, a.size * (1 + energy * 0.1), a.color, 1.6 * glowMul);
+            });
+
+        } else if (phase === 'converge') {
+            var t = (now - convergeStart) / CONVERGE_MS;
+            if (t >= 1) {
+                phase = 'burst';
+                burstStart = now;
+                spawnBlast();
+                triggerImpactEffects();
+            } else {
+                var eased = easeInQuad(t);
+                var radiusScale = 1 - eased;
+                var spdBoost = 1 + eased * 6;
+                drawOrbitGuides();
+                atoms.forEach(function(a) {
+                    var pl = PLANES[a.plane];
+                    a.angle += pl.speed * dt * spdBoost;
+                    var pos = posForAtom(a, radiusScale);
+                    drawTrail(a.trail, a.size, a.color);
+                    pushTrail(a, pos, TRAIL_LEN);
+                    /* Atoms shift toward white-hot as they approach collision */
+                    var hotColor = eased > 0.55 ? heatColor(0.85 + (eased - 0.55) * 0.3) : a.color;
+                    drawGlow(pos, a.size * (1 - eased * 0.3), hotColor, 1.6 + eased * 2.2);
+                });
+            }
+
+        } else if (phase === 'burst') {
+            var bt = now - burstStart;
+
+            /* ── Sunburst light rays — the blinding instant of detonation ── */
+            if (bt < RAY_MS) {
+                var rf = 1 - bt / RAY_MS;
+                var rayCount = 12;
+                var maxLen = 34 + (bt / RAY_MS) * 150;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.translate(cx, cy);
+                ctx.rotate(bt * 0.0035);
+                for (var ri = 0; ri < rayCount; ri++) {
+                    ctx.save();
+                    ctx.rotate((ri / rayCount) * Math.PI * 2);
+                    var rg = ctx.createLinearGradient(0, 0, maxLen, 0);
+                    rg.addColorStop(0, 'rgba(255,250,235,' + (0.5 * rf) + ')');
+                    rg.addColorStop(1, 'rgba(255,200,120,0)');
+                    ctx.fillStyle = rg;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(maxLen, -maxLen * 0.05);
+                    ctx.lineTo(maxLen,  maxLen * 0.05);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+                ctx.restore();
+            }
+
+            /* ── Core detonation flash — white → yellow → orange, no purple ── */
+            if (bt < 280) {
+                var fr = bt / 280;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                var flashR = 8 + fr * 54;
+                var fg = ctx.createRadialGradient(cx, cy, 0, cx, cy, flashR);
+                fg.addColorStop(0,    'rgba(255,255,255,' + (0.97 * (1 - fr)) + ')');
+                fg.addColorStop(0.35, 'rgba(255,231,168,' + (0.85 * (1 - fr)) + ')');
+                fg.addColorStop(0.65, 'rgba(255,140,60,'  + (0.55 * (1 - fr)) + ')');
+                fg.addColorStop(1,    'rgba(255,90,40,0)');
+                ctx.fillStyle = fg;
+                ctx.beginPath(); ctx.arc(cx, cy, flashR, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+
+            /* ── Primary shockwave — warm white-hot ring ── */
+            if (bt < 560) {
+                var sr = bt / 560;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.strokeStyle = 'rgba(255,244,214,' + (0.58 * (1 - sr)) + ')';
+                ctx.lineWidth = 2.6 * (1 - sr) + 0.4;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 6 + sr * 124, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            /* ── Secondary echo shockwave — cooler amber, delayed ── */
+            var sr2t = bt - 150;
+            if (sr2t > 0 && sr2t < 420) {
+                var sr2 = sr2t / 420;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.strokeStyle = 'rgba(255,170,90,' + (0.42 * (1 - sr2)) + ')';
+                ctx.lineWidth = 1.6 * (1 - sr2) + 0.3;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 4 + sr2 * 78, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            /* ── Fragment spray: sparks (heat-cooling + short trail) + tumbling chunks ── */
+            var fragAlive = false;
+            fragments.forEach(function(f) {
+                var age = bt;
+                if (age > BURST_MS) return;
+                fragAlive = true;
+
+                var decay = Math.pow(f.chunk ? 0.997 : 0.993, dt);
+                f.vx *= decay; f.vy *= decay;
+                f.x += f.vx * dt; f.y += f.vy * dt;
+
+                var heat = Math.max(0, 1 - age / BURST_MS); // 1 = white-hot fresh, 0 = cooled
+                var color = heatColor(heat);
+
+                if (f.chunk) {
+                    var tumble = 0.7 + 0.3 * Math.sin(now * 0.006 + f.phaseOff);
+                    drawGlow({ x: f.x, y: f.y }, f.size, color, (1.2 * heat + 0.12) * tumble);
+                } else {
+                    drawTrail(f.trail, f.size, color);
+                    f.trail.push({ x: f.x, y: f.y });
+                    if (f.trail.length > FRAG_TRAIL_LEN) f.trail.shift();
+                    drawGlow({ x: f.x, y: f.y }, f.size, color, 1.3 * heat + 0.14);
+                }
+
+                if (f.popAt >= 0 && !f.popped && age >= f.popAt) {
+                    f.popped = true;
+                    pops.push({ x: f.x, y: f.y, start: now });
+                }
+            });
+
+            /* ── Rising embers / smoke — lingers a bit after the main flash ── */
+            var emberAlive = false;
+            embers.forEach(function(e) {
+                var age = bt;
+                if (age > e.life) return;
+                emberAlive = true;
+                e.vy -= 0.0000055 * dt; // gentle buoyant rise
+                e.x  += e.vx * dt;
+                e.y  += e.vy * dt;
+                e.size += 0.0009 * dt;  // slowly billow outward like smoke
+                var ea = Math.max(0, 1 - age / e.life);
+                ctx.save();
+                ctx.globalAlpha = ea * 0.38;
+                ctx.fillStyle = 'rgb(92,72,66)';
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            /* Mini secondary "pop" chain-reaction sparkles */
+            for (var pi = pops.length - 1; pi >= 0; pi--) {
+                var po = pops[pi];
+                var page = now - po.start;
+                if (page > 200) { pops.splice(pi, 1); continue; }
+                var pf = page / 200;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                var pr = 2 + pf * 15;
+                var pg = ctx.createRadialGradient(po.x, po.y, 0, po.x, po.y, pr);
+                pg.addColorStop(0, 'rgba(255,244,214,' + (0.88 * (1 - pf)) + ')');
+                pg.addColorStop(1, 'rgba(255,244,214,0)');
+                ctx.fillStyle = pg;
+                ctx.beginPath(); ctx.arc(po.x, po.y, pr, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+
+            if (!fragAlive && !emberAlive && pops.length === 0) {
+                phase = 'done';
+                var icon2 = document.querySelector('.sp-icon');
+                if (icon2) { icon2.style.boxShadow = ''; icon2.style.transform = ''; }
+            }
+        }
+        /* phase === 'done' → canvas stays cleared, nothing to draw */
+
+        requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    return function stop() {
+        running = false;
+        window.removeEventListener('resize', resize);
+        try { ctx.clearRect(0, 0, canvas.width, canvas.height); } catch(e) {}
+    };
+})();
+
+
+
+/* ════════════════════════════════════════════════════════════════════
+   1. PROTECTED MULTICALC RUNTIME
+   Object.defineProperty με getter-only ώστε τα module stubs
+   (var MultiCalc = {...}) να αποτυγχάνουν σιωπηλά σε sloppy mode
+   και το global runtime να παραμένει άθικτο.
+   ════════════════════════════════════════════════════════════════════ */
+(function() {
+    var _mc = {
+        state: {
+            currentLang:              (function(){ try{return localStorage.getItem('multicalc_lang')||'el';}catch(e){return 'el';} })(),
+            currentTheme:             (function(){ try{return localStorage.getItem('multicalc_theme')||'default';}catch(e){return 'default';} })(),
+            calcHistory:              { std: [], sci: [] },
+            factInterval:             null,
+            allFacts:                 [],
+            usedFacts:                new Set(),
+            lastNavTime:              0,
+            sciExpr:                  '',
+            eqMode:                   'linear',
+            currentPhysicsCategory:   'mechanics',
+            currentPercentTool:       'basic',
+            currentBMITab:            'basic',
+            currFrom:                 'USD',
+            currTo:                   'EUR',
+            liveRates:                null,
+            liveRatesFetchedAt:       null,
+            liveRatesNextUpdate:      null,
+            currentFormula:           null,
+        },
+        data: {
+            translations:     {},
+            themes:           {},
+            funFactsData:     {},
+            catEmoji:         {},
+            holidays:         [],
+            conversionFactors:{},
+            physicsFormulas:  {},
+            physicsFormulaI18n:{},
+            varWordI18n:      {},
+            stepTemplates:    {},
+            allCurrencies:    [],
+            currencyFlags:    {},
+            staticRates:      {},
+            currencyDecimals: { zero: new Set(), three: new Set() },
+        },
+        api:     {},
+        modules: { loaded: new Set(), failed: new Set() }
+    };
+
+    /* defineProperty: set is a no-op → var MultiCalc = {...} silently fails */
+    Object.defineProperty(window, 'MultiCalc', {
+        get: function()       { return _mc; },
+        set: function(_v)      { /* protected — module stub ignored */ },
+        configurable: false,
+        enumerable:   true,
+    });
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════
+   4. GLOBAL EVENT DELEGATION
+   Back buttons in standalone modules have no onclick (they're demos).
+   In APP mode we intercept all clicks and handle:
+     • [data-nav]  → navTo(target, isBack)
+     • .back-btn   → navTo('scr-menu', true)   (default destination)
+   This runs once after all modules load.
+   ════════════════════════════════════════════════════════════════════ */
+function _initEventDelegation() {
+    document.addEventListener('click', function(e) {
+        /* 1. data-nav attribute (has explicit target) */
+        var navEl = e.target.closest('[data-nav]');
+        if (navEl && typeof navTo === 'function') {
+            e.preventDefault();
+            navTo(navEl.dataset.nav, navEl.dataset.back === 'true');
+            return;
+        }
+
+        /* 2. .back-btn without onclick / data-nav → go to menu */
+        var backEl = e.target.closest('.back-btn');
+        if (backEl && !backEl.getAttribute('onclick') &&
+            !backEl.dataset.nav && typeof navTo === 'function') {
+            e.preventDefault();
+            navTo('scr-menu', true);
+            return;
+        }
+    }, false);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   5. SHARED navTo OVERRIDE
+   Ο MODULE-01 ορίζει navTo() αλλά δεν ξέρει για το Fun Facts panel
+   (αυτό ανήκει στο MODULE-12) και δεν έχει την history init call.
+   Μετά το φόρτωμα όλων των modules, κάνουμε wrap το navTo()
+   ώστε να χειρίζεται αυτά.
+   ════════════════════════════════════════════════════════════════════ */
+function _wrapNavTo() {
+    if (typeof window.navTo !== 'function') return;
+    var _original = window.navTo;
+    /** @param {string} id
+     *  @param {boolean} [isBack] */
+    window.navTo = function(id, isBack) {
+        /* Fun Facts panel: εμφάνιση/απόκρυψη + docking
+           NOTE: MODULE-12 uses a CLASS (.fun-facts-panel), not an id.
+           On screens that carry a .fun-facts-slot element, the single
+           shared panel node is moved into that slot and switched to
+           static in-flow positioning (.docked) instead of floating
+           fixed over the content. Screens without a slot keep the
+           original floating behavior, re-parenting the panel back to
+           its #app-screens home. */
+        var panel = document.querySelector('.fun-facts-panel');
+        if (panel) {
+            if (id === 'scr-lang') {
+                panel.style.display = 'none';
+                if (MultiCalc.state.factInterval) {
+                    clearInterval(MultiCalc.state.factInterval);
+                    MultiCalc.state.factInterval = null;
+                }
+            } else {
+                var targetScreen = document.getElementById(id);
+                var slot = targetScreen ? targetScreen.querySelector('.fun-facts-slot') : null;
+                if (slot) {
+                    if (panel.parentElement !== slot) slot.appendChild(panel);
+                    panel.classList.add('docked');
+                } else {
+                    var home = document.getElementById('app-screens');
+                    if (home && panel.parentElement !== home) home.appendChild(panel);
+                    panel.classList.remove('docked');
+                }
+                panel.style.display = '';
+                if (!MultiCalc.state.factInterval && typeof initFunFacts === 'function') {
+                    initFunFacts();
+                }
+            }
+        }
+        return _original.call(this, id, isBack);
+    };
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   5. (removed) — υπήρχε εδώ ένα wrap για solve()/solveSci() που καλούσε
+   addToHistory() ξανά μετά την κλήση τους. Και τα δύο MODULE-06/07
+   καλούν ήδη addToHistory() μόνα τους· το wrap απλά πρόσθετε 2η,
+   πανομοιότυπη εγγραφή σε κάθε πράξη (επιβεβαιωμένο bug). Αφαιρέθηκε.
+   ════════════════════════════════════════════════════════════════════ */
+
+
+/* ════════════════════════════════════════════════════════════════════
+   6. BOOT SEQUENCE
+   ════════════════════════════════════════════════════════════════════ */
+async function bootMultiCalc() {
+    var splash    = document.getElementById('app-splash');
+    var spStatus  = document.getElementById('sp-status');
+    var spBarWrap = document.getElementById('sp-bar-wrap');
+    var spModules = document.getElementById('sp-modules');
+
+    var registry = getModuleList();
+    if (!registry.length) {
+        if (spStatus) spStatus.textContent = '✗ Κενός ή ανύπαρκτος κατάλογος modules (modules.js).';
+        _mcReport('boot-abort', { reason: 'empty-catalog' });
+        return;
+    }
+    var enabled = registry.filter(function(m){ return m.enabled; });
+    var total   = enabled.length;
+    var done    = 0;
+
+    /* Build one bar segment per module, in load order */
+    var segments = [];
+    if (spBarWrap) {
+        enabled.forEach(function(_m, i) {
+            var seg = document.createElement('div');
+            seg.className = 'sp-seg';
+            seg.id = 'seg-' + i;
+            spBarWrap.appendChild(seg);
+            segments.push(seg);
+        });
+    }
+
+    /* Add module chip to splash */
+    /** @param {string} label */
+    function addChip(label) {
+        var chip = document.createElement('span');
+        chip.className = 'sp-chip';
+        chip.id = 'chip-' + label;
+        chip.textContent = label;
+        if (spModules) spModules.appendChild(chip);
+        return chip;
+    }
+    enabled.forEach(function(m){ addChip(m.id); });
+
+    /** @param {string} modId
+     *  @param {boolean} success */
+    function tick(modId, success) {
+        var seg = segments[done]; // this module's own segment, in load order
+        done++;
+        var pct = Math.round((done / total) * 100);
+        if (spStatus) spStatus.textContent = (success ? '✓ ' : '✗ ') + modId;
+
+        if (seg) {
+            seg.classList.add(success ? 'filled' : 'fail', 'spark');
+            setTimeout(function(){ seg.classList.remove('spark'); }, 520);
+        }
+
+        var chip = document.getElementById('chip-' + modId);
+        if (chip) {
+            chip.classList.add(success ? 'ok' : 'fail', 'ping');
+            setTimeout(function(){ chip.classList.remove('ping'); }, 600);
+        }
+
+        if (typeof window.__setAtomEnergy === 'function') window.__setAtomEnergy(pct);
+
+        if (pct >= 100 && typeof window.__triggerAtomExplosion === 'function') {
+            window.__triggerAtomExplosion();
+        }
+    }
+
+    /* ── Load modules sequentially ─────────────────────────────── */
+    if (spStatus) spStatus.textContent = 'Loading modules…';
+
+    for (var i = 0; i < registry.length; i++) {
+        var mod = registry[i];
+        var ok  = await loadModule(mod);
+        /* Ένα ανενεργό module δεν έχει chip/segment στο splash — το loadModule()
+           απλώς κρύβει την κάρτα του· δεν πρέπει να προχωρά το progress bar. */
+        if (mod.enabled) tick(mod.id, ok);
+
+        /* MODULE-01 is required — abort if missing */
+        if (mod.required && !ok) {
+            if (spStatus) spStatus.textContent = '✗ MODULE-01 not found — cannot start.';
+            _mcReport('boot-abort', { reason: 'required-module-failed', module: mod.id });
+            return;
+        }
+    }
+
+    /* ── Post-load inits ───────────────────────────────────────── */
+    if (spStatus) spStatus.textContent = 'Finalizing…';
+
+    /* 1. Strip ALL 'active' classes that standalone module HTML bakes in.
+          (e.g. MODULE-01 standalone has class="screen active" on scr-lang)
+          Reset every screen so navTo() can do a clean first navigation. */
+    document.querySelectorAll('.screen').forEach(function(scr) {
+        scr.classList.remove('active','active-back','exiting','exiting-back');
+        scr.style.display = 'none';
+    });
+
+    /* 1.5. The loader (step C above) force-sets inline display:none on
+            #curr-picker-overlay / #fullscreen-modal at injection time, so
+            they can't flash open before their own CSS has applied. Their
+            owning modules hide/show them afterward purely via CSS classes
+            (opacity + pointer-events), never touching .style.display again
+            — so that inline override, once set, is permanent and blocks
+            them from ever opening. Clearing it here (back to '', falling
+            through to each module's own display:flex rule) restores their
+            intended closed-but-toggleable state; opacity:0 + pointer-
+            events:none in their own CSS still keeps them invisible and
+            non-interactive until their module's open() function runs. */
+    ['curr-picker-overlay', 'fullscreen-modal'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.style.display = '';
+    });
+
+    /* 2. Global event delegation (back buttons, data-nav) */
+    _initEventDelegation();
+
+    /* 3. Wrap navTo with Fun Facts logic */
+    _wrapNavTo();
+
+    /* 5. Restore saved theme */
+    if (typeof loadTheme === 'function') loadTheme();
+
+    /* 6. Restore saved history */
+    if (typeof loadHistory === 'function') {
+        loadHistory();
+    } else {
+        try {
+            var saved = localStorage.getItem('multicalc_history');
+            if (saved) {
+                MultiCalc.state.calcHistory = JSON.parse(saved);
+                ['std','sci'].forEach(function(t){
+                    if (typeof updateHistoryPanel === 'function') updateHistoryPanel(t);
+                });
+            }
+        } catch(e) {}
+    }
+
+    /* 7. MODULE-01's DOMContentLoaded callback never fires when injected
+          dynamically. Call what it registered there manually: */
+    if (typeof buildLangCards   === 'function') buildLangCards();
+    if (typeof injectMenuIcons  === 'function') injectMenuIcons();
+    if (typeof initRipples      === 'function') initRipples();
+
+    /* 7.5. Σειρά καρτών στο κύριο μενού, όπως ορίζεται στο modules.js */
+    if (typeof applyMenuOrder === 'function') applyMenuOrder(registry);
+
+    /* 8. Navigate to language screen */
+    await new Promise(function(r){ setTimeout(r, 200); });
+    if (typeof navTo === 'function') {
+        try {
+            navTo('scr-lang');
+        } catch(e) {
+            console.warn('[MultiCalc] navTo fallback:', e.message);
+            var scr = document.getElementById('scr-lang');
+            if (scr) { scr.style.display='block'; scr.classList.add('active'); }
+        }
+    } else {
+        var scr = document.getElementById('scr-lang');
+        if (scr) { scr.style.display='block'; scr.classList.add('active'); }
+    }
+
+    /* 9. Fade out splash — delayed enough for the nuclear-style collision
+       explosion (rays + flash + shockwaves + spark burst, ~1.26s core)
+       triggered at 100% in tick() to play out before the cross-fade. */
+    await new Promise(function(r){ setTimeout(r, 1050); });
+    if (splash) {
+        splash.classList.add('fade-out');
+        if (typeof __stopSplashFX === 'function') __stopSplashFX();
+        if (typeof window.__stopAtomsFX === 'function') window.__stopAtomsFX();
+        setTimeout(function(){ if (splash) splash.style.display = 'none'; }, 450);
+    }
+
+    /* Η εκκίνηση ολοκληρώθηκε — ενημερώνει το (προαιρετικό) diagnostic chip. */
+    _mcReport('boot-complete', { modules: total });
+}
+
+/* Boot on DOM ready */
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootMultiCalc);
+} else {
+    bootMultiCalc();
+}
+</script>
+</body>
+</html>

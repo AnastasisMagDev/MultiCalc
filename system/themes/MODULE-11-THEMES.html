@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODULE 11 — Themes</title>
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+html{background:#0f172a;min-height:100%;}
+body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);min-height:100dvh;min-height:100vh;color:white;overflow-x:hidden;transition:background 0.4s ease;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);top:-80px;left:-80px;}
+body::after{width:360px;height:360px;background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);bottom:40px;right:-60px;}
+.screen{display:none;padding:20px;padding-bottom:170px;min-height:100dvh;min-height:100vh;position:relative;z-index:1;}
+.screen.active{display:block;animation:screenIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;}
+@keyframes screenIn{from{opacity:0;transform:scale3d(0.96,0.96,1) translateY(10px);}to{opacity:1;transform:scale3d(1,1,1) translateY(0);}}
+.header{text-align:center;padding:40px 20px 20px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.8rem;color:#fff;box-shadow:0 8px 24px rgba(99,102,241,0.3);position:relative;overflow:hidden;}
+.logo-icon::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);animation:shimmer 3s infinite;}
+@keyframes shimmer{0%{transform:translate(-100%,-100%);}100%{transform:translate(100%,100%);}}
+.logo-text{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#fff,#e2e8f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo span{background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.subtitle{color:#94a3b8;font-size:0.95rem;margin-top:5px;}
+.back-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#94a3b8;font-size:0.95rem;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+.back-btn:hover{color:#e2e8f0;background:rgba(255,255,255,0.1);transform:translateX(-3px);}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-track{background:rgba(15,23,42,0.3);}::-webkit-scrollbar-thumb{background:rgba(71,85,105,0.5);border-radius:4px;}
+.unit-converter-container{max-width:600px;margin:0 auto;background:rgba(15,23,42,0.4);border:1px solid rgba(71,85,105,0.3);border-radius:25px;padding:30px;}
+.unit-title{font-size:1.5rem;font-weight:600;margin-bottom:25px;}
+/* MODULE 11 */
+#theme-overlay{position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0;transition:opacity 0.25s ease;background:#000;}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;max-width:600px;margin:20px auto;}
+.theme-card{aspect-ratio:16/9;border-radius:15px;cursor:pointer;position:relative;overflow:hidden;transition:all 0.3s ease;border:3px solid transparent;}
+.theme-card:hover{transform:scale(1.05);}
+.theme-card.active{border-color:#fbbf24;box-shadow:0 0 20px rgba(251,191,36,0.5);}
+.theme-group-header{grid-column:1/-1;font-size:0.78rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:2.5px;padding:10px 4px 6px;border-bottom:1px solid rgba(255,255,255,0.08);margin-top:8px;display:flex;align-items:center;gap:8px;}
+.theme-label{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);padding:4px 12px;border-radius:8px;font-size:0.85rem;color:white;white-space:nowrap;}
+@media(max-width:600px){.theme-grid{grid-template-columns:repeat(2,1fr);gap:10px;}}
+@media(max-width:480px){.screen{padding:15px;padding-bottom:140px;}}
+
+/* ── Light-theme contrast overrides (auto-added) ── */
+body.theme-light .back-btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+body.theme-light .back-btn:hover{background:#334155;border-color:#475569;color:#ffffff;}
+body.theme-light .subtitle{color:#475569;}
+body.theme-light .logo-text{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;}
+body.theme-light .unit-converter-container{background:rgba(15,23,42,0.88);}
+body.theme-light{color:#1e293b;}
+body.theme-light .theme-group-header{color:#475569;border-bottom-color:rgba(30,41,59,0.15);}
+body.theme-light .theme-label{background:rgba(15,23,42,0.75);}
+.theme-tabs{display:flex;gap:10px;margin-bottom:15px;}
+.theme-tab{flex:1;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.05);color:#94a3b8;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;-webkit-tap-highlight-color:transparent;}
+.theme-tab.active{background:rgba(99,102,241,0.28);border-color:rgba(99,102,241,0.55);color:#fff;}
+.theme-card.live-card .theme-label{display:flex;align-items:center;gap:4px;}
+.live-preview{position:absolute;inset:0;background:#02040a;}
+.live-preview iframe{width:100%;height:100%;border:0;display:block;pointer-events:none;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#f87171;display:inline-block;box-shadow:0 0 6px #f87171;animation:liveDotPulse 1.4s ease-in-out infinite;}
+@keyframes liveDotPulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+.theme-card.live-loading{animation:liveLoadPulse 0.9s ease-in-out infinite;filter:saturate(0.5);}
+@keyframes liveLoadPulse{0%,100%{opacity:0.55;}50%{opacity:0.9;}}
+.theme-card{box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14);}
+.theme-empty{grid-column:1/-1;text-align:center;color:#94a3b8;font-size:0.9rem;padding:28px 10px;}
+body.theme-light .theme-empty{color:#475569;}
+.theme-card.active{border-color:#fbbf24;box-shadow:0 0 0 2px rgba(0,0,0,0.75),0 0 20px rgba(251,191,36,0.5);}
+.theme-tabs.sub{margin-bottom:12px;}
+.theme-tabs.sub .theme-tab{padding:8px;font-size:0.82rem;}
+.contrast-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px;}
+.contrast-toggle{padding:9px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.05);color:#94a3b8;font-size:0.85rem;font-weight:600;cursor:pointer;}
+.contrast-toggle.active{background:rgba(99,102,241,0.28);border-color:rgba(99,102,241,0.55);color:#fff;}
+.contrast-note{font-size:0.78rem;color:#94a3b8;}
+
+</style></head>
+<body>
+<div id="theme-overlay"></div>
+<div id="scr-themes" class="screen active">
+    <div class="header">
+        <div class="logo"><div class="logo-icon">∑</div><div class="logo-text">Multi<span>Calc</span></div></div>
+        <div class="subtitle t-header-sub">Math • Physics • Units • Currency</div>
+    </div>
+    <button class="back-btn" type="button">← <span class="t-back">Πίσω</span></button>
+    <div class="unit-converter-container">
+        <div class="unit-title">Background Themes</div>
+        <div class="contrast-row">
+            <button class="contrast-toggle" id="contrast-toggle" type="button" onclick="toggleContrast()"></button>
+            <span class="contrast-note" id="contrast-note"></span>
+        </div>
+        <div class="theme-tabs">
+            <button class="theme-tab active" id="tab-glossy" type="button" onclick="showThemeTab('glossy')">✨ Glossy</button>
+            <button class="theme-tab" id="tab-simple" type="button" onclick="showThemeTab('simple')">🎨 Simple</button>
+            <button class="theme-tab" id="tab-live" type="button" onclick="showThemeTab('live')">🎬 Live</button>
+        </div>
+        <div id="panel-glossy">
+            <div class="theme-grid" id="glossy-theme-grid"></div>
+        </div>
+        <div id="panel-simple" style="display:none;">
+            <div class="theme-tabs sub">
+                <button class="theme-tab active" id="sub-single" type="button" onclick="showSimpleSub('single')">Single colors</button>
+                <button class="theme-tab" id="sub-duo" type="button" onclick="showSimpleSub('duo')">Duo colors</button>
+            </div>
+            <div class="theme-grid" id="simple-theme-grid"></div>
+            <div class="theme-grid" id="duo-theme-grid" style="display:none;"></div>
+        </div>
+        <div id="panel-live" style="display:none;">
+            <div class="theme-grid" id="live-theme-grid"></div>
+        </div>
+    </div>
+</div>
+<script src="theme-contrast.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   MODULE 11 · THEMES  —  script map (search the "§" markers)
+   § 1  DATA   GLOSSY themes (gradients) by color category        G01…
+   § 2  DATA   SIMPLE single colors by color family               S01…
+   § 3  DATA   DUO colors (two plain colors meeting in the middle) D01
+   § 4  DATA   LIVE themes registry (empty — Live tab is kept)
+   § 5  BUILD  themes lookup, background + contrast descriptors
+   § 6  UI     grid rendering
+   § 7  APPLY  setTheme (+ tells the contrast system)
+   § 8  LIVE   Live-theme engine (generic, no themes inside)
+   § 9  TABS   Glossy / Simple (Single | Duo) / Live
+   § 10 CONTRAST  link to theme-contrast.js (global contrast system)
+   § 11 BOOT   first render + restore saved theme
+
+   Categories (in UI order):
+      G01  ⚫ Black & Charcoal (6)
+      G02  ⚪ White, Silver & Gray (8)
+      G03  🔴 Red & Crimson (6)
+      G04  🟠 Orange & Bronze (13)
+      G05  🟡 Yellow & Gold (5)
+      G06  🟢 Green (9)
+      G07  🩵 Teal & Cyan (9)
+      G08  🌑 Navy & Midnight (12)
+      G09  🔵 Blue (17)
+      G10  🟣 Purple & Violet (12)
+      G11  🌸 Pink & Magenta (21)
+      S01  🔴 Reds (8)
+      S02  🟠 Oranges (8)
+      S03  🟡 Yellows (5)
+      S04  🟢 Greens (14)
+      S05  🩵 Teals & Cyans (6)
+      S06  🔵 Blues (11)
+      S07  🟣 Purples (11)
+      S08  🌸 Pinks (6)
+      S09  🤎 Browns (9)
+      S10  ⚪ Neutrals (7)
+      D01  🎭 Duo Colors (23)
+
+   Add a theme  = one line in its category (glossy: 3 colors, simple: 1, duo: 2).
+   New category = copy a block, give it a unique key.
+   IDs are saved in localStorage (multicalc_theme): never rename them.
+   theme-contrast.js (same folder) keeps text/buttons readable on every
+   background, app-wide. This file only tells it which background is active.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ═══ § 1 · DATA — GLOSSY THEMES (3-color gradients, darkest → lightest per category) ═══ */
+const GLOSSY_CATEGORIES=[
+
+/* ── G01 ── ⚫ BLACK & CHARCOAL ── 6 themes ── */
+{key:'black',icon:'⚫',name:'Black & Charcoal',themes:[
+    ['theme26','VOID','#000000','#050508','#0a0a10'],
+    ['theme15','OBSIDIAN','#050505','#0d0d0d','#1a1a1a'],
+    ['theme29','SHADOW','#080808','#111111','#1c1c1c'],
+    ['theme17','PHANTOM','#0a0a14','#141420','#1f1f30'],
+    ['theme3','DARK','#0d1117','#161b22','#21262d'],
+    ['theme118','GRAPHITE','#1a1c20','#2e3238','#454a52'],
+]},
+
+/* ── G02 ── ⚪ WHITE, SILVER & GRAY ── 8 themes ── */
+{key:'white',icon:'⚪',name:'White, Silver & Gray',themes:[
+    ['theme106','OCEAN MIST','#414b54','#778899','#a7b2bd'],
+    ['theme108','WINTER SLATE','#495562','#849bb3','#afbece'],
+    ['theme110','PERMAFROST','#516067','#93afbb','#b9cbd3'],
+    ['theme114','CELESTIAL CHILL','#768188','#d6eaf8','#e4f1fa'],
+    ['theme94','CELESTIAL ETHER','#728c7e','#cfffe5','#e0ffee'],
+    ['theme109','SNOWSHADOW','#7c8285','#e1edf1','#ecf3f6'],
+    ['theme115','GLACIER ICE','#7b888a','#e0f7fa','#ebfafc'],
+    ['theme101','FROSTED WHITE','#84888c','#f0f8ff','#f5faff'],
+]},
+
+/* ── G03 ── 🔴 RED & CRIMSON ── 6 themes ── */
+{key:'red',icon:'🔴',name:'Red & Crimson',themes:[
+    ['theme43','BLOODMOON','#1a0000','#330000','#4d0000'],
+    ['theme10','CRIMSON','#1a0000','#330000','#500000'],
+    ['theme49','LAVA CORE','#1f0000','#3d0900','#660f00'],
+    ['theme79','OXBLOOD','#290202','#4a0404','#895c5c'],
+    ['theme116','RUBY','#4a0613','#b5123a','#ff4d6d'],
+    ['theme99','PHOENIX WING CRIMSON','#7c0326','#e10645','#ec5d86'],
+]},
+
+/* ── G04 ── 🟠 ORANGE & BRONZE ── 13 themes ── */
+{key:'orange',icon:'🟠',name:'Orange & Bronze',themes:[
+    ['theme44','COSMIC DUST','#0d0800','#1a1100','#2e1f00'],
+    ['theme14','ECLIPSE','#080808','#1a0f00','#3d2200'],
+    ['theme40','TITAN','#1a0d00','#331a00','#4d2600'],
+    ['theme68','SOFT SUNRISE','#1f0d00','#3d1f00','#5c3300'],
+    ['theme8','SUNSET','#1f0800','#3d1200','#6b2200'],
+    ['theme23','EMBER','#1f0800','#3d1500','#6b2a00'],
+    ['theme37','SOLAR FLARE','#1f1000','#3d2200','#6b3d00'],
+    ['theme45','DRAGONFIRE','#1f0800','#4d1500','#732600'],
+    ['theme76','SWEET AURA','#2e1100','#4d2200','#663300'],
+    ['theme16','INFERNO','#1a0000','#4d0f00','#8b2500'],
+    ['theme83','AGED BRONZE','#32271b','#5b4731','#948779'],
+    ['theme92','NOVA\'S HEART EMBER','#8a2402','#fb4103','#fc845b'],
+    ['theme87','AMBROSIA','#773520','#d9603b','#e69880'],
+]},
+
+/* ── G05 ── 🟡 YELLOW & GOLD ── 5 themes ── */
+{key:'yellow',icon:'🟡',name:'Yellow & Gold',themes:[
+    ['theme52','THUNDERSTRIKE','#0d0d00','#1f1f00','#333300'],
+    ['theme66','VANILLA SKY','#1f1800','#3d3200','#5c4a00'],
+    ['theme98','ABYSSAL GOLD','#594302','#a17a03','#c2a95b'],
+    ['theme117','SAFFRON','#5c4400','#e0a100','#ffd84d'],
+    ['theme86','OLYMPIAN GOLD','#75601e','#d4af37','#e3cb7d'],
+]},
+
+/* ── G06 ── 🟢 GREEN ── 9 themes ── */
+{key:'green',icon:'🟢',name:'Green',themes:[
+    ['theme21','VENOM','#000f00','#011a01','#023302'],
+    ['theme47','EMERALD GLOW','#001a0d','#002e19','#004d2a'],
+    ['theme39','QUANTUM','#001a0a','#003314','#004d1e'],
+    ['theme27','NEONPULSE','#001a0d','#003319','#004d26'],
+    ['theme7','FOREST','#0a1f0a','#0d2e0d','#1a4d1a'],
+    ['theme95','DRAGONSCALE EMERALD','#022412','#034121','#5b846f'],
+    ['theme35','TOXIC LIME','#0d1f00','#4d9900','#a6ff00'],
+    ['theme84','MYSTIC JADE','#005c3b','#00a86b','#59c69f'],
+    ['theme96','ELDRITCH FIRE','#2b7a03','#4edd05','#8ce95c'],
+]},
+
+/* ── G07 ── 🩵 TEAL & CYAN ── 9 themes ── */
+{key:'teal',icon:'🩵',name:'Teal & Cyan',themes:[
+    ['theme9','AURORA','#001f1f','#003333','#00504f'],
+    ['theme31','CYBERWAVE','#001f2e','#003344','#004d5c'],
+    ['theme18','MIRAGE','#001a2e','#003d5c','#006b8f'],
+    ['theme78','TEAL','#004646','#008080','#59acac'],
+    ['theme107','AQUAFLOW','#007173','#00ced1','#59dfe1'],
+    ['theme100','MANA STREAM','#1f6c7b','#39c4e0','#7ed9eb'],
+    ['theme89','STARFLOW GLIMMER','#5a807b','#a4e8e0','#c4f0eb'],
+    ['theme103','POLAR BLUE','#617b7f','#b0e0e6','#ccebef'],
+    ['theme102','ICE FLOE','#608383','#afeeee','#cbf4f4'],
+]},
+
+/* ── G08 ── 🌑 NAVY & MIDNIGHT ── 12 themes ── */
+{key:'navy',icon:'🌑',name:'Navy & Midnight',themes:[
+    ['default','DEFAULT','#0f172a','#1e293b','#1a1f3a'],
+    ['theme48','POLAR NIGHT','#000d1a','#001429','#001a1a'],
+    ['theme32','MYSTIC','#0d001f','#001a1a','#001a2e'],
+    ['theme53','BLUE ABYSS','#000814','#000d26','#001540'],
+    ['theme41','ICEFIRE','#001a33','#001940','#1a0d00'],
+    ['theme46','LIQUID NIGHT','#00001f','#00003d','#001a33'],
+    ['theme42','DEEP SEA','#000d1f','#001933','#002040'],
+    ['theme34','STORM','#0a0f14','#141f2e','#1e2d40'],
+    ['theme38','HYPERION','#080f1a','#0f1f33','#162e4d'],
+    ['theme5','OCEAN','#0a1628','#0d2137','#102a4c'],
+    ['theme91','EVENT HORIZON BLUR','#020816','#040e28','#5c6273'],
+    ['theme105','NAVY ABYSS','#040918','#08102b','#5e6475'],
+]},
+
+/* ── G09 ── 🔵 BLUE ── 17 themes ── */
+{key:'blue',icon:'🔵',name:'Blue',themes:[
+    ['theme11','MIDNIGHT','#000814','#001d3d','#003566'],
+    ['theme24','VORTEX','#00001f','#000033','#000066'],
+    ['theme20','NOVA','#000d1a','#001a40','#002b6b'],
+    ['theme33','ELECTRIC','#00001f','#00003d','#00006b'],
+    ['theme22','FROSTBITE','#001428','#002244','#003366'],
+    ['theme12','SLATE','#0f0f1a','#1a1a2e','#252542'],
+    ['theme36','MOONLIGHT','#0d1520','#16253a','#1f3352'],
+    ['theme73','ICE PRINCESS','#0d1a28','#162840','#1f3855'],
+    ['theme2','SPACE','#1a1a2e','#16213e','#0f3460'],
+    ['theme28','ARCTIC','#0d1f2e','#1a3040','#263d54'],
+    ['theme25','SAPPHIRE','#000d2e','#001a5c','#00268f'],
+    ['theme104','DEEP SEA BLUE','#0e0e3e','#191970','#6a6aa2'],
+    ['theme112','ARCTIC NIGHT','#190f3f','#2e1c72','#776ba3'],
+    ['theme82','LAPIS LAZULI','#153556','#26619c','#7298bf'],
+    ['theme113','STARGAZER BLUE','#264863','#4682b4','#87aece'],
+    ['theme88','CHALCEDONY','#505972','#92a1cf','#b8c2e0'],
+    ['theme85','AETHER','#434983','#7984ee','#a8aff4'],
+]},
+
+/* ── G10 ── 🟣 PURPLE & VIOLET ── 12 themes ── */
+{key:'purple',icon:'🟣',name:'Purple & Violet',themes:[
+    ['theme19','VELVET','#1a0022','#2d0040','#1a001a'],
+    ['theme51','ETHEREAL','#0d0022','#1a0033','#260040'],
+    ['theme13','NEBULA','#0d0022','#1a0040','#3d0080'],
+    ['theme58','LAVENDER MIST','#1a1028','#2a1a3d','#3a2452'],
+    ['theme56','MOONKISS','#1f1028','#2e1840','#3d2255'],
+    ['theme6','GALAXY','#1b0033','#2d0057','#4a0080'],
+    ['theme50','DREAMWAVE','#1a0033','#2d0066','#400080'],
+    ['theme55','LILAC DREAM','#1a0a2e','#2d1a4d','#3d2266'],
+    ['theme93','VOIDSHADE VIOLET','#1a0127','#2f0147','#785a87'],
+    ['theme111','FROSTBITTEN VIOLET','#5a337d','#a45de4','#c496ed'],
+    ['theme97','NEBULA MIST','#64448b','#b57bfc','#cfa9fd'],
+    ['theme80','MAUVE','#7b618c','#e0b0ff','#ebccff'],
+]},
+
+/* ── G11 ── 🌸 PINK & MAGENTA ── 21 themes ── */
+{key:'pink',icon:'🌸',name:'Pink & Magenta',themes:[
+    ['theme30','PLASMA','#1f001f','#3d0040','#660066'],
+    ['theme59','CRYSTAL PINK','#1f0a1f','#33103a','#4d1a55'],
+    ['theme63','SWEET HEAVEN','#280a18','#3d1126','#551a36'],
+    ['theme70','ROSE CANDY','#2e0011','#550022','#7a0033'],
+    ['theme75','COTTON BLOOM','#28101a','#401828','#522235'],
+    ['theme60','STARLILY','#28101e','#40182f','#552240'],
+    ['theme69','MARSHMALLOW','#28141b','#3d222b','#52333d'],
+    ['theme71','BUBBLE PEARL','#28141e','#402432','#523343'],
+    ['theme67','FAIRY PINK','#2e0a22','#4d1a3d','#662252'],
+    ['theme74','MILKY ROSE','#2e0a1a','#4d1a33','#662247'],
+    ['theme65','DIAMOND KISS','#28141c','#442230','#55303f'],
+    ['theme61','SAKURA','#2e0a1a','#4d1a33','#6b2247'],
+    ['theme57','PEARL GLOW','#281a21','#402834','#523544'],
+    ['theme64','PINK PARADISE','#330022','#660044','#990055'],
+    ['theme62','CHERRY BLOSSOM','#330011','#66002b','#99003d'],
+    ['theme72','CUPID GLOW','#2e0a1a','#55142e','#7a1f44'],
+    ['theme54','VELVET ROSE','#3d0022','#6b1a40','#a0245c'],
+    ['theme81','TYRIAN PURPLE','#380121','#66023c','#9c5b80'],
+    ['theme4','ROSE','#4a0e2e','#7b1d45','#c2185b'],
+    ['theme77','BYZANTIUM','#3e1736','#702963','#a2749a'],
+    ['theme90','ARCANE SURGE','#770f8a','#d81bfa','#e66bfc'],
+]},
+
+];
+
+/* ═══ § 2 · DATA — SIMPLE SINGLE COLORS (one flat color each, standard CSS color names) ═══ */
+const SIMPLE_CATEGORIES=[
+
+/* ── S01 ── 🔴 REDS ── 8 colors ── */
+{key:'red',icon:'🔴',name:'Reds',themes:[
+    ['solid-red','RED','#ff0000'],
+    ['solid-crimson','CRIMSON','#dc143c'],
+    ['solid-vermilion','VERMILION','#e34234'],
+    ['solid-tomato','TOMATO','#ff6347'],
+    ['solid-firebrick','FIREBRICK','#b22222'],
+    ['solid-burgundy','BURGUNDY','#800020'],
+    ['solid-maroon','MAROON','#800000'],
+    ['solid-rust','RUST','#b7410e'],
+]},
+
+  

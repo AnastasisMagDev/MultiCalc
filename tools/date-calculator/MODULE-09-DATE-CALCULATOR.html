@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODULE 09 — Date Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+html{background:#0f172a;min-height:100%;}
+body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);min-height:100dvh;min-height:100vh;color:white;overflow-x:hidden;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);top:-80px;left:-80px;}
+body::after{width:360px;height:360px;background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);bottom:40px;right:-60px;}
+.screen{display:none;padding:20px;padding-bottom:170px;min-height:100dvh;min-height:100vh;position:relative;z-index:1;}
+.screen.active{display:block;animation:screenIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;}
+@keyframes screenIn{from{opacity:0;transform:scale3d(0.96,0.96,1) translateY(10px);}to{opacity:1;transform:scale3d(1,1,1) translateY(0);}}
+.header{text-align:center;padding:40px 20px 20px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.8rem;color:#fff;box-shadow:0 8px 24px rgba(99,102,241,0.3);position:relative;overflow:hidden;}
+.logo-icon::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);animation:shimmer 3s infinite;}
+@keyframes shimmer{0%{transform:translate(-100%,-100%);}100%{transform:translate(100%,100%);}}
+.logo-text{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#fff,#e2e8f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo span{background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.subtitle{color:#94a3b8;font-size:0.95rem;margin-top:5px;}
+.back-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#94a3b8;font-size:0.95rem;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+.back-btn:hover{color:#e2e8f0;background:rgba(255,255,255,0.1);transform:translateX(-3px);}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-track{background:rgba(15,23,42,0.3);}::-webkit-scrollbar-thumb{background:rgba(71,85,105,0.5);border-radius:4px;}
+.unit-converter-container{max-width:500px;margin:0 auto;background:rgba(15,23,42,0.4);border:1px solid rgba(71,85,105,0.3);border-radius:25px;padding:30px;}
+.unit-title{font-size:1.5rem;font-weight:600;margin-bottom:25px;}
+.tool-input-group{margin-bottom:20px;}
+.tool-label{color:#94a3b8;font-size:0.9rem;margin-bottom:8px;display:block;}
+.tool-input{width:100%;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:12px;padding:15px;font-size:1rem;color:white;outline:none;}
+.tool-input:focus{border-color:#6366f1;background:rgba(30,41,59,0.8);}
+.tool-result{background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:15px;padding:20px;margin-top:20px;text-align:center;font-size:1.2rem;font-weight:600;}
+.holidays-list{max-height:300px;overflow-y:auto;margin-top:20px;}
+.holiday-item{background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:12px;padding:12px;margin-bottom:10px;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);}
+.holiday-item:hover{transform:translateX(6px);border-color:rgba(99,102,241,0.4);box-shadow:-3px 0 0 rgba(99,102,241,0.6);}
+.holiday-date{color:#60a5fa;font-weight:600;margin-bottom:5px;}
+.holiday-name{color:#e2e8f0;font-size:0.95rem;}
+/* MODULE 09 tool grid — unique class names (date-*) so this never collides
+   with another module's own card grid once all screens share the DOM. */
+.date-tool-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;}
+.date-card{background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;padding:16px 10px;cursor:pointer;text-align:center;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.25s ease,border-color 0.25s ease;}
+.date-card:hover{background:rgba(51,65,85,0.6);transform:translateY(-6px) scale(1.05);box-shadow:0 16px 36px rgba(0,0,0,0.35),0 0 20px rgba(99,102,241,0.2);border-color:rgba(99,102,241,0.5);}
+.date-card:active{transform:scale(0.97);}
+.date-card.active{border-color:#6366f1;background:rgba(99,102,241,0.2);box-shadow:0 0 0 2px rgba(99,102,241,0.7),0 0 20px rgba(99,102,241,0.3);}
+.date-icon{font-size:1.6rem;margin-bottom:6px;}
+.date-name{font-size:0.85rem;font-weight:600;color:#e2e8f0;}
+.dt-subcards{margin-top:14px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.dt-subcard{border-radius:8px;padding:8px 14px;}
+.dt-subcard .lbl{font-size:0.72rem;opacity:0.65;}
+.dt-subcard .val{font-size:1rem;}
+@media(max-width:480px){.screen{padding:15px;padding-bottom:140px;}.date-tool-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ── Countdown chronometer — reuses MODULE-13 (World Clock)'s exact
+   "tiered honestly" precision display and dark-tech visual language,
+   at his request: measured (real, teal) / resolution-limited (real API,
+   browser-coarsened, cyan) / synthetic (smooth filler, not a real clock,
+   purple + flicker). Colors and the flicker animation are copied
+   verbatim from MODULE-13's --measured/--resolution/--synthetic. ── */
+.cd-chrono-wrap{position:relative;display:none;margin-top:20px;padding:22px 16px 18px;border-radius:16px;background:linear-gradient(180deg,#0d131d,#121b28);border:1px solid #1e2938;overflow:hidden;}
+.cd-chrono-wrap.active{display:block;}
+.cd-frame-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.cd-frame-svg rect{fill:none;stroke:url(#cdFrameGradient);stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1;filter:drop-shadow(0 0 5px rgba(79,216,196,0.5)) drop-shadow(0 0 5px rgba(164,140,255,0.35));}
+.cd-chrono-wrap.revealing .cd-frame-svg rect{animation:cdFrameDraw 0.9s cubic-bezier(0.65,0,0.35,1) forwards;}
+@keyframes cdFrameDraw{to{stroke-dashoffset:0;}}
+.cd-frame-svg circle.cd-corner{fill:#4fd8c4;opacity:0;filter:drop-shadow(0 0 4px rgba(79,216,196,0.8));}
+.cd-chrono-wrap.revealing .cd-frame-svg circle.cd-corner{animation:cdCornerLight 0.3s ease 0.82s forwards;}
+@keyframes cdCornerLight{to{opacity:1;}}
+.cd-chrono-content{position:relative;opacity:0;transform:translateY(6px) scale(0.98);}
+.cd-chrono-wrap.revealing .cd-chrono-content{animation:cdContentIn 0.5s cubic-bezier(0.2,0.8,0.2,1) 0.5s forwards;}
+.cd-chrono-wrap.active:not(.revealing) .cd-chrono-content{opacity:1;transform:none;}
+@keyframes cdContentIn{to{opacity:1;transform:none;}}
+.cd-row{display:flex;align-items:flex-end;justify-content:center;flex-wrap:wrap;gap:4px;font-family:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;font-variant-numeric:tabular-nums;text-align:center;}
+.cd-group{display:flex;flex-direction:column;align-items:center;}
+.cd-cap{font-size:9.5px;letter-spacing:.08em;margin-top:6px;white-space:nowrap;color:#8b96a8;text-transform:uppercase;}
+.cd-seg{font-size:clamp(22px,6.4vw,38px);font-weight:700;color:#e8edf4;}
+.cd-sep{font-size:clamp(18px,4.6vw,30px);color:#5a6577;padding:0 1px;}
+.cd-sub{font-size:clamp(14px,3.4vw,20px);font-weight:600;color:#4fd8c4;}
+.cd-micro{font-size:clamp(12px,3vw,17px);font-weight:600;color:#7fd0e8;opacity:.88;}
+.cd-nano{font-size:clamp(10px,2.6vw,15px);font-weight:600;color:#a48cff;opacity:.8;text-shadow:0 0 10px rgba(164,140,255,0.45);animation:cdNanoflicker 1.4s ease-in-out infinite;}
+@keyframes cdNanoflicker{0%,100%{opacity:.55;}50%{opacity:.95;}}
+.cd-past-msg{position:relative;text-align:center;font-size:1.05rem;color:#e8edf4;padding:8px 0;}
+.cd-legend{margin-top:14px;padding-top:12px;border-top:1px solid #16202c;display:flex;justify-content:center;gap:14px;flex-wrap:wrap;font-size:10px;color:#8b96a8;}
+.cd-legend span.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+@media(prefers-reduced-motion: reduce){
+    .cd-chrono-wrap.revealing .cd-frame-svg rect,
+    .cd-chrono-wrap.revealing .cd-frame-svg circle.cd-corner,
+    .cd-chrono-wrap.revealing .cd-chrono-content{animation-duration:0.01s;animation-delay:0s;}
+}
+
+/* ── Light-theme contrast overrides (auto-added) ── */
+body.theme-light .back-btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+body.theme-light .back-btn:hover{background:#334155;border-color:#475569;color:#ffffff;}
+body.theme-light .subtitle{color:#475569;}
+body.theme-light .logo-text{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;}
+body.theme-light .unit-converter-container{background:rgba(15,23,42,0.88);}
+body.theme-light .tool-input{background:rgba(30,41,59,0.88);}
+body.theme-light .tool-input:focus{background:rgba(30,41,59,0.92);}
+body.theme-light .holiday-item{background:rgba(30,41,59,0.88);}
+body.theme-light .date-card{background:rgba(30,41,59,0.88);}
+body.theme-light .date-card:hover{background:rgba(51,65,85,0.92);}
+</style>
+</head>
+<body>
+<div id="scr-date" class="screen active">
+    <div class="header">
+        <div class="logo"><div class="logo-icon">∑</div><div class="logo-text">Multi<span>Calc</span></div></div>
+        <div class="subtitle t-header-sub">Math • Physics • Units • Currency</div>
+    </div>
+    <button class="back-btn" type="button">← <span class="t-back">Πίσω</span></button>
+    <div class="unit-converter-container">
+        <div class="unit-title t-date-title">Υπολογιστής Ημερομηνιών</div>
+        <div class="date-tool-grid">
+            <div class="date-card active" onclick="selectDateTool('range',this)"><div class="date-icon">📅</div><div class="date-name t-date-range">Διαφορά Ημερομηνιών</div></div>
+            <div class="date-card" onclick="selectDateTool('countdown',this)"><div class="date-icon">⏳</div><div class="date-name t-date-countdown">Αντίστροφη Μέτρηση</div></div>
+            <div class="date-card" onclick="selectDateTool('addsub',this)"><div class="date-icon">➕</div><div class="date-name t-date-addsub">Πρόσθεση/Αφαίρεση</div></div>
+            <div class="date-card" onclick="selectDateTool('workdays',this)"><div class="date-icon">💼</div><div class="date-name t-date-workdays">Εργάσιμες Ημέρες</div></div>
+            <div class="date-card" onclick="selectDateTool('age',this)"><div class="date-icon">🎂</div><div class="date-name t-date-age">Ηλικία</div></div>
+        </div>
+        <div id="date-tool-body"></div>
+        <div id="date-result" class="tool-result" style="display:none;"></div>
+        <div id="countdown-chrono" class="cd-chrono-wrap">
+            <svg class="cd-frame-svg" aria-hidden="true">
+                <defs>
+                    <linearGradient id="cdFrameGradient" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#4fd8c4"/>
+                        <stop offset="50%" stop-color="#7fd0e8"/>
+                        <stop offset="100%" stop-color="#a48cff"/>
+                    </linearGradient>
+                </defs>
+                <rect x="0" y="0" width="100%" height="100%" rx="16" ry="16" pathLength="1"/>
+                <circle class="cd-corner" cx="0" cy="0" r="3"/>
+                <circle class="cd-corner" cx="100%" cy="0" r="3"/>
+                <circle class="cd-corner" cx="0" cy="100%" r="3"/>
+                <circle class="cd-corner" cx="100%" cy="100%" r="3"/>
+            </svg>
+            <div class="cd-chrono-content"></div>
+        </div>
+        <div id="holidays-list" class="holidays-list"></div>
+    </div>
+
+    <div class="fun-facts-slot"></div>
+</div>
+<script>
+/* ── Light-theme contrast guard ─────────────────────────────
+   Detects whether the currently active body background is a
+   light color (any theme, present or future) and toggles
+   body.theme-light so panels/text/back-btn switch to a closed,
+   readable palette. getComputedStyle always normalizes colors
+   to rgb()/rgba() — never hex — so we parse that, not hex.
+   Fully-transparent stops (alpha 0, e.g. body's own unset
+   background-color) are skipped so they don't drag the
+   average down as if they were a real black stop.
+   A MutationObserver on body's style attribute acts as the
+   "signal": whenever ANYTHING changes the body background
+   (theme picker, app boot, future code), every already-loaded
+   module reacts instantly, with no fixed timing assumptions. */
+function mcRelLuminanceRGB(r,g,b){
+    const lin=c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+}
+function mcExtractRGB(str){
+    const out=[];
+    (str.match(/rgba?\([^)]+\)/g)||[]).forEach(m=>{
+        const n=m.match(/[\d.]+/g).map(Number);
+        if(n.length>=4 && n[3]===0) return;
+        out.push([n[0],n[1],n[2]]);
+    });
+    (str.match(/#[0-9a-fA-F]{6}/g)||[]).forEach(h=>{
+        out.push([parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+    });
+    return out;
+}
+function mcCheckThemeLightness(){
+    const cs=getComputedStyle(document.body);
+    const str=(cs.backgroundImage&&cs.backgroundImage!=='none'?cs.backgroundImage:'')+' '+cs.backgroundColor;
+    const colors=mcExtractRGB(str);
+    if(!colors.length){document.body.classList.remove('theme-light');return;}
+    const avg=colors.reduce((s,[r,g,b])=>s+mcRelLuminanceRGB(r,g,b),0)/colors.length;
+    document.body.classList.toggle('theme-light',avg>0.18);
+}
+mcCheckThemeLightness();
+window.addEventListener('load',mcCheckThemeLightness);
+setTimeout(mcCheckThemeLightness,300);
+try{
+    new MutationObserver(mcCheckThemeLightness)
+        .observe(document.body,{attributes:true,attributeFilter:['style','class']});
+}catch(e){}
+
+/* ══════════════════════════════════════════════════
+   i18n — same self-contained per-module pattern as
+   MODULE-10 (Percentage): local PT() wraps the shared
+   T() when available, Greek fallback for standalone. */
+function PT(key, fallback){
+    return (typeof T === 'function') ? T(key) : fallback;
+}
+function PT_currentLang(){
+    return (typeof MultiCalc !== 'undefined' && MultiCalc.state) ? MultiCalc.state.currentLang : 'el';
+}
+var DATE_LOCALE = {el:'el-GR', en:'en-US', es:'es-ES'};
+function currentLocale(){ return DATE_LOCALE[PT_currentLang()] || 'en-US'; }
+
+var DT_STATIC = [
+    ['.t-date-title',     'dateCalc',         'Υπολογιστής Ημερομηνιών'],
+    ['.t-date-range',     'dateToolRange',    'Διαφορά Ημερομηνιών'],
+    ['.t-date-countdown', 'dateToolCountdown','Αντίστροφη Μέτρηση'],
+    ['.t-date-addsub',    'dateToolAddsub',   'Πρόσθεση/Αφαίρεση'],
+    ['.t-date-workdays',  'dateToolWorkdays', 'Εργάσιμες Ημέρες'],
+    ['.t-date-age',       'dateToolAge',      'Ηλικία']
+];
+var _dtLastLang = null;
+function applyDateI18n(force){
+    DT_STATIC.forEach(function(row){
+        var el = document.querySelector('#scr-date '+row[0]);
+        if (el) el.innerText = PT(row[1], row[2]);
+    });
+    var lang = PT_currentLang();
+    if (force || lang !== _dtLastLang) {
+        var activeCard = document.querySelector('#scr-date .date-card.active') || document.querySelector('#scr-date .date-card');
+        selectDateTool(currentDTool, activeCard);
+        _dtLastLang = lang;
+    }
+}
+/* Hook "user navigated to my screen" — same technique as MODULE-10.
+   Also stops the countdown ticking in the background when the user
+   navigates away, and resumes it on return, instead of burning a
+   requestAnimationFrame loop forever on a screen nobody is looking at. */
+(function(){
+    var _origNavTo = window.navTo;
+    if (typeof _origNavTo === 'function') {
+        window.navTo = function(id, isBack){
+            _origNavTo(id, isBack);
+            if (id === 'scr-date') {
+                applyDateI18n(false);
+                if (currentDTool === 'countdown') resumeCountdown();
+            } else {
+                pauseCountdown();
+            }
+        };
+    }
+})();
+
+let currentDTool='range';
+let countdownTargetMs=null;
+
+/* Parses a plain "YYYY-MM-DD" <input type=date> value as a LOCAL
+   midnight Date (new Date("YYYY-MM-DD") parses as UTC per spec,
+   which can silently shift a day in negative-UTC-offset zones —
+   this avoids that for every date-only field in this module). */
+function parseDateInput(val){
+    if(!val) return null;
+    var p = val.split('-');
+    if(p.length!==3) return null;
+    return new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+}
+function todayLocalStr(){
+    var d=new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dateKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+
+/* ── Holiday data (el/en/es) ── */
+var holidays = [
+    {month:1,  day:1,  name:{el:"Πρωτοχρονιά",                  en:"New Year's Day",                 es:"Año Nuevo"}},
+    {month:1,  day:6,  name:{el:"Θεοφάνεια",                     en:"Epiphany",                        es:"Epifanía"}},
+    {month:2,  day:14, name:{el:"Ημέρα Αγίου Βαλεντίνου",        en:"Valentine's Day",                 es:"San Valentín"}},
+    {month:3,  day:8,  name:{el:"Παγκόσμια Ημέρα Γυναίκας",      en:"International Women's Day",       es:"Día Internacional de la Mujer"}},
+    {month:3,  day:25, name:{el:"25η Μαρτίου - Εθνική Εορτή",    en:"Greek Independence Day",          es:"Día de la Independencia de Grecia"}},
+    {month:4,  day:1,  name:{el:"Πρωταπριλιά",                   en:"April Fools' Day",                es:"Día de las Bromas"}},
+    {month:5,  day:1,  name:{el:"Πρωτομαγιά",                    en:"Labour Day",                      es:"Día del Trabajo"}},
+    {month:5,  day:9,  name:{el:"Ημέρα Ευρώπης",                 en:"Europe Day",                       es:"Día de Europa"}},
+    {month:6,  day:24, name:{el:"Άγιος Ιωάννης Βαπτιστής",       en:"St. John the Baptist",            es:"San Juan Bautista"}},
+    {month:7,  day:4,  name:{el:"Ανεξαρτησία ΗΠΑ",               en:"US Independence Day",             es:"Día de la Independencia de EE.UU."}},
+    {month:7,  day:14, name:{el:"Εθνική Ημέρα Γαλλίας",          en:"Bastille Day",                    es:"Día de la Bastilla"}},
+    {month:8,  day:15, name:{el:"Κοίμηση Θεοτόκου",              en:"Assumption of Mary",              es:"Asunción de María"}},
+    {month:10, day:28, name:{el:"28η Οκτωβρίου - ΟΧΙ",          en:"Ochi Day (Greece)",               es:"Día del \"Ochi\" (Grecia)"}},
+    {month:10, day:31, name:{el:"Halloween",                      en:"Halloween",                       es:"Halloween"}},
+    {month:11, day:1,  name:{el:"Πάντων των Αγίων",              en:"All Saints' Day",                 es:"Día de Todos los Santos"}},
+    {month:11, day:11, name:{el:"Ημέρα Ανακωχής / Βετεράνων",    en:"Remembrance / Veterans Day",      es:"Día del Armisticio / Veteranos"}},
+    {month:12, day:5,  name:{el:"Άγιος Νικόλαος",                en:"St. Nicholas Day",                es:"Día de San Nicolás"}},
+    {month:12, day:8,  name:{el:"Αμόλυντη Σύλληψη",              en:"Immaculate Conception",           es:"Inmaculada Concepción"}},
+    {month:12, day:24, name:{el:"Παραμονή Χριστουγέννων",         en:"Christmas Eve",                   es:"Nochebuena"}},
+    {month:12, day:25, name:{el:"Χριστούγεννα",                  en:"Christmas Day",                   es:"Navidad"}},
+    {month:12, day:26, name:{el:"Σύναξη Θεοτόκου",               en:"Boxing Day / St. Stephen's",      es:"San Esteban"}},
+    {month:12, day:31, name:{el:"Παραμονή Πρωτοχρονιάς",         en:"New Year's Eve",                  es:"Nochevieja"}}
+];
+
+/* Western Easter — Anonymous Gregorian algorithm */
+function calcEaster(y) {
+    var a=y%19, b=Math.floor(y/100), c=y%100,
+        d=Math.floor(b/4), e=b%4, f=Math.floor((b+8)/25),
+        g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30,
+        i=Math.floor(c/4), k=c%4,
+        l=(32+2*e+2*i-h-k)%7,
+        m=Math.floor((a+11*h+22*l)/451),
+        month=Math.floor((h+l-7*m+114)/31),
+        day=(h+l-7*m+114)%31+1;
+    return new Date(y, month-1, day);
+}
+
+/* Orthodox Easter — Julian converted +13 days */
+function calcOrthodoxEaster(y) {
+    var a=y%4, b=y%7, c=y%19,
+        d=(19*c+15)%30,
+        e=(2*a+4*b-d+34)%7,
+        f=Math.floor((d+e+114)/31),
+        day=(d+e+114)%31+1,
+        dt=new Date(y, f-1, day);
+    dt.setDate(dt.getDate()+13);
+    return dt;
+}
+
+/* N-th weekday of month (weekday: 0=Sun, n: 1-based) */
+function nthWeekday(y, m, weekday, n) {
+    var first = new Date(y, m-1, 1).getDay();
+    var day   = 1 + ((weekday - first + 7) % 7) + (n-1)*7;
+    return new Date(y, m-1, day);
+}
+
+function getMoveableHolidays(year) {
+    var mv = [];
+
+    function addOffset(base, offset, name) {
+        var d = new Date(base);
+        d.setDate(d.getDate() + offset);
+        mv.push({ date: d, name: name });
+    }
+
+    /* Western Easter offsets */
+    var we = calcEaster(year);
+    addOffset(we, -47, {el:"Αποκριές (Δυτικό)",         en:"Carnival (Western)",          es:"Carnaval (Occidental)"});
+    addOffset(we, -46, {el:"Τετάρτη Τέφρας (Δυτική)",   en:"Ash Wednesday",               es:"Miércoles de Ceniza"});
+    addOffset(we,  -7, {el:"Κυριακή Βαΐων (Δυτική)",    en:"Palm Sunday (Western)",        es:"Domingo de Ramos (Occidental)"});
+    addOffset(we,  -2, {el:"Μεγάλη Παρασκευή (Δυτική)", en:"Good Friday (Western)",        es:"Viernes Santo (Occidental)"});
+    addOffset(we,   0, {el:"Πάσχα (Δυτικό)",             en:"Easter Sunday (Western)",     es:"Domingo de Pascua (Occidental)"});
+    addOffset(we,   1, {el:"Δευτέρα Πάσχα (Δυτικό)",    en:"Easter Monday (Western)",      es:"Lunes de Pascua (Occidental)"});
+    addOffset(we,  39, {el:"Ανάληψη",                    en:"Ascension Thursday",           es:"Ascensión"});
+    addOffset(we,  49, {el:"Πεντηκοστή (Δυτική)",        en:"Pentecost (Western)",          es:"Pentecostés (Occidental)"});
+
+    /* Orthodox Easter offsets */
+    var oe = calcOrthodoxEaster(year);
+    addOffset(oe, -48, {el:"Κυριακή Αποκριών",           en:"Orthodox Carnival",           es:"Carnaval Ortodoxo"});
+    addOffset(oe,  -7, {el:"Κυριακή των Βαΐων",          en:"Orthodox Palm Sunday",         es:"Domingo de Ramos Ortodoxo"});
+    addOffset(oe,  -2, {el:"Μεγάλη Παρασκευή",           en:"Good Friday (Orthodox)",       es:"Viernes Santo Ortodoxo"});
+    addOffset(oe,   0, {el:"Ορθόδοξο Πάσχα",             en:"Orthodox Easter",             es:"Pascua Ortodoxa"});
+    addOffset(oe,   1, {el:"Δευτέρα Πάσχα",              en:"Orthodox Easter Monday",       es:"Lunes de Pascua Ortodoxo"});
+    addOffset(oe,  49, {el:"Πεντηκοστή (Ορθόδοξη)",      en:"Orthodox Pentecost",           es:"Pentecostés Ortodoxo"});
+
+    /* Rule-based moveable */
+    mv.push({ date: nthWeekday(year, 11, 4, 4), name: {el:"Ημέρα Ευχαριστιών (ΗΠΑ)", en:"Thanksgiving (USA)",       es:"Acción de Gracias (EE.UU.)"} });
+    mv.push({ date: nthWeekday(year,  5, 0, 2), name: {el:"Ημέρα Μητέρας",            en:"Mother's Day",             es:"Día de la Madre"} });
+    mv.push({ date: nthWeekday(year,  6, 0, 3), name: {el:"Ημέρα Πατέρα (Διεθν.)",    en:"Father's Day (Intl.)",      es:"Día del Padre (Internacional)"} });
+
+    return mv;
+}
+function holidayName(h){
+    var lang = PT_currentLang();
+    return h.name[lang] || h.name.en || h.name.el;
+}
+function buildHolidaySet(startYear, endYear){
+    var set = new Set();
+    for (var y=startYear; y<=endYear; y++){
+        holidays.forEach(function(h){ set.add(y+'-'+h.month+'-'+h.day); });
+        getMoveableHolidays(y).forEach(function(h){ set.add(dateKey(h.date)); });
+    }
+    return set;
+}
+
+function subcard(color,label,value){
+    return `<div class="dt-subcard" style="background:rgba(${color},0.15);border:1px solid rgba(${color},0.3);"><div class="lbl">${label}</div><div class="val" style="color:rgb(${color});">${value}</div></div>`;
+}
+
+/* ── Tool layouts ── */
+function selectDateTool(tool, el){
+    if (currentDTool === 'countdown' && tool !== 'countdown') pauseCountdown();
+    currentDTool = tool;
+    document.querySelectorAll('#scr-date .date-card').forEach(c=>c.classList.remove('active'));
+    if (el) el.classList.add('active');
+    document.getElementById('date-result').style.display='none';
+    document.getElementById('holidays-list').innerHTML='';
+    if (tool !== 'countdown') document.getElementById('countdown-chrono')?.classList.remove('active','revealing');
+
+    const grp=(label,inputHtml)=>`<div class="tool-input-group"><label class="tool-label">${label}</label>${inputHtml}</div>`;
+    const body = document.getElementById('date-tool-body');
+    if (tool==='range'){
+        body.innerHTML = grp(PT('dateFrom','Από Ημερομηνία'), `<input type="date" id="d-in1" class="tool-input" onchange="calcDate()">`)
+                        + grp(PT('dateTo','Έως Ημερομηνία'), `<input type="date" id="d-in2" class="tool-input" onchange="calcDate()">`);
+    } else if (tool==='countdown'){
+        body.innerHTML = grp(PT('dateTargetDateTime','Ημερομηνία & Ώρα Στόχος'), `<input type="datetime-local" id="d-in1" class="tool-input" onchange="startCountdownFromInput()">`);
+    } else if (tool==='addsub'){
+        body.innerHTML = grp(PT('dateStartDate','Αρχική Ημερομηνία'), `<input type="date" id="d-in1" class="tool-input" value="${todayLocalStr()}" onchange="calcDate()">`)
+                        + grp(PT('dateDaysToAddSub','Ημέρες (+ ή −)'), `<input type="number" id="d-in2" class="tool-input" placeholder="45" oninput="calcDate()">`);
+    } else if (tool==='workdays'){
+        body.innerHTML = grp(PT('dateFrom','Από Ημερομηνία'), `<input type="date" id="d-in1" class="tool-input" onchange="calcDate()">`)
+                        + grp(PT('dateTo','Έως Ημερομηνία'), `<input type="date" id="d-in2" class="tool-input" onchange="calcDate()">`);
+    } else if (tool==='age'){
+        body.innerHTML = grp(PT('dateBirthDate','Ημερομηνία Γέννησης'), `<input type="date" id="d-in1" class="tool-input" onchange="calcDate()">`);
+    }
+}
+
+/* ── Countdown (live ticking, MODULE-13-style chronometer) ──
+   Re-uses World Clock's exact 3-tier philosophy and formulas:
+   Tier 1 (measured):  d/h/m/s/ms — real, from the target-minus-now diff.
+   Tier 2 (resolution): μs — performance.now()'s fractional-ms part;
+     a real API, but browser-coarsened (Spectre/Meltdown mitigations),
+     same as MODULE-13. NOT "microseconds remaining" — there's no such
+     thing at this resolution — it's the browser clock's own state,
+     exactly what MODULE-13 shows too.
+   Tier 3 (synthetic): ns — same deterministic smooth filler formula
+     as MODULE-13, flagged as such via color + the flicker animation.
+   Uses requestAnimationFrame (not setInterval) for a smooth ~60fps
+   feel on the sub-second digits, matching MODULE-13's own engine. */
+function padN(n, len){ n = String(Math.floor(n)); while(n.length<len) n='0'+n; return n; }
+function cdCell(numClass, value, label){
+    return `<div class="cd-group"><span class="${numClass}">${value}</span><div class="cd-cap">${label}</div></div>`;
+}
+function cdSep(ch){
+    // Same structural shape (number-row + caption-row) as cdCell so flex
+    // align-items:flex-end lines the separator up with the digits, not
+    // the captions, without needing MODULE-13's more fragile per-case tuning.
+    return `<div class="cd-group"><span class="cd-sep">${ch}</span><div class="cd-cap" style="visibility:hidden;">·</div></div>`;
+}
+function triggerCountdownReveal(){
+    var wrap = document.getElementById('countdown-chrono');
+    if (!wrap) return;
+    wrap.classList.remove('revealing');
+    void wrap.offsetWidth; // force reflow so a repeated reveal can restart, not no-op
+    wrap.classList.add('active','revealing');
+}
+let countdownRafId=null;
+function pauseCountdown(){
+    if (countdownRafId){ cancelAnimationFrame(countdownRafId); countdownRafId=null; }
+}
+function countdownFrameLoop(){
+    if (tickCountdown()) countdownRafId = requestAnimationFrame(countdownFrameLoop);
+    else countdownRafId = null;
+}
+function resumeCountdown(){
+    if (countdownTargetMs==null || countdownRafId) return;
+    if (!tickCountdown()) return; // already expired — nothing to (re)arm
+    countdownRafId = requestAnimationFrame(countdownFrameLoop);
+}
+function startCountdownFromInput(){
+    var val = document.getElementById('d-in1')?.value;
+    pauseCountdown();
+    var wrap = document.getElementById('countdown-chrono');
+    if (!val){
+        countdownTargetMs=null;
+        if (wrap) wrap.classList.remove('active','revealing');
+        return;
+    }
+    countdownTargetMs = new Date(val).getTime();
+    if (wrap) triggerCountdownReveal();
+    resumeCountdown();
+}
+function tickCountdown(){
+    var wrap = document.getElementById('countdown-chrono');
+    var content = wrap ? wrap.querySelector('.cd-chrono-content') : null;
+    if (!content) return false;
+    if (countdownTargetMs==null) return false;
+    var diff = countdownTargetMs - Date.now();
+    if (diff <= 0){
+        content.innerHTML = `<div class="cd-past-msg">⏰ ${PT('dateCountdownPast','Η ημερομηνία-στόχος έχει περάσει!')}</div>`;
+        return false;
+    }
+    var d = Math.floor(diff/86400000);
+    var h = Math.floor((diff%86400000)/3600000);
+    var m = Math.floor((diff%3600000)/60000);
+    var s = Math.floor((diff%60000)/1000);
+    var ms = Math.floor(diff%1000);
+
+    var perf = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    var fracMs = perf - Math.floor(perf);
+    var micros = Math.floor(fracMs*1000);
+    var synthetic = Math.floor(((perf*997.0)%1)*1000);
+
+    content.innerHTML = `<div class="cd-row">`
+        + cdCell('cd-seg', String(d), PT('dateUnitDays','Ημέρες'))
+        + cdSep(':')
+        + cdCell('cd-seg', padN(h,2), PT('dateUnitHours','Ώρες'))
+        + cdSep(':')
+        + cdCell('cd-seg', padN(m,2), PT('dateUnitMinutes','Λεπτά'))
+        + cdSep(':')
+        + cdCell('cd-seg', padN(s,2), PT('dateUnitSeconds','Δευτ.'))
+        + cdSep('.')
+        + cdCell('cd-sub', padN(ms,3), 'ms')
+        + cdCell('cd-micro', padN(micros,3), 'μs')
+        + cdCell('cd-nano', padN(synthetic,3), 'ns')
+        + `</div>`
+        + `<div class="cd-legend">`
+        + `<span><span class="dot" style="background:#4fd8c4;"></span>${PT('dateCdMeasured','πραγματικό')}</span>`
+        + `<span><span class="dot" style="background:#7fd0e8;"></span>${PT('dateCdResolution','περιορ. ανάλυσης')}</span>`
+        + `<span><span class="dot" style="background:#a48cff;"></span>${PT('dateCdSynthetic','υπολογισμένο')}</span>`
+        + `</div>`;
+    return true;
+}
+
+/* ── Business-days count (reuses the holiday engine above) ── */
+function calcWorkdays(start, end){
+    var set = buildHolidaySet(start.getFullYear(), end.getFullYear());
+    var cur = new Date(start);
+    var workdays=0, weekends=0, holidaysCount=0;
+    while (cur <= end){
+        var isWknd = (cur.getDay()===0 || cur.getDay()===6);
+        if (isWknd) weekends++;
+        else if (set.has(dateKey(cur))) holidaysCount++;
+        else workdays++;
+        cur.setDate(cur.getDate()+1);
+    }
+    return {workdays:workdays, weekends:weekends, holidaysCount:holidaysCount};
+}
+
+/* ── Age in years/months/days (calendar-correct, not raw/365) ── */
+function calcAge(birth, today){
+    var y = today.getFullYear() - birth.getFullYear();
+    var m = today.getMonth() - birth.getMonth();
+    var d = today.getDate() - birth.getDate();
+    if (d < 0){
+        m--;
+        d += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+    }
+    if (m < 0){ y--; m += 12; }
+    return {y:y, m:m, d:d};
+}
+
+function calcDate(){
+    var rd = document.getElementById('date-result');
+    var hl = document.getElementById('holidays-list');
+
+    if (currentDTool==='range' || currentDTool==='workdays'){
+        var v1 = document.getElementById('d-in1')?.value;
+        var v2 = document.getElementById('d-in2')?.value;
+        if (!v1 || !v2){ rd.style.display='none'; hl.innerHTML=''; return; }
+        var d1 = parseDateInput(v1), d2 = parseDateInput(v2);
+        var start = d1 <= d2 ? d1 : d2;
+        var end   = d1 <= d2 ? d2 : d1;
+
+        if (currentDTool==='range'){
+            var diffDays = Math.round((end-start)/86400000);
+            rd.innerHTML = '<div style="font-size:1.8rem;">'+diffDays+'</div><div style="font-size:1rem;margin-top:5px;">'+PT('days','ημέρες')+'</div>';
+            rd.style.display='block';
+
+            var found=[];
+            for (var y=start.getFullYear(); y<=end.getFullYear(); y++){
+                holidays.forEach(function(h){
+                    var hd = new Date(y, h.month-1, h.day);
+                    if (hd>=start && hd<=end) found.push({date:hd, name:h.name});
+                });
+                getMoveableHolidays(y).forEach(function(h){
+                    if (h.date>=start && h.date<=end) found.push(h);
+                });
+            }
+            found.sort(function(a,b){ return a.date-b.date; });
+            var seen={};
+            var unique = found.filter(function(h){
+                var key = h.date.toDateString()+(h.name.el||h.name.en);
+                if (seen[key]) return false;
+                seen[key]=true; return true;
+            });
+            if (unique.length>0){
+                hl.innerHTML = '<div style="color:#818cf8;font-weight:600;margin-bottom:10px;">'+PT('holidaysInRange','Αργίες στο διάστημα')+' ('+unique.length+'):</div>'
+                    + unique.map(function(h){
+                        return '<div class="holiday-item"><div class="holiday-date">'+h.date.toLocaleDateString(currentLocale())+'</div><div class="holiday-name">'+holidayName(h)+'</div></div>';
+                    }).join('');
+            } else { hl.innerHTML=''; }
+        } else {
+            var wd = calcWorkdays(start, end);
+            rd.innerHTML = '<div style="font-size:1.8rem;">'+wd.workdays+'</div><div style="font-size:1rem;margin-top:5px;">'+PT('dateWorkdaysShort','Εργάσιμες')+'</div>'
+                + '<div class="dt-subcards">'
+                + subcard('239,68,68', PT('dateWeekendsShort','Σαββατοκύριακα'), wd.weekends)
+                + subcard('99,102,241', PT('dateHolidaysShort','Αργίες'), wd.holidaysCount)
+                + '</div>';
+            rd.style.display='block';
+        }
+    } else if (currentDTool==='addsub'){
+        var startVal = document.getElementById('d-in1')?.value;
+        var daysVal  = document.getElementById('d-in2')?.value;
+        if (!startVal || daysVal===''||daysVal===undefined){ rd.style.display='none'; return; }
+        var base = parseDateInput(startVal);
+        var n = parseInt(daysVal,10);
+        if (isNaN(n)){ rd.style.display='none'; return; }
+        var res = new Date(base);
+        res.setDate(res.getDate()+n);
+        var fmted = new Intl.DateTimeFormat(currentLocale(), {weekday:'long', year:'numeric', month:'long', day:'numeric'}).format(res);
+        rd.innerHTML = '<div style="font-size:1.3rem;">'+fmted+'</div>';
+        rd.style.display='block';
+    } else if (currentDTool==='age'){
+        var bVal = document.getElementById('d-in1')?.value;
+        if (!bVal){ rd.style.display='none'; return; }
+        var birth = parseDateInput(bVal);
+        var today = new Date(); today.setHours(0,0,0,0);
+        if (birth > today){
+            rd.innerHTML = '<div style="color:#fca5a5;">⚠️ '+PT('dateAgeFuture','Η ημερομηνία γέννησης είναι στο μέλλον')+'</div>';
+            rd.style.display='block';
+            return;
+        }
+        var age = calcAge(birth, today);
+        var totalDays = Math.round((today-birth)/86400000);
+        rd.innerHTML = '<div style="font-size:1.5rem;">'+age.y+' '+PT('dateAgeYears','χρόνια')+', '+age.m+' '+PT('dateAgeMonths','μήνες')+', '+age.d+' '+PT('days','μέρες')+'</div>'
+            + '<div style="font-size:0.8rem;opacity:0.6;margin-top:8px;">'+PT('dateTotalDaysLived','Σύνολο ημερών ζωής')+': '+totalDays.toLocaleString(currentLocale())+'</div>';
+        rd.style.display='block';
+    }
+}
+
+// Init on load
+applyDateI18n(true);
+_dtLastLang = PT_currentLang();
+</script>
+</body>
+</html>

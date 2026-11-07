@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODULE 05 — Currency Converter</title>
+<style>
+/* ── SHARED BASE CSS ── */
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+html{background:#0f172a;min-height:100%;}
+body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);min-height:100dvh;min-height:100vh;color:white;overflow-x:hidden;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);top:-80px;left:-80px;}
+body::after{width:360px;height:360px;background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);bottom:40px;right:-60px;}
+.screen{display:none;padding:20px;padding-bottom:170px;min-height:100dvh;min-height:100vh;position:relative;z-index:1;}
+.screen.active{display:block;animation:screenIn 0.5s cubic-bezier(0.2,0.8,0.2,1) both;}
+@keyframes screenIn{from{opacity:0;transform:scale3d(0.96,0.96,1) translateY(10px);}to{opacity:1;transform:scale3d(1,1,1) translateY(0);}}
+.header{text-align:center;padding:40px 20px 20px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.8rem;color:#fff;box-shadow:0 8px 24px rgba(99,102,241,0.3);position:relative;overflow:hidden;}
+.logo-icon::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);animation:shimmer 3s infinite;}
+@keyframes shimmer{0%{transform:translate(-100%,-100%);}100%{transform:translate(100%,100%);}}
+.logo-text{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#fff,#e2e8f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo span{background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.subtitle{color:#94a3b8;font-size:0.95rem;margin-top:5px;}
+.back-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#94a3b8;font-size:0.95rem;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+.back-btn:hover{color:#e2e8f0;background:rgba(255,255,255,0.1);transform:translateX(-3px);}
+.input-field{width:100%;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:12px;padding:15px;font-size:1rem;color:white;outline:none;transition:border-color 0.2s;}
+.input-field:focus{border-color:#6366f1;}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-track{background:rgba(15,23,42,0.3);}::-webkit-scrollbar-thumb{background:rgba(71,85,105,0.5);border-radius:4px;}
+
+/* ══════════════ CURRENCY — screen ══════════════ */
+/* the accent variables are needed by the screen AND by the picker overlay (which lives outside the screen, as the App's loader requires) */
+#scr-curr,.ccy-overlay{--ccy-a:#6366f1;--ccy-b:#8b5cf6;--ccy-a-rgb:99,102,241;}
+#scr-curr .converter-container{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
+.ccy-card{background:rgba(15,23,42,0.4);border:1px solid rgba(71,85,105,0.3);border-radius:25px;padding:30px;min-width:0;}
+.ccy-title-row{display:flex;align-items:center;gap:14px;margin-bottom:26px;}
+.ccy-badge{width:46px;height:46px;flex:0 0 46px;padding:10px;border-radius:14px;color:#fff;background:linear-gradient(135deg,var(--ccy-a),var(--ccy-b));box-shadow:0 8px 22px rgba(var(--ccy-a-rgb),0.35);display:flex;align-items:center;justify-content:center;}
+.ccy-badge svg{width:100%;height:100%;display:block;}
+.ccy-title{font-size:1.5rem;font-weight:600;line-height:1.2;min-width:0;overflow-wrap:break-word;}
+.ccy-label{color:#94a3b8;font-size:0.9rem;margin-bottom:10px;display:block;}
+.ccy-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,44%);gap:12px;align-items:stretch;}
+
+/* amount fields */
+#scr-curr .ccy-amt{min-width:0;padding:16px 18px;font-size:1.35rem;font-weight:500;font-variant-numeric:tabular-nums;border-radius:15px;-moz-appearance:textfield;appearance:textfield;}
+#scr-curr .ccy-amt::-webkit-outer-spin-button,#scr-curr .ccy-amt::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+#scr-curr .ccy-amt.is-bad{border-color:rgba(248,113,113,0.75);}
+#scr-curr .ccy-amt:focus{border-color:rgba(var(--ccy-a-rgb),0.8);box-shadow:0 0 0 3px rgba(var(--ccy-a-rgb),0.2);}
+
+/* currency buttons (open the picker) */
+.ccy-trigger{width:100%;min-height:62px;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 12px;text-align:left;color:#fff;background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.3);border-radius:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:border-color .25s ease,background .25s ease,box-shadow .25s ease,transform .15s ease;}
+.ccy-flag{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:1.5rem;line-height:1;}
+.ccy-trigger-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.ccy-trigger-code{font-size:1.1rem;font-weight:700;letter-spacing:0.04em;color:#f1f5f9;line-height:1.15;}
+.ccy-trigger-name{font-size:0.76rem;line-height:1.25;color:#94a3b8;overflow-wrap:break-word;}
+.ccy-chev{flex:0 0 auto;width:18px;height:18px;color:#94a3b8;transition:transform .35s cubic-bezier(.2,.8,.2,1),color .25s ease;}
+.ccy-trigger:active{transform:scale(.985);}
+.ccy-trigger:focus-visible,.ccy-trigger.is-active{outline:none;border-color:rgba(var(--ccy-a-rgb),0.8);background:rgba(30,41,59,0.85);box-shadow:0 0 0 3px rgba(var(--ccy-a-rgb),0.2);}
+.ccy-trigger.is-active .ccy-chev{transform:rotate(180deg);color:#fff;}
+@media(hover:hover){.ccy-trigger:hover{border-color:rgba(var(--ccy-a-rgb),0.5);background:rgba(30,41,59,0.8);}.ccy-trigger:hover .ccy-chev{color:#fff;}}
+@keyframes ccyPop{0%{opacity:0;transform:translateY(8px) scale(.94);}100%{opacity:1;transform:none;}}
+.ccy-pop{animation:ccyPop .38s cubic-bezier(.2,.9,.25,1.1);}
+
+/* swap button — rotation is driven from JS (+180deg every press), never by :hover */
+.ccy-swap-row{position:relative;display:flex;align-items:center;justify-content:center;height:60px;margin:4px 0;}
+.ccy-swap-row::before,.ccy-swap-row::after{content:'';position:absolute;top:50%;height:1px;width:calc(50% - 40px);}
+.ccy-swap-row::before{left:0;background:linear-gradient(90deg,transparent,rgba(148,163,184,0.25));}
+.ccy-swap-row::after{right:0;background:linear-gradient(270deg,transparent,rgba(148,163,184,0.25));}
+.ccy-swap{position:relative;z-index:1;width:48px;height:48px;padding:0;border:none;border-radius:50%;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--ccy-a),var(--ccy-b));box-shadow:0 6px 18px rgba(var(--ccy-a-rgb),0.38);-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .18s ease,box-shadow .25s ease;}
+.ccy-swap svg{width:24px;height:24px;display:block;transition:transform .55s cubic-bezier(.34,1.35,.5,1);}
+.ccy-swap:active{transform:scale(.9);}
+.ccy-swap:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+@media(hover:hover){.ccy-swap:hover{transform:scale(1.07);box-shadow:0 8px 26px rgba(var(--ccy-a-rgb),0.55);}.ccy-swap:hover:active{transform:scale(.9);}}
+@keyframes ccyFromDrop{0%{opacity:.25;transform:translateY(-16px);}100%{opacity:1;transform:none;}}
+@keyframes ccyToRise{0%{opacity:.25;transform:translateY(16px);}100%{opacity:1;transform:none;}}
+.ccy-group-from.is-swapping{animation:ccyFromDrop .42s cubic-bezier(.2,.8,.2,1);}
+.ccy-group-to.is-swapping{animation:ccyToRise .42s cubic-bezier(.2,.8,.2,1);}
+
+/* result card */
+.ccy-result{margin-top:22px;padding:18px 20px 14px;text-align:center;color:#fff;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:20px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;animation:ccyResultIn .45s cubic-bezier(0.34,1.56,0.64,1) backwards;transition:transform .15s ease;}
+@keyframes ccyResultIn{0%{opacity:0;transform:scale(0.88) translateY(10px);}60%{transform:scale(1.03) translateY(-2px);}100%{opacity:1;transform:scale(1) translateY(0);}}
+.ccy-result:active{transform:scale(.99);}
+.ccy-result:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+.ccy-rate-main{font-size:1.2rem;font-weight:600;line-height:1.35;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.ccy-rate-sub{margin-top:6px;font-size:.92rem;color:rgba(255,255,255,0.78);overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.ccy-status{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-size:.8rem;color:rgba(255,255,255,0.86);}
+.ccy-dot{width:8px;height:8px;border-radius:50%;background:#94a3b8;flex:0 0 8px;}
+.ccy-status[data-s="live"] .ccy-dot{background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:ccyLive 2.2s ease-out infinite;}
+.ccy-status[data-s="loading"] .ccy-dot{background:#fbbf24;animation:ccyBlink 1s ease-in-out infinite;}
+.ccy-status[data-s="offline"] .ccy-dot{background:#fb923c;}
+@keyframes ccyLive{0%{box-shadow:0 0 0 0 rgba(74,222,128,.55);}70%,100%{box-shadow:0 0 0 8px rgba(74,222,128,0);}}
+@keyframes ccyBlink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.ccy-refresh{width:28px;height:28px;padding:0;border:none;border-radius:50%;color:#fff;background:rgba(255,255,255,0.16);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:background .2s ease,transform .15s ease;}
+.ccy-refresh svg{width:15px;height:15px;display:block;}
+.ccy-refresh:active{transform:scale(.88);}
+.ccy-refresh.is-spinning svg{animation:ccySpin .8s linear infinite;}
+@keyframes ccySpin{to{transform:rotate(360deg);}}
+@media(hover:hover){.ccy-refresh:hover{background:rgba(255,255,255,0.28);}}
+.ccy-hint{margin-top:8px;font-size:.78rem;color:rgba(255,255,255,0.6);transition:color .2s ease;}
+.ccy-hint.is-ok{color:#fff;font-weight:600;}
+
+/* ══════════════ CURRENCY — picker sheet (lives inside #curr-picker-overlay) ══════════════ */
+.ccy-overlay{position:fixed;inset:0;z-index:8500;display:flex;align-items:flex-end;justify-content:center;background:rgba(2,6,23,0.66);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s ease,visibility 0s linear .5s;}
+.ccy-overlay.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .3s ease,visibility 0s;}
+.ccy-sheet{position:relative;width:100%;max-width:600px;height:min(86dvh,760px);height:min(86vh,760px);display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(170deg,#1e2d4a 0%,#0d1526 100%);border:1px solid rgba(99,102,241,0.22);border-bottom:none;border-radius:26px 26px 0 0;box-shadow:0 -16px 60px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.06);transform:translateY(100%);transition:transform .5s cubic-bezier(.22,1.1,.36,1);will-change:transform;}
+.ccy-overlay.open .ccy-sheet{transform:translateY(0);}
+.ccy-sheet-head{flex:0 0 auto;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;}
+.ccy-sheet-head:active{cursor:grabbing;}
+.ccy-handle{width:40px;height:4px;margin:11px auto 0;background:rgba(255,255,255,0.18);border-radius:2px;}
+.ccy-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px 10px 20px;}
+.ccy-head-titles{display:flex;align-items:center;gap:10px;min-width:0;}
+.ccy-side-chip{flex:0 0 auto;padding:4px 11px;font-size:.78rem;font-weight:700;letter-spacing:.02em;color:#fff;background:linear-gradient(135deg,var(--ccy-a),var(--ccy-b));border-radius:999px;}
+.ccy-sheet-title{font-size:1.05rem;font-weight:700;color:#e2e8f0;min-width:0;overflow-wrap:break-word;}
+.ccy-close{flex:0 0 auto;width:34px;height:34px;padding:0;border:none;border-radius:50%;color:#94a3b8;background:rgba(255,255,255,0.07);cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:background .2s ease,color .2s ease,transform .15s ease;}
+.ccy-close svg{width:16px;height:16px;display:block;}
+.ccy-close:active{transform:scale(.9);}
+@media(hover:hover){.ccy-close:hover{background:rgba(239,68,68,0.25);color:#f87171;}}
+
+.ccy-search-wrap{position:relative;flex:0 0 auto;margin:0 16px 12px;}
+.ccy-search-ico{position:absolute;left:14px;top:50%;width:18px;height:18px;margin-top:-9px;color:#64748b;pointer-events:none;transition:color .2s ease;}
+.ccy-search{width:100%;padding:13px 42px 13px 42px;font-size:1rem;color:#f1f5f9;background:rgba(255,255,255,0.07);border:1px solid rgba(99,102,241,0.28);border-radius:15px;outline:none;transition:border-color .25s ease,background .25s ease,box-shadow .25s ease;}
+.ccy-search::placeholder{color:#64748b;}
+.ccy-search:focus{border-color:rgba(var(--ccy-a-rgb),0.8);background:rgba(255,255,255,0.1);box-shadow:0 0 0 3px rgba(var(--ccy-a-rgb),0.2);}
+.ccy-search-wrap:focus-within .ccy-search-ico{color:#a5b4fc;}
+.ccy-search-clear{position:absolute;right:8px;top:50%;width:28px;height:28px;margin-top:-14px;padding:0;border:none;border-radius:50%;color:#cbd5e1;background:rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.6);pointer-events:none;transition:opacity .2s ease,transform .25s cubic-bezier(.34,1.56,.64,1);}
+.ccy-search-clear svg{width:12px;height:12px;display:block;}
+.ccy-search-wrap.has-text .ccy-search-clear{opacity:1;transform:scale(1);pointer-events:auto;}
+
+.ccy-chips{flex:0 0 auto;position:relative;display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.ccy-chips::-webkit-scrollbar{display:none;}
+.ccy-chips{transition:opacity .25s ease;scroll-padding:0 16px;}
+.ccy-chips.is-searching{opacity:.5;}
+.ccy-chip{flex:0 0 auto;scroll-snap-align:start;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;font-size:.86rem;font-weight:600;white-space:nowrap;color:#cbd5e1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:999px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .25s ease,color .25s ease,border-color .25s ease,transform .15s ease,box-shadow .25s ease;}
+.ccy-chip i{font-style:normal;font-size:.72rem;font-weight:700;opacity:.65;font-variant-numeric:tabular-nums;}
+.ccy-chip:active{transform:scale(.95);}
+.ccy-chip:focus-visible{outline:2px solid rgba(var(--ccy-a-rgb),0.9);outline-offset:2px;}
+.ccy-chip.is-on{color:#fff;border-color:transparent;background:linear-gradient(135deg,var(--ccy-a),var(--ccy-b));box-shadow:0 6px 16px rgba(var(--ccy-a-rgb),0.35);}
+.ccy-chip.is-on i{opacity:.85;}
+@media(hover:hover){.ccy-chip:not(.is-on):hover{background:rgba(255,255,255,0.11);color:#fff;}}
+
+.ccy-count{flex:0 0 auto;min-height:0;padding:0 22px;font-size:.78rem;color:#64748b;overflow:hidden;max-height:0;opacity:0;transition:max-height .25s ease,opacity .25s ease,padding .25s ease;}
+.ccy-count.show{max-height:28px;opacity:1;padding:0 22px 8px;}
+.ccy-list{position:relative;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 10px calc(26px + env(safe-area-inset-bottom,0px));outline:none;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.4) transparent;}
+.ccy-list::-webkit-scrollbar{width:5px;}
+.ccy-list::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.4);border-radius:3px;}
+.ccy-section{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px 7px;margin:0 -2px;font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;background:linear-gradient(180deg,#16213a 70%,rgba(22,33,58,0));}
+.ccy-section i{font-style:normal;font-weight:600;letter-spacing:0;color:#64748b;font-variant-numeric:tabular-nums;}
+.ccy-row-item{position:relative;display:flex;align-items:center;gap:12px;padding:9px 12px;margin-bottom:2px;border-radius:15px;border:1px solid transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .16s ease,border-color .16s ease,transform .16s ease;animation:ccyRowIn .38s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0) * 16ms);}
+@keyframes ccyRowIn{0%{opacity:0;transform:translateY(12px);}100%{opacity:1;transform:none;}}
+.ccy-row-item .ccy-flag{flex-basis:38px;width:38px;height:38px;font-size:1.4rem;}
+.ccy-row-info{flex:1;min-width:0;}
+.ccy-row-code,.ccy-row-name{display:block;}
+.ccy-row-code{font-size:.98rem;font-weight:700;letter-spacing:.04em;color:#e2e8f0;line-height:1.2;}
+.ccy-row-name{margin-top:1px;font-size:.8rem;line-height:1.3;color:#94a3b8;overflow-wrap:break-word;}
+.ccy-row-sym{flex:0 0 auto;min-width:30px;padding:4px 8px;font-size:.8rem;font-weight:600;text-align:center;color:#cbd5e1;background:rgba(255,255,255,0.07);border-radius:8px;}
+.ccy-row-check{flex:0 0 auto;width:20px;height:20px;color:#a5b4fc;opacity:0;transform:scale(.4);transition:opacity .2s ease,transform .3s cubic-bezier(.34,1.56,.64,1);}
+.ccy-row-item mark{color:#fff;background:rgba(var(--ccy-a-rgb),0.45);border-radius:4px;padding:0 1px;}
+.ccy-row-item.is-active{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.1);}
+.ccy-row-item.selected{background:rgba(var(--ccy-a-rgb),0.18);border-color:rgba(var(--ccy-a-rgb),0.45);}
+.ccy-row-item.selected::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--ccy-a),var(--ccy-b));}
+.ccy-row-item.selected .ccy-row-code{color:#c7d2fe;}
+.ccy-row-item.selected .ccy-row-check{opacity:1;transform:scale(1);}
+.ccy-row-item.picked .ccy-row-check{opacity:1;transform:scale(1.25);}
+@media(hover:hover){.ccy-row-item:hover{background:rgba(255,255,255,0.07);}.ccy-row-item.selected:hover{background:rgba(var(--ccy-a-rgb),0.24);}}
+.ccy-row-item:active{transform:scale(.985);}
+@keyframes ccyListIn{0%{opacity:0;transform:translateY(6px);}100%{opacity:1;transform:none;}}
+.ccy-list.is-fresh{animation:ccyListIn .28s ease;}
+.ccy-list.no-anim .ccy-row-item,.ccy-row-item.late{animation:none;}
+.ccy-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 24px;text-align:center;color:#94a3b8;animation:ccyListIn .3s ease;}
+.ccy-empty svg{width:44px;height:44px;color:#475569;}
+.ccy-empty b{color:#e2e8f0;font-size:1rem;}
+.ccy-empty span{font-size:.86rem;line-height:1.4;}
+@media(min-width:720px){
+  .ccy-overlay{align-items:center;}
+  .ccy-sheet{height:min(78dvh,720px);height:min(78vh,720px);border:1px solid rgba(99,102,241,0.28);border-radius:26px;transform:translateY(28px) scale(.96);opacity:0;transition:transform .45s cubic-bezier(.22,1.1,.36,1),opacity .3s ease;}
+  .ccy-overlay.open .ccy-sheet{transform:none;opacity:1;}
+  .ccy-sheet-head{cursor:default;}
+  .ccy-handle{display:none;}
+}
+
+/* ══════════════ CURRENCY — chart ══════════════ */
+.ccy-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;}
+.ccy-chart-title{font-size:1.15rem;font-weight:600;}
+.ccy-chart-pair{margin-top:3px;font-size:.84rem;color:#94a3b8;}
+.ccy-change{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;font-size:.88rem;font-weight:700;font-variant-numeric:tabular-nums;border-radius:999px;color:#94a3b8;background:rgba(148,163,184,0.14);transition:background .35s ease,color .35s ease;}
+.ccy-change svg{width:12px;height:12px;display:block;transition:transform .45s cubic-bezier(.34,1.56,.64,1);}
+.ccy-change.up{color:#4ade80;background:rgba(74,222,128,0.14);}
+.ccy-change.down{color:#f87171;background:rgba(248,113,113,0.14);}
+.ccy-change.down svg{transform:rotate(180deg);}
+.ccy-big{margin-top:14px;font-size:2.1rem;font-weight:700;line-height:1.1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.ccy-big-date{margin-top:4px;min-height:1.2em;font-size:.84rem;color:#94a3b8;}
+.ccy-canvas{position:relative;height:230px;margin:10px -4px 0;touch-action:pan-y;-webkit-tap-highlight-color:transparent;}
+.ccy-svg{display:block;width:100%;height:100%;overflow:visible;}
+.ccy-grid line{stroke:rgba(148,163,184,0.14);stroke-width:1;stroke-dasharray:3 5;}
+.ccy-tick text{fill:#64748b;font-size:10.5px;font-variant-numeric:tabular-nums;}
+.ccy-ticks{transition:opacity .45s ease;}
+.ccy-ticks.is-out{opacity:0;}
+.ccy-ticks.is-in{opacity:0;}
+.ccy-area{transition:opacity .5s ease;}
+.ccy-line{fill:none;stroke:var(--ccy-a);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 7px rgba(var(--ccy-a-rgb),0.55));}
+.ccy-end-dot{fill:#fff;stroke:var(--ccy-a);stroke-width:2.5;}
+.ccy-end-ring{fill:none;stroke:var(--ccy-a);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:ccyRing 2.2s ease-out infinite;}
+@keyframes ccyRing{0%{transform:scale(.6);opacity:.8;}100%{transform:scale(2.6);opacity:0;}}
+.ccy-cross{opacity:0;transition:opacity .2s ease;}
+.ccy-canvas.is-hover .ccy-cross{opacity:1;}
+.ccy-cross line{stroke:rgba(226,232,240,0.45);stroke-width:1;stroke-dasharray:3 4;}
+.ccy-cross circle{fill:#fff;stroke:var(--ccy-a);stroke-width:3;}
+.ccy-tip{position:absolute;top:0;left:0;z-index:3;padding:7px 11px;font-size:.8rem;line-height:1.3;white-space:nowrap;color:#f1f5f9;background:rgba(15,23,42,0.94);border:1px solid rgba(var(--ccy-a-rgb),0.5);border-radius:11px;box-shadow:0 10px 24px rgba(0,0,0,0.45);pointer-events:none;opacity:0;transition:opacity .18s ease;font-variant-numeric:tabular-nums;will-change:transform;}
+.ccy-tip small{display:block;color:#94a3b8;font-size:.72rem;}
+.ccy-canvas.is-hover .ccy-tip{opacity:1;}
+.ccy-state{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:0 22px;text-align:center;font-size:.9rem;line-height:1.4;color:#94a3b8;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .35s ease,visibility 0s linear .35s;}
+.ccy-state svg{width:40px;height:40px;color:#475569;}
+.ccy-state button{margin-top:2px;padding:9px 18px;font-size:.88rem;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--ccy-a),var(--ccy-b));border:none;border-radius:999px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.ccy-state button:active{transform:scale(.95);}
+.ccy-canvas[data-state="error"] .ccy-state-error,.ccy-canvas[data-state="empty"] .ccy-state-empty{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .35s ease,visibility 0s;}
+.ccy-skel{position:absolute;inset:0;z-index:3;overflow:hidden;border-radius:14px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .35s ease,visibility 0s linear .35s;}
+.ccy-skel::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(180deg,transparent 0 44px,rgba(148,163,184,0.1) 44px 45px);}
+.ccy-skel::after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:40%;background:linear-gradient(90deg,transparent,rgba(var(--ccy-a-rgb),0.18),transparent);animation:ccySkel 1.3s ease-in-out infinite;}
+@keyframes ccySkel{to{left:100%;}}
+.ccy-canvas[data-state="loading"] .ccy-skel{opacity:1;visibility:visible;transition:opacity .2s ease,visibility 0s;}
+.ccy-canvas[data-state="loading"] .ccy-svg{opacity:.28;}
+.ccy-canvas[data-state="error"] .ccy-svg,.ccy-canvas[data-state="empty"] .ccy-svg{opacity:0;}
+.ccy-svg{transition:opacity .4s ease;}
+.ccy-ranges{position:relative;display:flex;gap:2px;margin-top:14px;padding:4px;background:rgba(255,255,255,0.05);border-radius:14px;}
+.ccy-range-pill{position:absolute;top:4px;bottom:4px;left:0;width:0;background:linear-gradient(135deg,var(--ccy-a),var(--ccy-b));border-radius:10px;box-shadow:0 4px 14px rgba(var(--ccy-a-rgb),0.4);transition:transform .4s cubic-bezier(.34,1.3,.5,1),width .4s cubic-bezier(.34,1.3,.5,1);pointer-events:none;}
+.ccy-range{position:relative;z-index:1;flex:1 1 0;min-width:0;padding:9px 0;font-size:.86rem;font-weight:700;color:#94a3b8;background:none;border:none;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:color .3s ease;}
+.ccy-range.is-on{color:#fff;}
+.ccy-range:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
+.ccy-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px;}
+.ccy-stat{padding:11px 12px;background:rgba(255,255,255,0.045);border-radius:14px;min-width:0;}
+.ccy-stat span{display:block;font-size:.72rem;color:#94a3b8;}
+.ccy-stat b{display:block;margin-top:3px;font-size:.98rem;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.ccy-src{margin-top:12px;font-size:.72rem;line-height:1.4;color:#64748b;text-align:center;}
+
+@media(max-width:520px){
+  .ccy-card{padding:22px 18px;border-radius:22px;}
+  .ccy-row{grid-template-columns:minmax(0,1fr);gap:10px;}
+  .ccy-big{font-size:1.8rem;}
+  .ccy-canvas{height:200px;}
+}
+@media(max-width:480px){.screen{padding:15px;padding-bottom:140px;}}
+@media(min-width:601px){#scr-curr .converter-container{max-width:640px;}}
+@media(prefers-reduced-motion:reduce){
+  .ccy-trigger,.ccy-chev,.ccy-swap,.ccy-swap svg,.ccy-result,.ccy-overlay,.ccy-sheet,.ccy-chip,.ccy-row-item,.ccy-row-check,.ccy-range-pill,.ccy-change,.ccy-change svg{transition-duration:.01ms!important;transition-delay:0s!important;}
+  .ccy-row-item,.ccy-list.is-fresh,.ccy-pop,.ccy-result,.ccy-group-from.is-swapping,.ccy-group-to.is-swapping,.ccy-end-ring,.ccy-status .ccy-dot{animation:none!important;}
+}
+
+/* ── Light-theme contrast overrides ── */
+body.theme-light .back-btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+body.theme-light .back-btn:hover{background:#334155;border-color:#475569;color:#ffffff;}
+body.theme-light .subtitle{color:#475569;}
+body.theme-light .logo-text{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;}
+body.theme-light .input-field{background:rgba(30,41,59,0.88);}
+body.theme-light .ccy-card{background:rgba(15,23,42,0.88);}
+body.theme-light .ccy-trigger{background:rgba(30,41,59,0.88);}
+body.theme-light .ccy-trigger:hover,body.theme-light .ccy-trigger.is-active{background:rgba(30,41,59,0.92);}
+body.theme-light .ccy-overlay{background:rgba(2,6,23,0.88);}
+</style>
+</head>
+<body>
+
+<!-- Currency Picker Overlay (the loader injects this element into the live page by its id) -->
+<div id="curr-picker-overlay" class="ccy-overlay" role="dialog" aria-modal="true" aria-labelledby="curr-picker-title" onclick="if(event.target===this)closeCurrPicker()">
+    <div class="ccy-sheet" id="curr-picker-panel">
+        <div class="ccy-sheet-head" id="ccy-sheet-head">
+            <div class="ccy-handle" aria-hidden="true"></div>
+            <div class="ccy-head-row">
+                <div class="ccy-head-titles">
+                    <span class="ccy-side-chip" id="ccy-side-chip">Από</span>
+                    <span class="ccy-sheet-title" id="curr-picker-title" data-i="pickTitle">Επιλογή νομίσματος</span>
+                </div>
+                <button type="button" class="ccy-close" id="ccy-close" data-ia="close" aria-label="Close" onclick="closeCurrPicker()">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="ccy-search-wrap" id="ccy-search-wrap">
+            <svg class="ccy-search-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13.2 13.2L17 17"/></svg>
+            <input type="text" id="curr-picker-search" class="ccy-search" data-ip="search" placeholder="Αναζήτηση κωδικού ή ονόματος…" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-controls="curr-picker-list" oninput="filterCurrPicker()">
+            <button type="button" class="ccy-search-clear" id="ccy-search-clear" data-ia="clear" aria-label="Clear" onclick="ccyClearSearch()">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+            </button>
+        </div>
+        <div class="ccy-chips" id="ccy-chips" role="tablist"></div>
+        <div class="ccy-count" id="ccy-count" aria-live="polite"></div>
+        <div id="curr-picker-list" class="ccy-list" role="listbox" tabindex="-1"></div>
+    </div>
+</div>
+
+<!-- Currency Screen -->
+<div id="scr-curr" class="screen active">
+    <div class="header">
+        <div class="logo"><div class="logo-icon">∑</div><div class="logo-text">Multi<span>Calc</span></div></div>
+        <div class="subtitle t-header-sub">Μαθηματικά • Φυσική • Μονάδες • Νόμισμα</div>
+    </div>
+    <button class="back-btn" type="button">← <span class="t-back">Πίσω</span></button>
+
+    <div class="converter-container">
+
+        <!-- Converter -->
+        <div class="ccy-card">
+            <div class="ccy-title-row">
+                <div class="ccy-badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6"/><path d="M9 6.2v5.6M7.2 7.6c.5-.9 3.1-1 3.6.2.5 1.3-3.4 1-3.6 2.4-.2 1.3 3 1.3 3.7.1"/><path d="M15.5 10.2A6 6 0 1 1 10.2 15.5"/></svg>
+                </div>
+                <div class="ccy-title" data-i="title">Μετατροπέας νομισμάτων</div>
+            </div>
+
+            <div class="ccy-group-from" id="ccy-group-from">
+                <label class="ccy-label" for="curr-amt" data-i="from">Από</label>
+                <div class="ccy-row">
+                    <input type="number" id="curr-amt" class="input-field ccy-amt" aria-label="Amount" value="1" step="any" min="0" autocomplete="off" oninput="convertCurrency()" onkeydown="if(event.key==='Enter')this.blur()">
+                    <button type="button" class="ccy-trigger" id="curr-from-btn" aria-haspopup="dialog" onclick="openCurrPicker('from')">
+                        <span class="ccy-flag" id="from-flag">🇺🇸</span>
+                        <span class="ccy-trigger-info"><span class="ccy-trigger-code" id="from-code">USD</span><span class="ccy-trigger-name" id="from-name">US Dollar</span></span>
+                        <svg class="ccy-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5l5 5 5-5"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="ccy-swap-row">
+                <button type="button" class="ccy-swap" id="ccy-swap" data-ia="swap" aria-label="Swap" onclick="swapCurrencies()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/></svg>
+                </button>
+            </div>
+
+            <div class="ccy-group-to" id="ccy-group-to">
+                <label class="ccy-label" for="curr-amt-to" data-i="to">Προς</label>
+                <div class="ccy-row">
+                    <input type="number" id="curr-amt-to" class="input-field ccy-amt" aria-label="Converted amount" step="any" min="0" autocomplete="off" oninput="convertCurrency('to')" onkeydown="if(event.key==='Enter')this.blur()">
+                    <button type="button" class="ccy-trigger" id="curr-to-btn" aria-haspopup="dialog" onclick="openCurrPicker('to')">
+                        <span class="ccy-flag" id="to-flag">🇪🇺</span>
+                        <span class="ccy-trigger-info"><span class="ccy-trigger-code" id="to-code">EUR</span><span class="ccy-trigger-name" id="to-name">Euro</span></span>
+                        <svg class="ccy-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5l5 5 5-5"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="ccy-result" id="result-curr" role="button" tabindex="0" onclick="ccyCopy()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ccyCopy();}">
+                <div class="ccy-rate-main" id="ccy-rate-main" aria-live="polite">–</div>
+                <div class="ccy-rate-sub" id="ccy-rate-sub"></div>
+                <div class="ccy-status" id="ccy-status" data-s="loading">
+                    <span class="ccy-dot" aria-hidden="true"></span><span id="ccy-status-text">…</span>
+                    <button type="button" class="ccy-refresh" id="ccy-refresh" data-ia="refresh" aria-label="Refresh" onclick="event.stopPropagation();ccyRefreshRates()">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-2-4.7"/><path d="M16.5 3.5v3.3h-3.3"/></svg>
+                    </button>
+                </div>
+                <div class="ccy-hint" id="ccy-hint">Πάτα για αντιγραφή του ποσού</div>
+            </div>
+        </div>
+
+        <!-- Price history chart -->
+        <div class="ccy-card" id="ccy-chart-card">
+            <div class="ccy-chart-head">
+                <div>
+                    <div class="ccy-chart-title" data-i="chartTitle">Ιστορικό τιμής</div>
+                    <div class="ccy-chart-pair" id="ccy-chart-pair">USD → EUR</div>
+                </div>
+                <div class="ccy-change" id="ccy-change"><svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M6 1.5l5 7.5H1z"/></svg><span id="ccy-change-val">0,00%</span></div>
+            </div>
+            <div class="ccy-big" id="ccy-big">–</div>
+            <div class="ccy-big-date" id="ccy-big-date"></div>
+
+            <div class="ccy-canvas" id="ccy-canvas" data-state="loading">
+                <svg class="ccy-svg" id="ccy-svg" role="img" aria-label="Chart">
+                    <defs>
+                        <linearGradient id="ccy-area-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" style="stop-color:var(--ccy-a);stop-opacity:.42"/>
+                            <stop offset="100%" style="stop-color:var(--ccy-a);stop-opacity:0"/>
+                        </linearGradient>
+                    </defs>
+                    <g id="ccy-ticks-wrap"></g>
+                    <path class="ccy-area" id="ccy-area" fill="url(#ccy-area-grad)"/>
+                    <path class="ccy-line" id="ccy-line"/>
+                    <g id="ccy-end"><circle class="ccy-end-ring" id="ccy-end-ring" r="5"/><circle class="ccy-end-dot" id="ccy-end-dot" r="5"/></g>
+                    <g class="ccy-cross" id="ccy-cross"><line id="ccy-cross-line" y1="0" y2="0"/><circle id="ccy-cross-dot" r="5.5"/></g>
+                </svg>
+                <div class="ccy-tip" id="ccy-tip"><span id="ccy-tip-val">–</span><small id="ccy-tip-date"></small></div>
+                <div class="ccy-skel" aria-hidden="true"></div>
+                <div class="ccy-state ccy-state-error">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12.5C5 9 8.5 7.5 12 7.5s7 1.5 10 5"/><path d="M5.5 16c1.8-1.7 3.9-2.5 6.5-2.5s4.7.8 6.5 2.5"/><path d="M9 19.5c.9-.7 1.9-1 3-1s2.1.3 3 1"/><path d="M3 3l18 18"/></svg>
+                    <span id="ccy-state-error-text">Δεν ήταν δυνατή η φόρτωση του γραφήματος.</span>
+                    <button type="button" id="ccy-retry" onclick="ccyChartRetry()">Δοκίμασε ξανά</button>
+                </div>
+                <div class="ccy-state ccy-state-empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 3 3 6-8"/></svg>
+                    <span id="ccy-state-empty-text">Δεν υπάρχει ιστορικό για αυτό το ζεύγος.</span>
+                </div>
+            </div>
+
+            <div class="ccy-ranges" id="ccy-ranges" role="tablist">
+                <span class="ccy-range-pill" id="ccy-range-pill"></span>
+                <button type="button" class="ccy-range" role="tab" data-days="7">1Ε</button>
+                <button type="button" class="ccy-range is-on" role="tab" data-days="30">1Μ</button>
+                <button type="button" class="ccy-range" role="tab" data-days="90">3Μ</button>
+                <button type="button" class="ccy-range" role="tab" data-days="182">6Μ</button>
+                <button type="button" class="ccy-range" role="tab" data-days="365">1Χ</button>
+            </div>
+            <div class="ccy-stats">
+                <div class="ccy-stat"><span data-i="high">Υψηλό</span><b id="ccy-st-high">–</b></div>
+                <div class="ccy-stat"><span data-i="low">Χαμηλό</span><b id="ccy-st-low">–</b></div>
+                <div class="ccy-stat"><span data-i="avg">Μέσος όρος</span><b id="ccy-st-avg">–</b></div>
+            </div>
+            <div class="ccy-src" data-i="chartSrc">Πηγή: Frankfurter · επίσημες τιμές κεντρικών τραπεζών</div>
+        </div>
+    </div>
+
+    <div class="fun-facts-slot"></div>
+</div>
+
+<script>
+/* ── Light-theme contrast guard ─────────────────────────────
+   Detects whether the currently active body background is a
+   light color (any theme, present or future) and toggles
+   body.theme-light so panels/text/back-btn switch to a closed,
+   readable palette. getComputedStyle always normalizes colors
+   to rgb()/rgba() — never hex — so we parse that, not hex.
+   Fully-transparent stops (alpha 0, e.g. body's own unset
+   background-color) are skipped so they don't drag the
+   average down as if they were a real black stop.
+   A MutationObserver on body's style attribute acts as the
+   "signal": whenever ANYTHING changes the body background
+   (theme picker, app boot, future code), every already-loaded
+   module reacts instantly, with no fixed timing assumptions. */
+function mcRelLuminanceRGB(r,g,b){
+    const lin=c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+}
+function mcExtractRGB(str){
+    const out=[];
+    (str.match(/rgba?\([^)]+\)/g)||[]).forEach(m=>{
+        const n=m.match(/[\d.]+/g).map(Number);
+        if(n.length>=4 && n[3]===0) return;
+        out.push([n[0],n[1],n[2]]);
+    });
+    (str.match(/#[0-9a-fA-F]{6}/g)||[]).forEach(h=>{
+        out.push([parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+    });
+    return out;
+}
+function mcCheckThemeLightness(){
+    const cs=getComputedStyle(document.body);
+    const str=(cs.backgroundImage&&cs.backgroundImage!=='none'?cs.backgroundImage:'')+' '+cs.backgroundColor;
+    const colors=mcExtractRGB(str);
+    if(!colors.length){document.body.classList.remove('theme-light');return;}
+    const avg=colors.reduce((s,[r,g,b])=>s+mcRelLuminanceRGB(r,g,b),0)/colors.length;
+    document.body.classList.toggle('theme-light',avg>0.18);
+}
+mcCheckThemeLightness();
+window.addEventListener('load',mcCheckThemeLightness);
+setTimeout(mcCheckThemeLightness,300);
+try{
+    new MutationObserver(mcCheckThemeLightness)
+        .observe(document.body,{attributes:true,attributeFilter:['style','class']});
+}catch(e){}
+
+/* ── Minimal namespace stub ── */
+var MultiCalc = {
+    state: { currFrom:'USD', currTo:'EUR', liveRates:null, liveRatesFetchedAt:null, liveRatesNextUpdate:null, currentLang:'el' },
+    data:  {}
+};
+
+/* ── CUR-1-A  Currency Flags ── */
+MultiCalc.data.currencyFlags = {
+    USD:'🇺🇸',EUR:'🇪🇺',GBP:'🇬🇧',JPY:'🇯🇵',CHF:'🇨🇭',CAD:'🇨🇦',AUD:'🇦🇺',NZD:'🇳🇿',
+    CNY:'🇨🇳',HKD:'🇭🇰',SGD:'🇸🇬',KRW:'🇰🇷',INR:'🇮🇳',TWD:'🇹🇼',THB:'🇹🇭',MYR:'🇲🇾',
+    IDR:'🇮🇩',PHP:'🇵🇭',VND:'🇻🇳',BDT:'🇧🇩',PKR:'🇵🇰',LKR:'🇱🇰',NPR:'🇳🇵',MMK:'🇲🇲',
+    KHR:'🇰🇭',LAK:'🇱🇦',MNT:'🇲🇳',BND:'🇧🇳',MVR:'🇲🇻',MOP:'🇲🇴',KGS:'🇰🇬',
+    AED:'🇦🇪',SAR:'🇸🇦',QAR:'🇶🇦',KWD:'🇰🇼',BHD:'🇧🇭',OMR:'🇴🇲',JOD:'🇯🇴',
+    ILS:'🇮🇱',EGP:'🇪🇬',MAD:'🇲🇦',TND:'🇹🇳',DZD:'🇩🇿',LBP:'🇱🇧',IRR:'🇮🇷',
+    IQD:'🇮🇶',YER:'🇾🇪',LYD:'🇱🇾',SYP:'🇸🇾',
+    ZAR:'🇿🇦',NGN:'🇳🇬',KES:'🇰🇪',GHS:'🇬🇭',ETB:'🇪🇹',TZS:'🇹🇿',UGX:'🇺🇬',
+    ZMW:'🇿🇲',MWK:'🇲🇼',XOF:'🌍',XAF:'🌍',BWP:'🇧🇼',NAD:'🇳🇦',MUR:'🇲🇺',SCR:'🇸🇨',
+    DJF:'🇩🇯',SOS:'🇸🇴',RWF:'🇷🇼',BIF:'🇧🇮',GMD:'🇬🇲',SZL:'🇸🇿',LSL:'🇱🇸',
+    MGA:'🇲🇬',MZN:'🇲🇿',AOA:'🇦🇴',GNF:'🇬🇳',CDF:'🇨🇩',MDL:'🇲🇩',STN:'🇸🇹',
+    CVE:'🇨🇻',SDG:'🇸🇩',ERN:'🇪🇷',LRD:'🇱🇷',
+    RUB:'🇷🇺',TRY:'🇹🇷',PLN:'🇵🇱',HUF:'🇭🇺',CZK:'🇨🇿',RON:'🇷🇴',BGN:'🇧🇬',
+    NOK:'🇳🇴',SEK:'🇸🇪',DKK:'🇩🇰',ISK:'🇮🇸',HRK:'🇭🇷',RSD:'🇷🇸',BAM:'🇧🇦',
+    MKD:'🇲🇰',ALL:'🇦🇱',UAH:'🇺🇦',AMD:'🇦🇲',AZN:'🇦🇿',BYN:'🇧🇾',KZT:'🇰🇿',
+    UZS:'🇺🇿',TMT:'🇹🇲',TJS:'🇹🇯',GEL:'🇬🇪',
+    BRL:'🇧🇷',MXN:'🇲🇽',ARS:'🇦🇷',CLP:'🇨🇱',COP:'🇨🇴',PEN:'🇵🇪',UYU:'🇺🇾',
+    BOB:'🇧🇴',PYG:'🇵🇾',GTQ:'🇬🇹',DOP:'🇩🇴',CRC:'🇨🇷',JMD:'🇯🇲',TTD:'🇹🇹',
+    HNL:'🇭🇳',NIO:'🇳🇮',PAB:'🇵🇦',BZD:'🇧🇿',GYD:'🇬🇾',SRD:'🇸🇷',HTG:'🇭🇹',
+    BBD:'🇧🇧',AWG:'🇦🇼',XCD:'🇱🇨',BMD:'🇧🇲',KYD:'🇰🇾',BSD:'🇧🇸',
+    FJD:'🇫🇯',PGK:'🇵🇬',WST:'🇼🇸',TOP:'🇹🇴',VUV:'🇻🇺',SBD:'🇸🇧',XPF:'🌏',
+    SHP:'🇸🇭',GIP:'🇬🇮',FKP:'🇫🇰',AFN:'🇦🇫',BTN:'🇧🇹',MRU:'🇲🇷',
+    KMF:'🇰🇲',KPW:'🇰🇵',SVC:'🇸🇻',CUP:'🇨🇺',VES:'🇻🇪',ZWL:'🇿🇼',ANG:'🇨🇼',SLL:'🇸🇱',
+    FOK:'🇫🇴',GGP:'🇬🇬',IMP:'🇮🇲',JEP:'🇯🇪',KID:'🇰🇮',SLE:'🇸🇱',SSP:'🇸🇸',TVD:'🇹🇻',XDR:'🌐'
+};
+
+/* ── CUR-1-B  Currency list (code + names in en / el / es) ── */
+MultiCalc.data.allCurrencies = [
+    {code:'AED',en:'UAE Dirham',el:'Ντιρχάμ ΗΑΕ',es:'Dírham de los Emiratos Árabes Unidos'},
+    {code:'AFN',en:'Afghan Afghani',el:'Αφγάνι Αφγανιστάν',es:'Afgani afgano'},
+    {code:'ALL',en:'Albanian Lek',el:'Λεκ Αλβανίας',es:'Lek albanés'},
+    {code:'AMD',en:'Armenian Dram',el:'Ντραμ Αρμενίας',es:'Dram armenio'},
+    {code:'ANG',en:'Netherlands Antillean Guilder',el:'Φιορίνι Ολλανδικών Αντιλλών',es:'Florín de las Antillas Neerlandesas'},
+    {code:'AOA',en:'Angolan Kwanza',el:'Κουάνζα Αγκόλας',es:'Kwanza angoleño'},
+    {code:'ARS',en:'Argentine Peso',el:'Πέσο Αργεντινής',es:'Peso argentino'},
+    {code:'AUD',en:'Australian Dollar',el:'Δολάριο Αυστραλίας',es:'Dólar australiano'},
+    {code:'AWG',en:'Aruban Florin',el:'Φιορίνι Αρούμπας',es:'Florín arubeño'},
+    {code:'AZN',en:'Azerbaijani Manat',el:'Μανάτ Αζερμπαϊτζάν',es:'Manat azerbaiyano'},
+    {code:'BAM',en:'Bosnia-Herzegovina Convertible Mark',el:'Μετατρέψιμο Μάρκο Βοσνίας-Ερζεγοβίνης',es:'Marco convertible de Bosnia y Herzegovina'},
+    {code:'BBD',en:'Barbadian Dollar',el:'Δολάριο Μπαρμπάντος',es:'Dólar de Barbados'},
+    {code:'BDT',en:'Bangladeshi Taka',el:'Τάκα Μπαγκλαντές',es:'Taka bangladesí'},
+    {code:'BGN',en:'Bulgarian Lev',el:'Λεβ Βουλγαρίας',es:'Lev búlgaro'},
+    {code:'BHD',en:'Bahraini Dinar',el:'Δηνάριο Μπαχρέιν',es:'Dinar bareiní'},
+    {code:'BIF',en:'Burundian Franc',el:'Φράγκο Μπουρούντι',es:'Franco burundés'},
+    {code:'BMD',en:'Bermudian Dollar',el:'Δολάριο Βερμούδων',es:'Dólar bermudeño'},
+    {code:'BND',en:'Brunei Dollar',el:'Δολάριο Μπρουνέι',es:'Dólar de Brunéi'},
+    {code:'BOB',en:'Bolivian Boliviano',el:'Μπολιβιάνο Βολιβίας',es:'Boliviano'},
+    {code:'BRL',en:'Brazilian Real',el:'Ρεάλ Βραζιλίας',es:'Real brasileño'},
+    {code:'BSD',en:'Bahamian Dollar',el:'Δολάριο Μπαχαμών',es:'Dólar bahameño'},
+    {code:'BTN',en:'Bhutanese Ngultrum',el:'Νγκούλτρουμ Μπουτάν',es:'Ngultrum butanés'},
+    {code:'BWP',en:'Botswanan Pula',el:'Πούλα Μποτσουάνας',es:'Pula botsuano'},
+    {code:'BYN',en:'Belarusian Ruble',el:'Ρούβλι Λευκορωσίας',es:'Rublo bielorruso'},
+    {code:'BZD',en:'Belize Dollar',el:'Δολάριο Μπελίζ',es:'Dólar beliceño'},
+    {code:'CAD',en:'Canadian Dollar',el:'Δολάριο Καναδά',es:'Dólar canadiense'},
+    {code:'CDF',en:'Congolese Franc',el:'Φράγκο Κονγκό',es:'Franco congoleño'},
+    {code:'CHF',en:'Swiss Franc',el:'Ελβετικό Φράγκο',es:'Franco suizo'},
+    {code:'CLP',en:'Chilean Peso',el:'Πέσο Χιλής',es:'Peso chileno'},
+    {code:'CNY',en:'Chinese Yuan',el:'Γουάν Κίνας',es:'Yuan chino'},
+    {code:'COP',en:'Colombian Peso',el:'Πέσο Κολομβίας',es:'Peso colombiano'},
+    {code:'CRC',en:'Costa Rican Colón',el:'Κολόν Κόστα Ρίκα',es:'Colón costarricense'},
+    {code:'CUP',en:'Cuban Peso',el:'Πέσο Κούβας',es:'Peso cubano'},
+    {code:'CVE',en:'Cape Verdean Escudo',el:'Εσκούδο Πράσινου Ακρωτηρίου',es:'Escudo caboverdiano'},
+    {code:'CZK',en:'Czech Koruna',el:'Κορώνα Τσεχίας',es:'Corona checa'},
+    {code:'DJF',en:'Djiboutian Franc',el:'Φράγκο Τζιμπουτί',es:'Franco yibutiano'},
+    {code:'DKK',en:'Danish Krone',el:'Κορώνα Δανίας',es:'Corona danesa'},
+    {code:'DOP',en:'Dominican Peso',el:'Πέσο Δομινικανής Δημοκρατίας',es:'Peso dominicano'},
+    {code:'DZD',en:'Algerian Dinar',el:'Δηνάριο Αλγερίας',es:'Dinar argelino'},
+    {code:'EGP',en:'Egyptian Pound',el:'Λίρα Αιγύπτου',es:'Libra egipcia'},
+    {code:'ERN',en:'Eritrean Nakfa',el:'Νάκφα Ερυθραίας',es:'Nakfa eritreo'},
+    {code:'ETB',en:'Ethiopian Birr',el:'Μπιρ Αιθιοπίας',es:'Birr etíope'},
+    {code:'EUR',en:'Euro',el:'Ευρώ',es:'Euro'},
+    {code:'FJD',en:'Fijian Dollar',el:'Δολάριο Φίτζι',es:'Dólar fiyiano'},
+    {code:'FKP',en:'Falkland Islands Pound',el:'Λίρα Φώκλαντ',es:'Libra malvinense'},
+    {code:'FOK',en:'Faroese Króna',el:'Κορώνα Νήσων Φερόε',es:'Corona feroesa'},
+    {code:'GBP',en:'British Pound',el:'Λίρα Στερλίνα',es:'Libra esterlina'},
+    {code:'GEL',en:'Georgian Lari',el:'Λάρι Γεωργίας',es:'Lari georgiano'},
+    {code:'GGP',en:'Guernsey Pound',el:'Λίρα Γκέρνσεϊ',es:'Libra de Guernsey'},
+    {code:'GHS',en:'Ghanaian Cedi',el:'Σέντι Γκάνας',es:'Cedi ghanés'},
+    {code:'GIP',en:'Gibraltar Pound',el:'Λίρα Γιβραλτάρ',es:'Libra de Gibraltar'},
+    {code:'GMD',en:'Gambian Dalasi',el:'Νταλάσι Γκάμπιας',es:'Dalasi gambiano'},
+    {code:'GNF',en:'Guinean Franc',el:'Φράγκο Γουινέας',es:'Franco guineano'},
+    {code:'GTQ',en:'Guatemalan Quetzal',el:'Κετσάλ Γουατεμάλας',es:'Quetzal guatemalteco'},
+    {code:'GYD',en:'Guyanese Dollar',el:'Δολάριο Γουιάνας',es:'Dólar guyanés'},
+    {code:'HKD',en:'Hong Kong Dollar',el:'Δολάριο Χονγκ Κονγκ',es:'Dólar de Hong Kong'},
+    {code:'HNL',en:'Honduran Lempira',el:'Λεμπίρα Ονδούρας',es:'Lempira hondureño'},
+    {code:'HRK',en:'Croatian Kuna',el:'Κούνα Κροατίας',es:'Kuna croata'},
+    {code:'HTG',en:'Haitian Gourde',el:'Γκουρντ Αϊτής',es:'Gourde haitiano'},
+    {code:'HUF',en:'Hungarian Forint',el:'Φιορίνι Ουγγαρίας',es:'Forinto húngaro'},
+    {code:'IDR',en:'Indonesian Rupiah',el:'Ρουπία Ινδονησίας',es:'Rupia indonesia'},
+    {code:'ILS',en:'Israeli New Shekel',el:'Νέο Σέκελ Ισραήλ',es:'Nuevo séquel israelí'},
+    {code:'IMP',en:'Isle of Man Pound',el:'Λίρα Νήσου Μαν',es:'Libra de la Isla de Man'},
+    {code:'INR',en:'Indian Rupee',el:'Ρουπία Ινδίας',es:'Rupia india'},
+    {code:'IQD',en:'Iraqi Dinar',el:'Δηνάριο Ιράκ',es:'Dinar iraquí'},
+    {code:'IRR',en:'Iranian Rial',el:'Ριάλ Ιράν',es:'Rial iraní'},
+    {code:'ISK',en:'Icelandic Króna',el:'Κορώνα Ισλανδίας',es:'Corona islandesa'},
+    {code:'JEP',en:'Jersey Pound',el:'Λίρα Τζέρσεϊ',es:'Libra de Jersey'},
+    {code:'JMD',en:'Jamaican Dollar',el:'Δολάριο Τζαμάικας',es:'Dólar jamaicano'},
+    {code:'JOD',en:'Jordanian Dinar',el:'Δηνάριο Ιορδανίας',es:'Dinar jordano'},
+    {code:'JPY',en:'Japanese Yen',el:'Γιεν Ιαπωνίας',es:'Yen japonés'},
+    {code:'KES',en:'Kenyan Shilling',el:'Σελήνι Κένυας',es:'Chelín keniano'},
+    {code:'KGS',en:'Kyrgyzstani Som',el:'Σομ Κιργιζίας',es:'Som kirguís'},
+    {code:'KHR',en:'Cambodian Riel',el:'Ρίελ Καμπότζης',es:'Riel camboyano'},
+    {code:'KID',en:'Kiribati Dollar',el:'Δολάριο Κιριμπάτι',es:'Dólar de Kiribati'},
+    {code:'KMF',en:'Comorian Franc',el:'Φράγκο Κομορών',es:'Franco comorense'},
+    {code:'KPW',en:'North Korean Won',el:'Γουόν Βόρειας Κορέας',es:'Won norcoreano'},
+    {code:'KRW',en:'South Korean Won',el:'Γουόν Νότιας Κορέας',es:'Won surcoreano'},
+    {code:'KWD',en:'Kuwaiti Dinar',el:'Δηνάριο Κουβέιτ',es:'Dinar kuwaití'},
+    {code:'KYD',en:'Cayman Islands Dollar',el:'Δολάριο Νήσων Κέιμαν',es:'Dólar de las Islas Caimán'},
+    {code:'KZT',en:'Kazakhstani Tenge',el:'Τένγκε Καζακστάν',es:'Tenge kazajo'},
+    {code:'LAK',en:'Laotian Kip',el:'Κιπ Λάος',es:'Kip laosiano'},
+    {code:'LBP',en:'Lebanese Pound',el:'Λίρα Λιβάνου',es:'Libra libanesa'},
+    {code:'LKR',en:'Sri Lankan Rupee',el:'Ρουπία Σρι Λάνκα',es:'Rupia de Sri Lanka'},
+    {code:'LRD',en:'Liberian Dollar',el:'Δολάριο Λιβερίας',es:'Dólar liberiano'},
+    {code:'LSL',en:'Lesotho Loti',el:'Λότι Λεσότο',es:'Loti lesotense'},
+    {code:'LYD',en:'Libyan Dinar',el:'Δηνάριο Λιβύης',es:'Dinar libio'},
+    {code:'MAD',en:'Moroccan Dirham',el:'Ντιρχάμ Μαρόκου',es:'Dírham marroquí'},
+    {code:'MDL',en:'Moldovan Leu',el:'Λέου Μολδαβίας',es:'Leu moldavo'},
+    {code:'MGA',en:'Malagasy Ariary',el:'Αριάρι Μαδαγασκάρης',es:'Ariary malgache'},
+    {code:'MKD',en:'Macedonian Denar',el:'Δηνάριο Βόρειας Μακεδονίας',es:'Denar macedonio'},
+    {code:'MMK',en:'Myanmar Kyat',el:'Κυάτ Μιανμάρ',es:'Kyat birmano'},
+    {code:'MNT',en:'Mongolian Tögrög',el:'Τουγκρίκ Μογγολίας',es:'Tugrik mongol'},
+    {code:'MOP',en:'Macanese Pataca',el:'Πατάκα Μακάο',es:'Pataca de Macao'},
+    {code:'MRU',en:'Mauritanian Ouguiya',el:'Ουγκίγια Μαυριτανίας',es:'Uguiya mauritana'},
+    {code:'MUR',en:'Mauritian Rupee',el:'Ρουπία Μαυρικίου',es:'Rupia mauriciana'},
+    {code:'MVR',en:'Maldivian Rufiyaa',el:'Ρουφίγια Μαλδίβων',es:'Rufiyaa maldiva'},
+    {code:'MWK',en:'Malawian Kwacha',el:'Κουάτσα Μαλάουι',es:'Kwacha malauí'},
+    {code:'MXN',en:'Mexican Peso',el:'Πέσο Μεξικού',es:'Peso mexicano'},
+    {code:'MYR',en:'Malaysian Ringgit',el:'Ρινγκίτ Μαλαισίας',es:'Ringgit malasio'},
+    {code:'MZN',en:'Mozambican Metical',el:'Μετικάλ Μοζαμβίκης',es:'Metical mozambiqueño'},
+    {code:'NAD',en:'Namibian Dollar',el:'Δολάριο Ναμίμπιας',es:'Dólar namibio'},
+    {code:'NGN',en:'Nigerian Naira',el:'Νάιρα Νιγηρίας',es:'Naira nigeriano'},
+    {code:'NIO',en:'Nicaraguan Córdoba',el:'Κόρδοβα Νικαράγουας',es:'Córdoba nicaragüense'},
+    {code:'NOK',en:'Norwegian Krone',el:'Κορώνα Νορβηγίας',es:'Corona noruega'},
+    {code:'NPR',en:'Nepalese Rupee',el:'Ρουπία Νεπάλ',es:'Rupia nepalí'},
+    {code:'NZD',en:'New Zealand Dollar',el:'Δολάριο Νέας Ζηλανδίας',es:'Dólar neozelandés'},
+    {code:'OMR',en:'Omani Rial',el:'Ριάλ Ομάν',es:'Rial omaní'},
+    {code:'PAB',en:'Panamanian Balboa',el:'Μπαλμπόα Παναμά',es:'Balboa panameño'},
+    {code:'PEN',en:'Peruvian Sol',el:'Σολ Περού',es:'Sol peruano'},
+    {code:'PGK',en:'Papua New Guinean Kina',el:'Κίνα Παπούα Νέας Γουινέας',es:'Kina de Papúa Nueva Guinea'},
+    {code:'PHP',en:'Philippine Peso',el:'Πέσο Φιλιππίνων',es:'Peso filipino'},
+    {code:'PKR',en:'Pakistani Rupee',el:'Ρουπία Πακιστάν',es:'Rupia pakistaní'},
+    {code:'PLN',en:'Polish Zloty',el:'Ζλότι Πολωνίας',es:'Esloti polaco'},
+    {code:'PYG',en:'Paraguayan Guarani',el:'Γκουαρανί Παραγουάης',es:'Guaraní paraguayo'},
+    {code:'QAR',en:'Qatari Rial',el:'Ριάλ Κατάρ',es:'Rial catarí'},
+    {code:'RON',en:'Romanian Leu',el:'Λέου Ρουμανίας',es:'Leu rumano'},
+    {code:'RSD',en:'Serbian Dinar',el:'Δηνάριο Σερβίας',es:'Dinar serbio'},
+    {code:'RUB',en:'Russian Ruble',el:'Ρούβλι Ρωσίας',es:'Rublo ruso'},
+    {code:'RWF',en:'Rwandan Franc',el:'Φράγκο Ρουάντας',es:'Franco ruandés'},
+    {code:'SAR',en:'Saudi Riyal',el:'Ριάλ Σαουδικής Αραβίας',es:'Rial saudí'},
+    {code:'SBD',en:'Solomon Islands Dollar',el:'Δολάριο Νήσων Σολομώντα',es:'Dólar de las Islas Salomón'},
+    {code:'SCR',en:'Seychellois Rupee',el:'Ρουπία Σεϋχελλών',es:'Rupia seychellense'},
+    {code:'SDG',en:'Sudanese Pound',el:'Λίρα Σουδάν',es:'Libra sudanesa'},
+    {code:'SEK',en:'Swedish Krona',el:'Κορώνα Σουηδίας',es:'Corona sueca'},
+    {code:'SGD',en:'Singapore Dollar',el:'Δολάριο Σιγκαπούρης',es:'Dólar de Singapur'},
+    {code:'SHP',en:'St. Helena Pound',el:'Λίρα Αγίας Ελένης',es:'Libra de Santa Elena'},
+    {code:'SLE',en:'Sierra Leonean Leone',el:'Λεόνε Σιέρα Λεόνε',es:'Leone de Sierra Leona'},
+    {code:'SOS',en:'Somali Shilling',el:'Σελήνι Σομαλίας',es:'Chelín somalí'},
+    {code:'SRD',en:'Surinamese Dollar',el:'Δολάριο Σουρινάμ',es:'Dólar surinamés'},
+    {code:'SSP',en:'South Sudanese Pound',el:'Λίρα Νότιου Σουδάν',es:'Libra sursudanesa'},
+    {code:'STN',en:'São Tomé Dobra',el:'Ντόμπρα Σάο Τομέ και Πρίνσιπε',es:'Dobra de Santo Tomé y Príncipe'},
+    {code:'SYP',en:'Syrian Pound',el:'Λίρα Συρίας',es:'Libra siria'},
+    {code:'SZL',en:'Swazi Lilangeni',el:'Λιλανγκένι Εσουατίνι',es:'Lilangeni suazi'},
+    {code:'THB',en:'Thai Baht',el:'Μπατ Ταϊλάνδης',es:'Baht tailandés'},
+    {code:'TJS',en:'Tajikistani Somoni',el:'Σομόνι Τατζικιστάν',es:'Somoni tayiko'},
+    {code:'TMT',en:'Turkmenistani Manat',el:'Μανάτ Τουρκμενιστάν',es:'Manat turcomano'},
+    {code:'TND',en:'Tunisian Dinar',el:'Δηνάριο Τυνησίας',es:'Dinar tunecino'},
+    {code:'TOP',en:'Tongan Paʻanga',el:'Παάνγκα Τόνγκα',es:'Paanga tongano'},
+    {code:'TRY',en:'Turkish Lira',el:'Λίρα Τουρκίας',es:'Lira turca'},
+    {code:'TTD',en:'Trinidad & Tobago Dollar',el:'Δολάριο Τρινιντάντ και Τομπάγκο',es:'Dólar de Trinidad y Tobago'},
+    {code:'TVD',en:'Tuvaluan Dollar',el:'Δολάριο Τουβαλού',es:'Dólar de Tuvalu'},
+    {code:'TWD',en:'New Taiwan Dollar',el:'Νέο Δολάριο Ταϊβάν',es:'Nuevo dólar taiwanés'},
+    {code:'TZS',en:'Tanzanian Shilling',el:'Σελήνι Τανζανίας',es:'Chelín tanzano'},
+    {code:'UAH',en:'Ukrainian Hryvnia',el:'Χρίβνια Ουκρανίας',es:'Grivna ucraniana'},
+    {code:'UGX',en:'Ugandan Shilling',el:'Σελήνι Ουγκάντας',es:'Chelín ugandés'},
+    {code:'USD',en:'US Dollar',el:'Δολάριο ΗΠΑ',es:'Dólar estadounidense'},
+    {code:'UYU',en:'Uruguayan Peso',el:'Πέσο Ουρουγουάης',es:'Peso uruguayo'},
+    {code:'UZS',en:'Uzbekistani Som',el:'Σομ Ουζμπεκιστάν',es:'Som uzbeko'},
+    {code:'VES',en:'Venezuelan Bolívar',el:'Μπολιβάρ Βενεζουέλας',es:'Bolívar venezolano'},
+    {code:'VND',en:'Vietnamese Dong',el:'Ντονγκ Βιετνάμ',es:'Dong vietnamita'},
+    {code:'VUV',en:'Vanuatu Vatu',el:'Βατού Βανουάτου',es:'Vatu vanuatuense'},
+    {code:'WST',en:'Samoan Tala',el:'Τάλα Σαμόα',es:'Tala samoano'},
+    {code:'XAF',en:'Central African CFA Franc',el:'Φράγκο CFA Κεντρικής Αφρικής',es:'Franco CFA de África Central'},
+    {code:'XCD',en:'East Caribbean Dollar',el:'Δολάριο Ανατολικής Καραϊβικής',es:'Dólar del Caribe Oriental'},
+    {code:'XDR',en:'IMF Special Drawing Rights',el:'Ειδικά Δικαιώματα Ανάληψης (ΔΝΤ)',es:'Derechos especiales de giro (FMI)'},
+    {code:'XOF',en:'West African CFA Franc',el:'Φράγκο CFA Δυτικής Αφρικής',es:'Franco CFA de África Occidental'},
+    {code:'XPF',en:'CFP Franc',el:'Φράγκο CFP',es:'Franco CFP'},
+    {code:'YER',en:'Yemeni Rial',el:'Ριάλ Υεμένης',es:'Rial yemení'},
+    {code:'ZAR',en:'South African Rand',el:'Ραντ Νότιας Αφρικής',es:'Rand sudafricano'},
+    {code:'ZMW',en:'Zambian Kwacha',el:'Κουάτσα Ζάμπιας',es:'Kwacha zambiano'},
+    {code:'ZWL',en:'Zimbabwean Dollar',el:'Δολάριο Ζιμπάμπουε',es:'Dólar zimbabuense'}
+];
+
+/* ── Regions (every currency belongs to exactly one) and the 'popular' shortcut row ── */
+var CCY_REGIONS = {
+    europe: 'EUR GBP CHF SEK NOK DKK ISK PLN CZK HUF RON BGN HRK RSD BAM MKD ALL UAH MDL BYN RUB TRY GEL AMD AZN GIP FOK GGP IMP JEP',
+    americas: 'USD CAD MXN BRL ARS CLP COP PEN UYU BOB PYG GTQ DOP CRC JMD TTD HNL NIO PAB BZD GYD SRD HTG BBD AWG XCD BMD KYD BSD ANG CUP VES FKP',
+    asia: 'JPY CNY HKD SGD KRW INR TWD THB MYR IDR PHP VND BDT PKR LKR NPR MMK KHR LAK MNT BND MVR MOP KGS KZT UZS TMT TJS AFN BTN KPW',
+    mideast: 'AED SAR QAR KWD BHD OMR JOD ILS LBP IRR IQD YER SYP',
+    africa: 'ZAR NGN KES GHS ETB TZS UGX ZMW XOF XAF BWP NAD MUR SCR DJF SOS RWF BIF GMD SZL LSL MGA MZN AOA GNF CDF STN CVE SDG ERN LRD EGP MAD TND DZD LYD MWK MRU KMF SLE ZWL SSP SHP',
+    oceania: 'AUD NZD FJD PGK WST TOP VUV SBD XPF KID TVD',
+    intl: 'XDR'
+};
+var CCY_POPULAR = 'USD EUR GBP JPY CHF CAD AUD CNY INR TRY BRL AED'.split(' ');
+
+/* ── CUR-1-C  Static USD Fallback Rates ── */
+MultiCalc.data.staticRates = {
+    USD:1,EUR:0.92411,GBP:0.79015,JPY:149.51,CHF:0.90037,CAD:1.3623,AUD:1.5283,NZD:1.6678,
+    CNY:7.24,HKD:7.7841,SGD:1.3473,KRW:1367.5,INR:83.52,TWD:32.095,THB:35.59,MYR:4.712,
+    IDR:15891,PHP:56.2,VND:25191,BDT:110,PKR:277.95,LKR:303,NPR:133,MMK:2100,
+    KHR:4060,LAK:21000,MNT:3450,BND:1.3473,MVR:15.4,MOP:8.042,KGS:89,
+    AED:3.6725,SAR:3.7504,QAR:3.6408,KWD:0.30747,BHD:0.37701,OMR:0.38503,JOD:0.7093,
+    ILS:3.7005,EGP:48.5,MAD:10.094,TND:3.148,DZD:134,LYD:4.82,IRR:42250,IQD:1310,
+    LBP:89500,YER:250.3,SYP:13000,ZAR:18.6,NGN:1550,KES:130,GHS:15.5,ETB:56.65,
+    TZS:2628,UGX:3760,ZMW:27.35,MWK:1750,XOF:605.5,XAF:605.5,XPF:110.2,BWP:13.64,NAD:18.6,
+    MUR:44.6,SCR:13.5,DJF:177.7,SOS:571,RWF:1290,BIF:2885,GMD:67.8,SZL:18.6,
+    LSL:18.6,MGA:4535,MZN:63.9,AOA:850,GNF:8625,CDF:2750,MDL:17.75,STN:23.4,
+    CVE:101.8,SDG:601.5,ERN:15,LRD:189,RUB:91.95,TRY:32.5,PLN:3.98,HUF:361.1,
+    CZK:23.197,RON:4.596,BGN:1.8079,NOK:10.594,SEK:10.392,DKK:6.8897,ISK:138,
+    HRK:6.961,RSD:108.86,BAM:1.8079,MKD:56.89,ALL:97.48,UAH:39.5,GEL:2.71,
+    AMD:397,AZN:1.7,BYN:3.24,KZT:462,UZS:12600,TMT:3.5,TJS:10.9,
+    BRL:5.051,MXN:17.105,ARS:915,CLP:939,COP:3950,PEN:3.76,UYU:40.2,BOB:6.91,
+    PYG:7300,GTQ:7.78,DOP:59.5,CRC:515.6,JMD:155,TTD:6.77,HTG:132,HNL:24.65,
+    NIO:36.7,PAB:1,BZD:2,GYD:209,SRD:35.6,BBD:2,XCD:2.7,BMD:1,KYD:0.8333,BSD:1,AWG:1.79,
+    FJD:2.26,PGK:3.95,WST:2.74,TOP:2.38,VUV:118,SBD:8.42,
+    AFN:72,BTN:83.52,KMF:455,KPW:900,MRU:39.8,SHP:0.79015,GIP:0.79015,FKP:0.79015,
+    SVC:8.75,CUP:24,VES:36.5,ZWL:361,ANG:1.79,SLL:20969,
+    FOK:6.8897,GGP:0.79015,IMP:0.79015,JEP:0.79015,KID:1.5283,TVD:1.5283,SLE:22.7,SSP:1320,XDR:0.757
+};
+
+/* ── CUR-1-D  Decimal precision ── */
+MultiCalc.data.currencyDecimals = {
+    zero: new Set(['JPY','KRW','IDR','VND','KHR','LAK','MMK','GNF','UGX','RWF','BIF','MGA','XOF','XAF','XPF','DJF','KMF','PYG','CLP','COP','NGN','PKR','BDT','SLL','CDF','SOS','SSP']),
+    three: new Set(['KWD','BHD','OMR','JOD','TND','LYD','IQD'])
+};
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 05 — CURRENCY  (UI, picker, chart)
+   Everything below lives in ONE function scope; the handlers the markup
+   calls (convertCurrency, swapCurrencies, openCurrPicker …) are exported
+   explicitly at the very end. Why: the App's loader runs module scripts
+   inside a try-block, where top-level `async function` declarations are
+   NOT global — exports via window.x = x are safe in every scope.
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+'use strict';
+
+/* ── Language ── (in-app: the App's state · standalone: ?lang=el|en|es, else Greek) */
+var LOCALES = { el: 'el-GR', en: 'en-US', es: 'es-ES' };
+function inApp() { try { return !!(window.MultiCalc && window.MultiCalc.modules && window.MultiCalc.modules.loaded); } catch (e) { return false; } }
+function lang() {
+    var l = null;
+    if (inApp()) { try { l = window.MultiCalc.state.currentLang; } catch (e) {} }
+    if (!l) { try { var m = /[?&]lang=(el|en|es)(?:&|$)/.exec(location.search); if (m) l = m[1]; } catch (e) {} }
+    if (!l) { try { l = MultiCalc.state.currentLang; } catch (e) {} }
+    return (l === 'el' || l === 'en' || l === 'es') ? l : 'el';
+}
+function locale() { return LOCALES[lang()]; }
+
+/* ── Module texts {el,en,es} ── */
+var TXT = {
+    title:      { el: 'Μετατροπέας νομισμάτων', en: 'Currency converter', es: 'Conversor de divisas' },
+    from:       { el: 'Από', en: 'From', es: 'Desde' },
+    to:         { el: 'Προς', en: 'To', es: 'A' },
+    swap:       { el: 'Εναλλαγή νομισμάτων', en: 'Swap currencies', es: 'Intercambiar divisas' },
+    amount:     { el: 'Ποσό', en: 'Amount', es: 'Importe' },
+    amountTo:   { el: 'Μετατρεπόμενο ποσό', en: 'Converted amount', es: 'Importe convertido' },
+    pickTitle:  { el: 'Επιλογή νομίσματος', en: 'Choose a currency', es: 'Elegir divisa' },
+    search:     { el: 'Αναζήτηση κωδικού ή ονόματος…', en: 'Search code or name…', es: 'Buscar código o nombre…' },
+    clear:      { el: 'Καθαρισμός', en: 'Clear', es: 'Borrar' },
+    close:      { el: 'Κλείσιμο', en: 'Close', es: 'Cerrar' },
+    all:        { el: 'Όλα', en: 'All', es: 'Todas' },
+    popular:    { el: 'Δημοφιλή', en: 'Popular', es: 'Populares' },
+    recent:     { el: 'Πρόσφατα', en: 'Recent', es: 'Recientes' },
+    europe:     { el: 'Ευρώπη', en: 'Europe', es: 'Europa' },
+    americas:   { el: 'Αμερική', en: 'Americas', es: 'América' },
+    asia:       { el: 'Ασία', en: 'Asia', es: 'Asia' },
+    mideast:    { el: 'Μέση Ανατολή', en: 'Middle East', es: 'Oriente Medio' },
+    africa:     { el: 'Αφρική', en: 'Africa', es: 'África' },
+    oceania:    { el: 'Ωκεανία', en: 'Oceania', es: 'Oceanía' },
+    intl:       { el: 'Διεθνές', en: 'International', es: 'Internacional' },
+    resOne:     { el: '1 αποτέλεσμα', en: '1 result', es: '1 resultado' },
+    resMany:    { el: '{n} αποτελέσματα', en: '{n} results', es: '{n} resultados' },
+    noResults:  { el: 'Δεν βρέθηκαν νομίσματα', en: 'No currencies found', es: 'No se encontraron divisas' },
+    noResHint:  { el: 'Δοκίμασε κωδικό (π.χ. JPY) ή όνομα (π.χ. γιεν).', en: 'Try a code (e.g. JPY) or a name (e.g. yen).', es: 'Prueba con un código (p. ej. JPY) o un nombre (p. ej. yen).' },
+    convError:  { el: 'Σφάλμα μετατροπής.', en: 'Conversion error.', es: 'Error de conversión.' },
+    live:       { el: 'Ζωντανές τιμές', en: 'Live rates', es: 'Tipos en vivo' },
+    loading:    { el: 'Φόρτωση τιμών…', en: 'Loading rates…', es: 'Cargando tipos…' },
+    offline:    { el: 'Εκτός σύνδεσης · προσεγγιστικές τιμές', en: 'Offline · approximate rates', es: 'Sin conexión · tipos aproximados' },
+    refresh:    { el: 'Ανανέωση τιμών', en: 'Refresh rates', es: 'Actualizar tipos' },
+    copyHint:   { el: 'Πάτα για αντιγραφή του ποσού', en: 'Tap to copy the amount', es: 'Toca para copiar el importe' },
+    copied:     { el: 'Αντιγράφηκε', en: 'Copied', es: 'Copiado' },
+    chartTitle: { el: 'Ιστορικό τιμής', en: 'Price history', es: 'Historial del tipo' },
+    chartSrc:   { el: 'Πηγή: Frankfurter · επίσημες τιμές κεντρικών τραπεζών', en: 'Source: Frankfurter · official central-bank rates', es: 'Fuente: Frankfurter · tipos oficiales de bancos centrales' },
+    high:       { el: 'Υψηλό', en: 'High', es: 'Máximo' },
+    low:        { el: 'Χαμηλό', en: 'Low', es: 'Mínimo' },
+    avg:        { el: 'Μέσος όρος', en: 'Average', es: 'Media' },
+    chartError: { el: 'Δεν ήταν δυνατή η φόρτωση του γραφήματος. Έλεγξε τη σύνδεσή σου.', en: 'The chart could not be loaded. Check your connection.', es: 'No se pudo cargar el gráfico. Comprueba tu conexión.' },
+    retry:      { el: 'Δοκίμασε ξανά', en: 'Try again', es: 'Reintentar' },
+    chartEmpty: { el: 'Δεν υπάρχει ιστορικό για αυτό το ζεύγος.', en: 'No history available for this pair.', es: 'No hay historial para este par.' },
+    chartSame:  { el: 'Διάλεξε δύο διαφορετικά νομίσματα για να δεις το γράφημα.', en: 'Pick two different currencies to see the chart.', es: 'Elige dos divisas distintas para ver el gráfico.' },
+    chartLabel: { el: 'Γράφημα τιμής', en: 'Price chart', es: 'Gráfico de precios' },
+    r7:   { el: '1Ε', en: '1W', es: '1S' },  r30:  { el: '1Μ', en: '1M', es: '1M' },
+    r90:  { el: '3Μ', en: '3M', es: '3M' },  r182: { el: '6Μ', en: '6M', es: '6M' },
+    r365: { el: '1Χ', en: '1Y', es: '1A' }
+};
+function tr(key, vars) {
+    var d = TXT[key], s = d ? (d[lang()] || d.en) : key;
+    if (vars) for (var k in vars) s = s.replace('{' + k + '}', vars[k]);
+    return s;
+}
+
+/* ── Small helpers ── */
+function $(id) { return document.getElementById(id); }
+var RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+function reduced() { return !!RM.matches; }
+function finePointer() { try { return window.matchMedia('(pointer: fine)').matches; } catch (e) { return false; } }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function pop(el) { if (!el) return; el.classList.remove('ccy-pop'); void el.offsetWidth; el.classList.add('ccy-pop'); }
+
+/* Accent-/case-insensitive text (per character, so highlight offsets stay aligned) */
+function normChar(ch) { var n = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); return n === 'ς' ? 'σ' : n; }
+function norm(s) { var out = ''; for (var i = 0; i < s.length; i++) out += normChar(s.charAt(i)); return out; }
+function hl(text, q) {
+    if (!q) return esc(text);
+    var n = norm(text);
+    if (n.length !== text.length) return esc(text);
+    var i = n.indexOf(q);
+    if (i < 0) return esc(text);
+    return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+}
+
+/* ── Currency data (tables are defined above, on MultiCalc.data) ── */
+var LIST = MultiCalc.data.allCurrencies;
+var BYCODE = {};
+LIST.forEach(function (c) { BYCODE[c.code] = c; });
+var REGION_ORDER = ['europe', 'americas', 'asia', 'mideast', 'africa', 'oceania', 'intl'];
+var REGION_OF = {};
+REGION_ORDER.forEach(function (r) { CCY_REGIONS[r].split(' ').forEach(function (c) { REGION_OF[c] = r; }); });
+function nameOf(code) { var c = BYCODE[code]; return c ? (c[lang()] || c.en) : code; }
+function flagOf(code) { return MultiCalc.data.currencyFlags[code] || '🌍'; }
+var symCache = {};
+function symbolOf(code) {
+    if (code in symCache) return symCache[code];
+    var s = '';
+    try {
+        var parts = new Intl.NumberFormat('en', { style: 'currency', currency: code, currencyDisplay: 'symbol' }).formatToParts(0);
+        for (var i = 0; i < parts.length; i++) if (parts[i].type === 'currency') s = parts[i].value;
+    } catch (e) {}
+    if (s === code) s = '';
+    return (symCache[code] = s);
+}
+
+/* ── Number formatting (locale-aware; the original always used en-US) ── */
+var nfCache = {};
+function nf(minD, maxD) {
+    var k = locale() + '|' + minD + '|' + maxD;
+    return nfCache[k] || (nfCache[k] = new Intl.NumberFormat(locale(), { minimumFractionDigits: minD, maximumFractionDigits: maxD }));
+}
+/* money: the currency's usual decimals, but tiny amounts keep ≥2 significant digits (1 JPY ≈ 0.0067 USD, not 0.01) */
+function decimalsFor(amount, code) {
+    var dp = MultiCalc.data.currencyDecimals;
+    var base = dp.zero.has(code) ? 0 : dp.three.has(code) ? 3 : 2;
+    var a = Math.abs(amount);
+    if (!a || a >= 1) return base;
+    return Math.min(8, Math.max(base, Math.ceil(-Math.log10(a)) + 1));
+}
+function fmtAmount(amount, code) { var d = decimalsFor(amount, code); return nf(d, d).format(amount); }
+function rateDecimals(abs) { return abs > 0 ? clamp(4 - Math.floor(Math.log10(abs)), 2, 8) : 2; }
+function fmtRateD(rate, d) { return nf(2, d).format(rate); }
+function fmtFixed(v, d) { return nf(d, d).format(v); }   /* chart numbers: fixed decimals so columns line up */
+function fmtRate(rate) { return fmtRateD(rate, rateDecimals(Math.abs(rate))); }
+function fmtDateTime(ms) { try { return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(ms)); } catch (e) { return ''; } }
+
+/* ── State + persistence (localStorage, same multicalc_ prefix the Backup module exports) ── */
+var S = { from: 'USD', to: 'EUR', recent: [], rates: null, ratesAt: 0, ratesUpdated: 0, status: 'loading', swapAngle: 0, shownRate: null, shownInv: null, lang: '' };
+var LS_PAIR = 'multicalc_curr_pair', LS_RECENT = 'multicalc_curr_recent';
+function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function mirror() { try { MultiCalc.state.currFrom = S.from; MultiCalc.state.currTo = S.to; } catch (e) {} }
+function loadSaved() {
+    var p = lsGet(LS_PAIR);
+    if (p && BYCODE[p.from] && BYCODE[p.to]) { S.from = p.from; S.to = p.to; }
+    var r = lsGet(LS_RECENT);
+    S.recent = Array.isArray(r) ? r.filter(function (c) { return !!BYCODE[c]; }).slice(0, 6) : [];
+    mirror();
+}
+function savePair() { lsSet(LS_PAIR, { from: S.from, to: S.to }); mirror(); }
+function pushRecent(code) { S.recent = [code].concat(S.recent.filter(function (c) { return c !== code; })).slice(0, 6); lsSet(LS_RECENT, S.recent); }
+
+/* ── Number tweens (rAF, one token per element id) ── */
+var TW = {};
+function tween(id, from, to, dur, fmt) {
+    if (TW[id]) { cancelAnimationFrame(TW[id]); delete TW[id]; }
+    var el = $(id);
+    if (!el) return;
+    if (reduced() || !isFinite(from) || from === to || dur <= 0) { el.textContent = fmt(to); return; }
+    var t0 = performance.now();
+    (function step(now) {
+        var e = $(id);
+        if (!e) return;
+        var p = clamp((now - t0) / dur, 0, 1), k = 1 - Math.pow(1 - p, 3);
+        e.textContent = fmt(from + (to - from) * k);
+        if (p < 1) TW[id] = requestAnimationFrame(step); else delete TW[id];
+    })(t0);
+}
+
+/* ═══ Live rates ═══ */
+var API_URL = 'https://open.er-api.com/v6/latest/USD';
+var CACHE_TTL = 23 * 60 * 60 * 1000 + 56 * 60 * 1000;
+var inflightRates = null;
+function fetchRates(force) {
+    if (!force && S.rates && (Date.now() - S.ratesAt) < CACHE_TTL) return Promise.resolve(S.rates);
+    if (inflightRates) return inflightRates;
+    inflightRates = Promise.race([
+        fetch(API_URL),
+        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 8000); })
+    ]).then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+    }).then(function (data) {
+        if (!data || data.result !== 'success' || !data.rates) throw new Error('Bad response');
+        var rates = {};
+        for (var k in data.rates) rates[k.toUpperCase()] = data.rates[k];
+        S.rates = rates;
+        S.ratesAt = Date.now();
+        S.ratesUpdated = data.time_last_update_unix ? data.time_last_update_unix * 1000 : S.ratesAt;
+        try { MultiCalc.state.liveRates = rates; MultiCalc.state.liveRatesFetchedAt = S.ratesAt; } catch (e) {}
+        return rates;
+    }).catch(function () { return null; }).then(function (r) { inflightRates = null; return r; });
+    return inflightRates;
+}
+function ratesNow() { return S.rates || MultiCalc.data.staticRates; }
+function crossRate(from, to) {
+    var r = ratesNow(), st = MultiCalc.data.staticRates;
+    var rf = r[from] || st[from], rt = r[to] || st[to];
+    return (rf && rt) ? rt / rf : null;
+}
+
+/* ═══ Status line (live / loading / offline) ═══ */
+function renderStatus() {
+    var box = $('ccy-status');
+    if (!box) return;
+    box.setAttribute('data-s', S.status);
+    var txt = S.status === 'loading' ? tr('loading')
+            : S.status === 'live' ? tr('live') + (S.ratesUpdated ? ' · ' + fmtDateTime(S.ratesUpdated) : '')
+            : tr('offline');
+    var te = $('ccy-status-text');
+    if (te) te.textContent = txt;
+    var rb = $('ccy-refresh');
+    if (rb) rb.classList.toggle('is-spinning', S.status === 'loading');
+}
+function refreshRates(force) {
+    S.status = 'loading';
+    renderStatus();
+    return fetchRates(force).then(function (r) {
+        S.status = (r || S.rates) ? 'live' : 'offline';
+        renderStatus();
+        convert(null, true);
+    });
+}
+
+/* ═══ Result card: "1 USD = 0,9241 EUR" + inverse, numbers count up/down ═══ */
+function renderRates(animate) {
+    var main = $('ccy-rate-main'), sub = $('ccy-rate-sub');
+    if (!main || !sub) return;
+    var f = S.from, to = S.to;
+    if (f === to) { main.textContent = '1 ' + f + ' = 1 ' + to; sub.textContent = ''; S.shownRate = S.shownInv = null; return; }
+    var r = crossRate(f, to);
+    if (!r) { main.textContent = tr('convError'); sub.textContent = ''; S.shownRate = S.shownInv = null; return; }
+    var inv = 1 / r, dR = rateDecimals(Math.abs(r)), dI = rateDecimals(Math.abs(inv));
+    var nb = '\u00a0';
+    main.innerHTML = '1' + nb + esc(f) + nb + '=' + nb + '<span id="ccy-rv">' + fmtRateD(r, dR) + '</span>' + nb + esc(to);
+    sub.innerHTML = '1' + nb + esc(to) + nb + '=' + nb + '<span id="ccy-iv">' + fmtRateD(inv, dI) + '</span>' + nb + esc(f);
+    if (animate && S.shownRate && S.shownRate !== r) {
+        tween('ccy-rv', S.shownRate, r, 600, function (v) { return fmtRateD(v, dR); });
+        tween('ccy-iv', S.shownInv, inv, 600, function (v) { return fmtRateD(v, dI); });
+    }
+    S.shownRate = r; S.shownInv = inv;
+}
+
+/* ═══ Amount fields ═══ */
+var outTween = {};
+function cancelOut(el) { if (el && outTween[el.id]) { cancelAnimationFrame(outTween[el.id]); delete outTween[el.id]; } }
+function setOut(el, value, code, animate) {
+    cancelOut(el);
+    var d = decimalsFor(value, code), target = value.toFixed(d), prev = parseFloat(el.value);
+    if (!animate || reduced() || !isFinite(prev) || prev === value) { el.value = target; return; }
+    var t0 = performance.now(), dur = 480;
+    (function step(now) {
+        var p = clamp((now - t0) / dur, 0, 1), k = 1 - Math.pow(1 - p, 3);
+        if (p < 1) { el.value = (prev + (value - prev) * k).toFixed(d); outTween[el.id] = requestAnimationFrame(step); }
+        else { el.value = target; delete outTween[el.id]; }
+    })(t0);
+}
+function parseAmt(el) {
+    var raw = String(el.value || '').trim().replace(',', '.');
+    var v = parseFloat(raw);
+    return (raw === '' || !isFinite(v)) ? NaN : v;
+}
+
+/* src === 'to' → the user typed in the converted field: convert backwards. Anything else: From is the source. */
+function convert(src, animate) {
+    var side = (src === 'to') ? 'to' : 'from', other = (side === 'from') ? 'to' : 'from';
+    var inEl = $(side === 'from' ? 'curr-amt' : 'curr-amt-to'), outEl = $(other === 'from' ? 'curr-amt' : 'curr-amt-to');
+    if (!inEl || !outEl) return;
+    cancelOut(inEl);
+    renderRates(!!animate);
+    var v = parseAmt(inEl), bad = !isNaN(v) ? v < 0 : (String(inEl.value || '').trim() !== '');
+    inEl.classList.toggle('is-bad', bad);
+    if (isNaN(v) || v < 0) { cancelOut(outEl); outEl.value = ''; return; }
+    var rate = crossRate(S[side], S[other]);
+    if (!rate) { outEl.value = ''; return; }
+    setOut(outEl, v * rate, S[other], !!animate);
+}
+
+/* ═══ Currency buttons ═══ */
+function updateTrigger(side, code, animate) {
+    var flag = $(side + '-flag'), codeEl = $(side + '-code'), nameEl = $(side + '-name');
+    if (!flag || !codeEl || !nameEl) return;
+    flag.textContent = flagOf(code);
+    codeEl.textContent = code;
+    nameEl.textContent = nameOf(code);
+    if (animate) { pop(flag); pop(codeEl.parentNode); }
+}
+
+/* ═══ Swap: amounts travel with their currency; the arrow turns another half-turn on EVERY press ═══ */
+function animateGroup(el) {
+    if (!el) return;
+    el.classList.remove('is-swapping');
+    void el.offsetWidth;
+    el.classList.add('is-swapping');
+    setTimeout(function () { el.classList.remove('is-swapping'); }, 480);
+}
+function swap() {
+    var fromEl = $('curr-amt'), toEl = $('curr-amt-to');
+    if (!fromEl || !toEl) return;
+    var tmp = S.from; S.from = S.to; S.to = tmp;
+    cancelOut(fromEl); cancelOut(toEl);
+    var oldFrom = fromEl.value;
+    fromEl.value = toEl.value || '1';
+    toEl.value = oldFrom;
+    updateTrigger('from', S.from, true);
+    updateTrigger('to', S.to, true);
+    savePair();
+    convert(null, true);
+    chartPairChanged();
+    S.swapAngle += 180;
+    var sw = $('ccy-swap'), svg = sw && sw.querySelector('svg');
+    if (svg) svg.style.transform = 'rotate(' + S.swapAngle + 'deg)';
+    animateGroup($('ccy-group-from'));
+    animateGroup($('ccy-group-to'));
+}
+
+/* ═══ Copy the converted amount (plain digits, '.' decimals) ═══ */
+var hintTimer = null;
+function resetHint() {
+    var h = $('ccy-hint');
+    if (!h) return;
+    clearTimeout(hintTimer);
+    h.textContent = tr('copyHint');
+    h.classList.remove('is-ok');
+}
+function copyAmount() {
+    var txt = ($('curr-amt-to') || {}).value;
+    if (!txt) return;
+    function done() {
+        var h = $('ccy-hint');
+        if (!h) return;
+        h.textContent = tr('copied') + ' ✓';
+        h.classList.add('is-ok');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(resetHint, 1500);
+    }
+    function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = txt; ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+        document.body.appendChild(ta); ta.select();
+        try { if (document.execCommand('copy')) done(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(done, fallback); return; } } catch (e) {}
+    fallback();
+}
+
+/* ═══ Currency picker (bottom sheet on phones · centred dialog on tablets/desktop) ═══
+   Layout of the list:  Recent · Popular · Europe · Americas · Asia · Middle East · Africa · Oceania
+   Search ranks by code, then by name in ALL three languages (accent-insensitive).          */
+var P = { open: false, side: 'from', chip: 'all', query: '', active: -1, lastFocus: null, prevOverflow: '', closing: null, rtoken: 0 };
+
+function chipDefs() {
+    var defs = [{ id: 'all', n: LIST.length }, { id: 'popular', n: CCY_POPULAR.length }];
+    REGION_ORDER.forEach(function (r) { if (r !== 'intl') defs.push({ id: r, n: CCY_REGIONS[r].split(' ').length }); });
+    return defs;
+}
+function buildChips() {
+    var box = $('ccy-chips');
+    if (!box) return;
+    box.innerHTML = chipDefs().map(function (d) {
+        return '<button type="button" class="ccy-chip" role="tab" aria-selected="false" data-chip="' + d.id + '">' + esc(tr(d.id)) + '<i>' + d.n + '</i></button>';
+    }).join('');
+    syncChips();
+}
+function syncChips() {
+    var box = $('ccy-chips');
+    if (!box) return;
+    var searching = !!P.query.trim();
+    box.classList.toggle('is-searching', searching);
+    [].forEach.call(box.children, function (b) {
+        var on = !searching && b.getAttribute('data-chip') === P.chip;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+}
+function scrollChipIntoView() {
+    var box = $('ccy-chips'), on = box && box.querySelector('.ccy-chip.is-on');
+    if (!on) return;
+    var left = on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2;
+    if (box.scrollTo) box.scrollTo({ left: left, behavior: reduced() ? 'auto' : 'smooth' }); else box.scrollLeft = left;
+}
+
+/* ── ranking for a typed query (q is already normalised) ── */
+function rankedMatches(q) {
+    var res = [];
+    LIST.forEach(function (c) {
+        var code = c.code.toLowerCase(), score = 0;
+        if (code === q) score = 100; else if (code.indexOf(q) === 0) score = 90;
+        [c.en, c.el, c.es].forEach(function (nm) {
+            var n = norm(nm);
+            if (n.indexOf(q) === 0) { score = Math.max(score, 80); return; }
+            var words = n.split(/[\s\-–,()\/&]+/), hit = false;
+            for (var j = 0; j < words.length; j++) if (words[j].indexOf(q) === 0) { hit = true; break; }
+            if (hit) score = Math.max(score, 70); else if (n.indexOf(q) > 0) score = Math.max(score, 50);
+        });
+        var sym = symbolOf(c.code);
+        if (sym && norm(sym) === q) score = Math.max(score, 60);
+        if (!score && code.indexOf(q) > 0) score = 40;
+        if (score) res.push({ c: c, s: score });
+    });
+    var L = lang(), loc = locale();
+    res.sort(function (a, b) { return (b.s - a.s) || (a.c[L] || a.c.en).localeCompare(b.c[L] || b.c.en, loc); });
+    return res.map(function (r) { return r.c.code; });
+}
+function currentCode() { return S[P.side]; }
+function buildModel() {
+    var q = P.query.trim(), loc = locale();
+    if (q) return { flat: rankedMatches(norm(q)), q: norm(q) };
+    var byName = function (a, b) { return nameOf(a).localeCompare(nameOf(b), loc); };
+    var secs = [];
+    if (P.chip === 'all') {
+        var rec = [currentCode()].concat(S.recent).filter(function (c, i, a) { return a.indexOf(c) === i; }).slice(0, 6);
+        secs.push({ id: 'recent', codes: rec });
+        secs.push({ id: 'popular', codes: CCY_POPULAR.slice() });
+        REGION_ORDER.forEach(function (r) { secs.push({ id: r, codes: CCY_REGIONS[r].split(' ').sort(byName) }); });
+    } else if (P.chip === 'popular') {
+        secs.push({ id: 'popular', codes: CCY_POPULAR.slice() });
+    } else {
+        secs.push({ id: P.chip, codes: CCY_REGIONS[P.chip].split(' ').sort(byName) });
+    }
+    return { secs: secs, q: '' };
+}
+
+var CHECK_SVG = '<svg class="ccy-row-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>';
+function renderList(stagger) {
+    var list = $('curr-picker-list');
+    if (!list) return;
+    var token = ++P.rtoken;
+    var m = buildModel(), html = '', late = '', idx = 0, sel = currentCode(), cnt = $('ccy-count');
+    var FIRST = 36;   /* rows built immediately when the sheet opens; the rest follow once the animation is done */
+    function row(code) {
+        var sym = symbolOf(code), on = code === sel, i = idx++;
+        return '<div class="ccy-row-item' + (on ? ' selected' : '') + '" id="ccy-opt-' + i + '" role="option" aria-selected="' + on + '" data-code="' + code + '" style="--i:' + Math.min(i, 14) + '">' +
+            '<span class="ccy-flag">' + flagOf(code) + '</span>' +
+            '<span class="ccy-row-info"><span class="ccy-row-code">' + hl(code, m.q) + '</span><span class="ccy-row-name">' + hl(nameOf(code), m.q) + '</span></span>' +
+            (sym ? '<span class="ccy-row-sym">' + esc(sym) + '</span>' : '') + CHECK_SVG + '</div>';
+    }
+    if (m.flat) {
+        html = m.flat.length ? m.flat.map(row).join('')
+            : '<div class="ccy-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M8 10.5h5"/></svg><b>' + esc(tr('noResults')) + '</b><span>' + esc(tr('noResHint')) + '</span></div>';
+        if (cnt) { cnt.textContent = m.flat.length === 1 ? tr('resOne') : tr('resMany', { n: m.flat.length }); cnt.classList.add('show'); }
+    } else {
+        m.secs.forEach(function (s) {
+            var head = '<div class="ccy-section" role="presentation">' + esc(tr(s.id)) + '<i>' + s.codes.length + '</i></div>';
+            if (stagger && idx >= FIRST) late += head; else html += head;
+            s.codes.forEach(function (c) {
+                if (stagger && idx >= FIRST) late += row(c).replace('class="ccy-row-item', 'class="ccy-row-item late');
+                else html += row(c);
+            });
+        });
+        if (cnt) { cnt.classList.remove('show'); }
+    }
+    list.classList.toggle('no-anim', !stagger);   /* typing / chips: plain fade; opening: staggered rows */
+    list.classList.remove('is-fresh');
+    list.innerHTML = html;
+    if (!stagger) { void list.offsetWidth; list.classList.add('is-fresh'); }
+    P.active = -1;
+    list.removeAttribute('aria-activedescendant');
+    var s = $('curr-picker-search'); if (s) s.removeAttribute('aria-activedescendant');
+    if (m.flat && m.flat.length) setActive(0, false);   // Enter picks the best match
+    if (late) setTimeout(function () { if (token === P.rtoken && list.isConnected) list.insertAdjacentHTML('beforeend', late); }, reduced() ? 0 : 380);
+}
+
+function rowNodes() { var l = $('curr-picker-list'); return l ? l.querySelectorAll('.ccy-row-item') : []; }
+function setActive(i, scroll) {
+    var rows = rowNodes(), list = $('curr-picker-list'), s = $('curr-picker-search');
+    if (P.active >= 0 && rows[P.active]) rows[P.active].classList.remove('is-active');
+    P.active = i;
+    if (i >= 0 && rows[i]) {
+        rows[i].classList.add('is-active');
+        list.setAttribute('aria-activedescendant', rows[i].id);
+        if (s) s.setAttribute('aria-activedescendant', rows[i].id);
+        if (scroll) {
+            var top = rows[i].offsetTop, bot = top + rows[i].offsetHeight, hdr = 38;
+            if (top - hdr < list.scrollTop) list.scrollTop = Math.max(0, top - hdr - 4);
+            else if (bot > list.scrollTop + list.clientHeight) list.scrollTop = bot - list.clientHeight + 10;
+        }
+    } else {
+        list.removeAttribute('aria-activedescendant');
+        if (s) s.removeAttribute('aria-activedescendant');
+    }
+}
+function moveActive(delta, abs) {
+    var rows = rowNodes();
+    if (!rows.length) return;
+    var i = (typeof abs === 'number') ? abs : (P.active < 0 ? (delta > 0 ? 0 : rows.length - 1) : clamp(P.active + delta, 0, rows.length - 1));
+    setActive(i, true);
+}
+function scrollToSelected() {
+    var list = $('curr-picker-list'), row = list && list.querySelector('.ccy-row-item.selected');
+    if (!row) return;
+    list.scrollTop = Math.max(0, row.offsetTop - (list.clientHeight - row.offsetHeight) / 2);
+}
+
+function setChip(id) {
+    P.chip = id; P.query = '';
+    var s = $('curr-picker-search'), w = $('ccy-search-wrap');
+    if (s) s.value = '';
+    if (w) w.classList.remove('has-text');
+    syncChips();
+    scrollChipIntoView();
+    renderList(false);
+    var list = $('curr-picker-list');
+    if (list) list.scrollTop = 0;
+    if (id !== 'all') scrollToSelected();
+}
+function filterPicker() {
+    var s = $('curr-picker-search'), w = $('ccy-search-wrap');
+    P.query = s ? s.value : '';
+    if (w) w.classList.toggle('has-text', !!P.query);
+    syncChips();
+    renderList(false);
+    var list = $('curr-picker-list');
+    if (list) list.scrollTop = 0;
+}
+function clearSearch() {
+    var s = $('curr-picker-search');
+    if (s) { s.value = ''; if (finePointer()) s.focus({ preventScroll: true }); }
+    filterPicker();
+}
+
+function selectCode(code, rowEl) {
+    if (!code || !P.open || P.closing) return;
+    var side = P.side;
+    S[side] = code;
+    pushRecent(code);
+    savePair();
+    updateTrigger(side, code, true);
+    convert(null, true);
+    chartPairChanged();
+    if (rowEl) rowEl.classList.add('picked');
+    P.closing = setTimeout(function () { P.closing = null; closePicker(true); }, reduced() ? 0 : 170);
+}
+
+function openPicker(side) {
+    var ov = $('curr-picker-overlay');
+    if (!ov) return;
+    bindPicker();
+    if (P.closing) { clearTimeout(P.closing); P.closing = null; }
+    P.side = side === 'to' ? 'to' : 'from';
+    P.chip = 'all'; P.query = ''; P.active = -1;
+    var s = $('curr-picker-search'), w = $('ccy-search-wrap'), chip = $('ccy-side-chip');
+    if (s) s.value = '';
+    if (w) w.classList.remove('has-text');
+    if (chip) chip.textContent = tr(P.side);
+    buildChips();
+    renderList(true);
+    var list = $('curr-picker-list');
+    if (list) list.scrollTop = 0;
+    var trg = $('curr-' + P.side + '-btn');
+    if (trg) trg.classList.add('is-active');
+    P.lastFocus = document.activeElement;
+    ov.style.display = '';          // the loader force-sets display:none inline when it injects the overlay; nothing else ever clears it
+    void ov.offsetWidth;            // commit that change so the opening transition really runs
+    P.prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    P.open = true;
+    requestAnimationFrame(function () {
+        if (!P.open) return;
+        ov.classList.add('open');
+        /* focus only AFTER the overlay is visible (a visibility:hidden element cannot take focus):
+           search box on a mouse/keyboard device, the sheet itself on touch so the keyboard doesn't pop up */
+        var sheet = $('curr-picker-panel');
+        try {
+            if (finePointer() && s) s.focus({ preventScroll: true });
+            else if (sheet) { sheet.setAttribute('tabindex', '-1'); sheet.focus({ preventScroll: true }); }
+        } catch (e) {}
+    });
+}
+function closePicker(refocus) {
+    var ov = $('curr-picker-overlay');
+    if (!ov) return;
+    if (P.closing) { clearTimeout(P.closing); P.closing = null; }
+    var sheet = $('curr-picker-panel');
+    if (sheet) sheet.style.transform = '';
+    ov.style.opacity = '';
+    var was = P.open;
+    P.open = false;
+    ov.classList.remove('open');
+    document.body.style.overflow = P.prevOverflow || '';
+    ['from', 'to'].forEach(function (sd) { var b = $('curr-' + sd + '-btn'); if (b) b.classList.remove('is-active'); });
+    var s = $('curr-picker-search');
+    if (s) s.blur();
+    if (was && refocus !== false) {
+        /* give focus back to what opened the sheet; if that was not focusable/known (e.g. opened from script), use the side's button */
+        var back = (P.lastFocus && P.lastFocus !== document.body && P.lastFocus.focus) ? P.lastFocus : $('curr-' + P.side + '-btn');
+        if (back) { try { back.focus({ preventScroll: true }); } catch (e) {} }
+    }
+}
+
+function bindPicker() {
+    var ov = $('curr-picker-overlay');
+    if (!ov || ov.__ccyBound) return;
+    ov.__ccyBound = true;
+    var list = $('curr-picker-list'), chips = $('ccy-chips'), head = $('ccy-sheet-head'), sheet = $('curr-picker-panel');
+
+    list.addEventListener('click', function (e) {
+        var row = e.target.closest ? e.target.closest('.ccy-row-item') : null;
+        if (row) selectCode(row.getAttribute('data-code'), row);
+    });
+    chips.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('.ccy-chip') : null;
+        if (b) setChip(b.getAttribute('data-chip'));
+    });
+    ov.addEventListener('keydown', function (e) {
+        if (!P.open) return;
+        var k = e.key, s = $('curr-picker-search'), onBtn = e.target && e.target.tagName === 'BUTTON';
+        if (k === 'Escape') { e.preventDefault(); closePicker(true); return; }
+        if (k === 'Tab') {
+            var els = [$('ccy-close'), s].concat([].slice.call($('ccy-chips').querySelectorAll('.ccy-chip'))), i = els.indexOf(document.activeElement);
+            if (e.shiftKey ? i <= 0 : (i === els.length - 1 || i === -1)) { e.preventDefault(); els[e.shiftKey ? els.length - 1 : 0].focus(); }
+            return;
+        }
+        if (k === 'ArrowDown') { e.preventDefault(); moveActive(1); }
+        else if (k === 'ArrowUp') { e.preventDefault(); moveActive(-1); }
+        else if (k === 'PageDown') { e.preventDefault(); moveActive(8); }
+        else if (k === 'PageUp') { e.preventDefault(); moveActive(-8); }
+        else if ((k === 'Home' || k === 'End') && e.target !== s) { e.preventDefault(); moveActive(0, k === 'Home' ? 0 : rowNodes().length - 1); }
+        else if (k === 'Enter' && !onBtn) {
+            e.preventDefault();
+            var rows = rowNodes(), r = rows[P.active >= 0 ? P.active : 0];
+            if (r) selectCode(r.getAttribute('data-code'), r);
+        }
+        else if (k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && e.target !== s) { if (s) s.focus({ preventScroll: true }); }
+    });
+
+    /* drag the handle/header down to dismiss (phone layout only) */
+    var d = null;
+    head.addEventListener('pointerdown', function (e) {
+        if ((e.button && e.button !== 0) || !window.matchMedia('(max-width:719px)').matches) return;
+        if (e.target.closest && e.target.closest('.ccy-close')) return;
+        d = { id: e.pointerId, y0: e.clientY, t0: performance.now(), dy: 0 };
+        try { head.setPointerCapture(e.pointerId); } catch (_) {}
+        sheet.style.transition = 'none';
+    });
+    head.addEventListener('pointermove', function (e) {
+        if (!d || e.pointerId !== d.id) return;
+        d.dy = Math.max(0, e.clientY - d.y0);
+        sheet.style.transform = 'translateY(' + d.dy + 'px)';
+        ov.style.opacity = String(1 - Math.min(0.7, d.dy / (sheet.offsetHeight || 600)));
+    });
+    function endDrag(e) {
+        if (!d || (e && e.pointerId !== d.id)) return;
+        var dy = d.dy, v = dy / Math.max(1, performance.now() - d.t0);
+        d = null;
+        sheet.style.transition = '';
+        ov.style.opacity = '';
+        if (dy > 110 || (v > 0.6 && dy > 36)) closePicker(true); else sheet.style.transform = '';
+    }
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
+}
+
+/* ═══ Price history chart ═══
+   Data: Frankfurter v2 (free, no key, open CORS) — daily reference rates published by central banks
+   (ECB, BoE, BoJ …, ~35 providers blended), so most currencies in the list have history. v1 (ECB only)
+   is the fallback when v2 is unreachable. ONE request per pair fetches ~1 year; the 1W/1M/3M/6M/1Y tabs just
+   slice it, so switching ranges never touches the network.
+   Animation: every curve is resampled to the same M points, so any two curves (new range, new pair) morph
+   point-to-point; numbers count; the cursor glides.                                                        */
+var HIST_V2 = 'https://api.frankfurter.dev/v2/rates';
+var HIST_V1 = 'https://api.frankfurter.dev/v1/';
+var M = 96;
+var CH = { days: 30, w: 0, h: 0, pad: { l: 6, r: 6, t: 14, b: 26 }, cache: {}, inflight: {}, series: null, view: null, drawn: null,
+           raf: 0, token: 0, anim: false, hover: null, hx: 0, hy: 0, hraf: 0, nums: null, pending: true, state: 'loading', started: false };
+
+function isoDay(d) { return d.toISOString().slice(0, 10); }
+function getJSON(url, retries) {
+    return new Promise(function (resolve, reject) {
+        var timer = setTimeout(function () { reject(new Error('timeout')); }, 12000);
+        fetch(url).then(function (res) {
+            clearTimeout(timer);
+            if (res.status === 404 || res.status === 422) { var e = new Error('unsupported'); e.unsupported = true; throw e; }
+            if (res.status === 503 && retries > 0) {
+                var wait = Math.min(2500, (parseInt(res.headers.get('Retry-After'), 10) || 1) * 1000);
+                return new Promise(function (r) { setTimeout(r, wait); }).then(function () { return getJSON(url, retries - 1); });
+            }
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        }).then(resolve, function (err) { clearTimeout(timer); reject(err); });
+    });
+}
+function toPts(pairs) {      /* [[isoDate, rate], …] → sorted, de-duplicated [{t,v}] */
+    var pts = pairs.map(function (p) { return { t: Date.parse(p[0] + 'T12:00:00Z'), v: Number(p[1]) }; })
+        .filter(function (p) { return isFinite(p.t) && isFinite(p.v) && p.v > 0; })
+        .sort(function (a, b) { return a.t - b.t; });
+    return pts.filter(function (p, i) { return i === 0 || p.t !== pts[i - 1].t; });
+}
+function parseV2(arr, from, to) {
+    if (!Array.isArray(arr)) throw new Error('shape');
+    var pts = toPts(arr.filter(function (r) { return r && r.quote === to && (!r.base || r.base === from); }).map(function (r) { return [r.date, r.rate]; }));
+    return pts.length >= 2 ? { status: 'ok', pts: pts } : { status: 'empty' };
+}
+function parseV1(obj, to) {
+    if (!obj || typeof obj.rates !== 'object') throw new Error('shape');
+    var pairs = [];
+    for (var d in obj.rates) if (obj.rates[d] && obj.rates[d][to] != null) pairs.push([d, obj.rates[d][to]]);
+    var pts = toPts(pairs);
+    return pts.length >= 2 ? { status: 'ok', pts: pts } : { status: 'empty' };
+}
+function fetchHistory(from, to) {
+    var key = from + '>' + to;
+    if (CH.cache[key]) return Promise.resolve(CH.cache[key]);
+    if (CH.inflight[key]) return CH.inflight[key];
+    var end = new Date(), start = new Date(Date.now() - 372 * 864e5), a = isoDay(start), b = isoDay(end);
+    var p = getJSON(HIST_V2 + '?base=' + from + '&quotes=' + to + '&from=' + a + '&to=' + b, 1)
+        .then(function (j) { return parseV2(j, from, to); })
+        .catch(function (err) {
+            if (err && err.unsupported) return { status: 'empty' };
+            return getJSON(HIST_V1 + a + '..' + b + '?base=' + from + '&symbols=' + to, 0)
+                .then(function (j) { return parseV1(j, to); })
+                .catch(function (e2) { return (e2 && e2.unsupported) ? { status: 'empty' } : { status: 'error' }; });
+        })
+        .then(function (res) { if (res.status !== 'error') CH.cache[key] = res; delete CH.inflight[key]; return res; });
+    CH.inflight[key] = p;
+    return p;
+}
+function sliceRange(pts, days) {
+    var cut = pts[pts.length - 1].t - days * 864e5;
+    var out = pts.filter(function (p) { return p.t >= cut; });
+    return out.length >= 2 ? out : pts.slice(-2);
+}
+
+/* ── geometry ── */
+function niceStep(range, n) {
+    var raw = range / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+}
+function resample(real, n) {
+    var t0 = real[0].t, t1 = real[real.length - 1].t, out = new Array(n), j = 0;
+    for (var i = 0; i < n; i++) {
+        var t = t0 + (t1 - t0) * i / (n - 1);
+        while (j < real.length - 2 && real[j + 1].t < t) j++;
+        var a = real[j], b = real[j + 1], f = b.t === a.t ? 0 : clamp((t - a.t) / (b.t - a.t), 0, 1);
+        out[i] = a.v + (b.v - a.v) * f;
+    }
+    return out;
+}
+function axisDate(t) {
+    var o = CH.days >= 180 ? { month: 'short', year: '2-digit' } : { day: 'numeric', month: 'short' };
+    try { return new Intl.DateTimeFormat(locale(), Object.assign({ timeZone: 'UTC' }, o)).format(new Date(t)); } catch (e) { return ''; }
+}
+function fullDate(t) { try { return new Intl.DateTimeFormat(locale(), { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(t)); } catch (e) { return ''; } }
+function makeView(real, w, h) {
+    var pd = CH.pad, x0 = pd.l, x1 = w - pd.r, y0 = pd.t, y1 = h - pd.b;
+    var vals = real.map(function (p) { return p.v; }), lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (!(hi - lo > 0)) { var e = Math.abs(hi) * 0.01 || 0.5; lo -= e; hi += e; }
+    var padV = (hi - lo) * 0.14, yMin = lo - padV, yMax = hi + padV;
+    var tMin = real[0].t, tMax = real[real.length - 1].t;
+    function X(t) { return x0 + (t - tMin) / (tMax - tMin) * (x1 - x0); }
+    function Y(v) { return y0 + (1 - (v - yMin) / (yMax - yMin)) * (y1 - y0); }
+    var sam = resample(real, M), xs = new Array(M), ys = new Array(M);
+    for (var i = 0; i < M; i++) { xs[i] = x0 + (x1 - x0) * i / (M - 1); ys[i] = Y(sam[i]); }
+    /* y ticks at "nice" values */
+    var step = niceStep(yMax - yMin, 3), dec = 0;
+    while (dec < 8 && Math.abs(Math.round(step * Math.pow(10, dec)) / Math.pow(10, dec) - step) > step * 1e-6) dec++;
+    var ticks = [];
+    for (var v = Math.ceil(yMin / step) * step; v <= yMax + step * 1e-9; v += step) ticks.push({ y: Y(v), label: nf(dec, dec).format(v) });
+    /* x labels */
+    var xl = [0, 0.25, 0.5, 0.75, 1].map(function (f, k) { return { x: x0 + (x1 - x0) * f, label: axisDate(tMin + (tMax - tMin) * f), anchor: k === 0 ? 'start' : k === 4 ? 'end' : 'middle' }; });
+    return { real: real, w: w, h: h, x0: x0, x1: x1, y0: y0, y1: y1, tMin: tMin, tMax: tMax, X: X, Y: Y, xs: xs, ys: ys, ticks: ticks, xl: xl };
+}
+/* monotone cubic through the points (never overshoots, no wiggles) */
+function smoothPath(xs, ys) {
+    var n = xs.length, s = [], t = new Array(n), h = xs[1] - xs[0], i;
+    for (i = 0; i < n - 1; i++) s[i] = (ys[i + 1] - ys[i]) / h;
+    for (i = 1; i < n - 1; i++) {
+        var a = s[i - 1], b = s[i], p = (a + b) / 2;
+        t[i] = (Math.sign(a) + Math.sign(b)) * Math.min(Math.abs(a), Math.abs(b), 0.5 * Math.abs(p)) || 0;
+    }
+    t[0] = (3 * s[0] - t[1]) / 2;
+    t[n - 1] = (3 * s[n - 2] - t[n - 2]) / 2;
+    var d = 'M' + xs[0].toFixed(2) + ' ' + ys[0].toFixed(2);
+    for (i = 0; i < n - 1; i++) {
+        d += 'C' + (xs[i] + h / 3).toFixed(2) + ' ' + (ys[i] + t[i] * h / 3).toFixed(2) + ' ' +
+             (xs[i + 1] - h / 3).toFixed(2) + ' ' + (ys[i + 1] - t[i + 1] * h / 3).toFixed(2) + ' ' +
+             xs[i + 1].toFixed(2) + ' ' + ys[i + 1].toFixed(2);
+    }
+    return d;
+}
+
+/* ── drawing ── */
+var SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(name, attrs) { var e = document.createElementNS(SVGNS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+function draw(ys, view) {
+    var line = $('ccy-line'), area = $('ccy-area');
+    if (!line || !area) return;
+    var d = smoothPath(view.xs, ys);
+    line.setAttribute('d', d);
+    area.setAttribute('d', d + 'L' + view.xs[M - 1].toFixed(2) + ' ' + view.y1 + 'L' + view.xs[0].toFixed(2) + ' ' + view.y1 + 'Z');
+    ['ccy-end-dot', 'ccy-end-ring'].forEach(function (id) { var c = $(id); if (c) { c.setAttribute('cx', view.xs[M - 1].toFixed(2)); c.setAttribute('cy', ys[M - 1].toFixed(2)); } });
+    CH.drawn = ys;
+}
+function morphTo(view, animate) {
+    cancelAnimationFrame(CH.raf);
+    var to = view.ys, from = (CH.drawn && CH.drawn.length === M) ? CH.drawn.slice() : to.map(function () { return view.y1; });
+    CH.view = view;
+    if (!animate || reduced()) { CH.anim = false; draw(to, view); return; }
+    CH.anim = true;
+    var t0 = performance.now(), dur = 760;
+    (function step(now) {
+        var p = clamp((now - t0) / dur, 0, 1), e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2, cur = new Array(M);
+        for (var i = 0; i < M; i++) cur[i] = from[i] + (to[i] - from[i]) * e;
+        draw(cur, view);
+        if (p < 1) CH.raf = requestAnimationFrame(step); else { CH.anim = false; draw(to, view); }
+    })(t0);
+}
+function renderTicks(view, animate) {
+    var wrap = $('ccy-ticks-wrap');
+    if (!wrap) return;
+    var old = [].slice.call(wrap.children);
+    var g = svgEl('g', { 'class': 'ccy-ticks' + (animate ? ' is-in' : '') });
+    var grid = svgEl('g', { 'class': 'ccy-grid' }), txt = svgEl('g', { 'class': 'ccy-tick' });
+    view.ticks.forEach(function (t) {
+        grid.appendChild(svgEl('line', { x1: view.x0, x2: view.x1, y1: t.y.toFixed(1), y2: t.y.toFixed(1) }));
+        var tx = svgEl('text', { x: view.x0 + 2, y: (t.y - 5).toFixed(1) }); tx.textContent = t.label; txt.appendChild(tx);
+    });
+    view.xl.forEach(function (l) {
+        var tx = svgEl('text', { x: l.x.toFixed(1), y: view.h - 7, 'text-anchor': l.anchor }); tx.textContent = l.label; txt.appendChild(tx);
+    });
+    g.appendChild(grid); g.appendChild(txt); wrap.appendChild(g);
+    if (animate) {
+        old.forEach(function (o) { o.classList.add('is-out'); setTimeout(function () { if (o.parentNode) o.parentNode.removeChild(o); }, 520); });
+        requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.remove('is-in'); }); });
+    } else {
+        old.forEach(function (o) { if (o.parentNode) o.parentNode.removeChild(o); });
+    }
+}
+
+/* ── header numbers ── */
+function chgText(v) { return (Math.abs(v) < 0.005 ? '' : v > 0 ? '+' : '\u2212') + nf(2, 2).format(Math.abs(v) < 0.005 ? 0 : Math.abs(v)) + '%'; }
+function updateHeader(view, animate) {
+    var real = view.real, vals = real.map(function (p) { return p.v; });
+    var last = vals[vals.length - 1], first = vals[0];
+    var hi = Math.max.apply(null, vals), lo = Math.min.apply(null, vals), avg = vals.reduce(function (s, v) { return s + v; }, 0) / vals.length;
+    var d = rateDecimals(Math.abs(last)), fmt = function (v) { return fmtFixed(v, d); };
+    var chg = (last / first - 1) * 100, prev = (animate && CH.nums) ? CH.nums : null;
+    tween('ccy-big', prev ? prev.big : last, last, 700, fmt);
+    tween('ccy-st-high', prev ? prev.hi : hi, hi, 700, fmt);
+    tween('ccy-st-low', prev ? prev.lo : lo, lo, 700, fmt);
+    tween('ccy-st-avg', prev ? prev.avg : avg, avg, 700, fmt);
+    tween('ccy-change-val', prev ? prev.chg : chg, chg, 700, chgText);
+    var pill = $('ccy-change');
+    if (pill) { pill.classList.toggle('up', chg >= 0.005); pill.classList.toggle('down', chg <= -0.005); }
+    var dt = $('ccy-big-date');
+    if (dt) dt.textContent = fullDate(real[real.length - 1].t);
+    var svg = $('ccy-svg');
+    if (svg) svg.setAttribute('aria-label', tr('chartLabel') + ': ' + S.from + ' → ' + S.to + ', ' + fmt(last) + ' (' + chgText(chg) + ')');
+    CH.nums = { big: last, hi: hi, lo: lo, avg: avg, chg: chg, d: d };
+}
+function clearHeader() {
+    ['ccy-big', 'ccy-st-high', 'ccy-st-low', 'ccy-st-avg'].forEach(function (id) { if (TW[id]) { cancelAnimationFrame(TW[id]); delete TW[id]; } var e = $(id); if (e) e.textContent = '–'; });
+    if (TW['ccy-change-val']) { cancelAnimationFrame(TW['ccy-change-val']); delete TW['ccy-change-val']; }
+    var c = $('ccy-change-val'); if (c) c.textContent = '–';
+    var p = $('ccy-change'); if (p) { p.classList.remove('up'); p.classList.remove('down'); }
+    var dt = $('ccy-big-date'); if (dt) dt.textContent = '';
+    CH.nums = null;
+}
+
+/* ── states ── */
+function setState(state, msgKey) {
+    var cv = $('ccy-canvas');
+    if (!cv) return;
+    CH.state = state;
+    cv.setAttribute('data-state', state);
+    if (state !== 'ok') { cv.classList.remove('is-hover'); CH.hover = null; }
+    if (msgKey) { var e = $('ccy-state-empty-text'); if (e) e.textContent = tr(msgKey); }
+}
+function chartRender(animate) {
+    if (!CH.series || !CH.w) return;
+    var view = makeView(sliceRange(CH.series.pts, CH.days), CH.w, CH.h);
+    renderTicks(view, animate);
+    morphTo(view, animate);
+    updateHeader(view, animate);
+}
+function chartLoad() {
+    var key = S.from + '>' + S.to, token = ++CH.token;
+    if (!CH.w) { CH.pending = true; return; }
+    CH.pending = false;
+    if (S.from === S.to) { CH.series = null; setState('empty', 'chartSame'); clearHeader(); return; }
+    function apply(res) {
+        if (token !== CH.token) return;
+        if (res.status === 'ok') { CH.series = res; setState('ok'); chartRender(true); }
+        else if (res.status === 'empty') { CH.series = null; setState('empty', 'chartEmpty'); clearHeader(); }
+        else { CH.series = null; setState('error'); clearHeader(); }
+    }
+    if (CH.cache[key]) { apply(CH.cache[key]); return; }
+    setState('loading');
+    fetchHistory(S.from, S.to).then(apply);
+}
+function chartPairChanged() {
+    var pr = $('ccy-chart-pair');
+    if (pr) pr.textContent = flagOf(S.from) + ' ' + S.from + '  →  ' + flagOf(S.to) + ' ' + S.to;
+    CH.series = null;
+    chartLoad();
+}
+function chartRetry() { chartLoad(); }
+
+/* ── range tabs ── */
+function movePill() {
+    var box = $('ccy-ranges'), on = box && box.querySelector('.ccy-range.is-on'), pill = $('ccy-range-pill');
+    if (!on || !pill || !box.clientWidth) return;
+    pill.style.width = on.offsetWidth + 'px';
+    pill.style.transform = 'translateX(' + on.offsetLeft + 'px)';
+}
+function setRange(days) {
+    CH.days = days;
+    var box = $('ccy-ranges');
+    if (box) [].forEach.call(box.querySelectorAll('.ccy-range'), function (b) {
+        var on = Number(b.getAttribute('data-days')) === days;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    movePill();
+    chartRender(true);
+}
+
+/* ── hover / touch scrubbing ── */
+function nearest(real, t) {
+    var lo = 0, hi = real.length - 1;
+    while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (real[mid].t < t) lo = mid; else hi = mid; }
+    return Math.abs(real[lo].t - t) <= Math.abs(real[hi].t - t) ? lo : hi;
+}
+function placeHover() {
+    var v = CH.view, line = $('ccy-cross-line'), dot = $('ccy-cross-dot'), tip = $('ccy-tip');
+    if (!v || !line || !dot || !tip) return;
+    line.setAttribute('x1', CH.hx); line.setAttribute('x2', CH.hx); line.setAttribute('y1', v.y0); line.setAttribute('y2', v.y1);
+    dot.setAttribute('cx', CH.hx); dot.setAttribute('cy', CH.hy);
+    var tw = tip.offsetWidth, th = tip.offsetHeight, left = clamp(CH.hx - tw / 2, 0, Math.max(0, CH.w - tw)), top = CH.hy - th - 16;
+    if (top < 0) top = CH.hy + 18;
+    tip.style.transform = 'translate(' + left.toFixed(1) + 'px,' + top.toFixed(1) + 'px)';
+}
+function followHover() {
+    cancelAnimationFrame(CH.hraf);
+    (function step() {
+        var h = CH.hover;
+        if (!h) return;
+        CH.hx += (h.x - CH.hx) * 0.4; CH.hy += (h.y - CH.hy) * 0.4;
+        var done = Math.abs(h.x - CH.hx) < 0.3 && Math.abs(h.y - CH.hy) < 0.3;
+        if (done) { CH.hx = h.x; CH.hy = h.y; }
+        placeHover();
+        if (!done) CH.hraf = requestAnimationFrame(step);
+    })();
+}
+function onHover(e) {
+    var v = CH.view, cv = $('ccy-canvas'), svg = $('ccy-svg');
+    if (!v || CH.anim || CH.state !== 'ok' || !cv || !svg || !CH.nums) return;
+    var rect = svg.getBoundingClientRect(), x = clamp(e.clientX - rect.left, v.x0, v.x1);
+    var p = v.real[nearest(v.real, v.tMin + (x - v.x0) / (v.x1 - v.x0) * (v.tMax - v.tMin))];
+    var tx = v.X(p.t), ty = v.Y(p.v), d = CH.nums.d;
+    if (!cv.classList.contains('is-hover')) { CH.hx = tx; CH.hy = ty; cv.classList.add('is-hover'); }
+    CH.hover = { x: tx, y: ty, v: p.v };
+    $('ccy-tip-val').textContent = fmtFixed(p.v, d);
+    $('ccy-tip-date').textContent = fullDate(p.t);
+    if (TW['ccy-big']) { cancelAnimationFrame(TW['ccy-big']); delete TW['ccy-big']; }
+    $('ccy-big').textContent = fmtFixed(p.v, d);
+    $('ccy-big-date').textContent = fullDate(p.t);
+    followHover();
+}
+function onLeave() {
+    var cv = $('ccy-canvas');
+    if (!cv || !CH.hover) return;
+    var from = CH.hover.v;
+    cv.classList.remove('is-hover');
+    CH.hover = null;
+    cancelAnimationFrame(CH.hraf);
+    if (CH.nums) {
+        var d = CH.nums.d;
+        tween('ccy-big', from, CH.nums.big, 240, function (x) { return fmtFixed(x, d); });
+        if (CH.view) $('ccy-big-date').textContent = fullDate(CH.view.real[CH.view.real.length - 1].t);
+    }
+}
+
+/* ── size + wiring ── */
+function onChartResize() {
+    var cv = $('ccy-canvas'), svg = $('ccy-svg');
+    if (!cv || !svg) return;
+    var w = cv.clientWidth, h = cv.clientHeight;
+    movePill();
+    if (!w) { CH.w = 0; return; }
+    var first = !CH.w, changed = (w !== CH.w || h !== CH.h);
+    CH.w = w; CH.h = h;
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    if (first && CH.pending) { chartLoad(); }
+    else if (changed && CH.series && CH.state === 'ok') { chartRender(false); }
+}
+function chartInit() {
+    var cv = $('ccy-canvas');
+    if (!cv || cv.__ccy) return;
+    cv.__ccy = true;
+    var svg = $('ccy-svg'), box = $('ccy-ranges');
+    box.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('.ccy-range') : null;
+        if (b) setRange(Number(b.getAttribute('data-days')));
+    });
+    svg.addEventListener('pointermove', onHover);
+    svg.addEventListener('pointerdown', onHover);
+    svg.addEventListener('pointerleave', onLeave);
+    svg.addEventListener('pointerup', function (e) { if (e.pointerType !== 'mouse') onLeave(); });
+    svg.addEventListener('pointercancel', onLeave);
+    if (window.ResizeObserver) new ResizeObserver(onChartResize).observe(cv); else { window.addEventListener('resize', onChartResize); setTimeout(onChartResize, 0); }
+    chartPairChanged();
+    onChartResize();
+}
+function chartTexts() {
+    var box = $('ccy-ranges');
+    if (box) [].forEach.call(box.querySelectorAll('.ccy-range'), function (b) { b.textContent = tr('r' + b.getAttribute('data-days')); });
+    var er = $('ccy-state-error-text'); if (er) er.textContent = tr('chartError');
+    var rt = $('ccy-retry'); if (rt) rt.textContent = tr('retry');
+    var em = $('ccy-state-empty-text'); if (em) em.textContent = S.from === S.to ? tr('chartSame') : tr('chartEmpty');
+    movePill();
+    if (CH.series && CH.w && CH.state === 'ok') chartRender(false);
+}
+
+/* ═══ Texts (re)applied on load, on language change and when the screen is shown again ═══ */
+function applyTexts() {
+    if (!$('scr-curr')) return;
+    S.lang = lang();
+    [].forEach.call(document.querySelectorAll('#scr-curr [data-i], #curr-picker-overlay [data-i]'), function (el) { el.textContent = tr(el.getAttribute('data-i')); });
+    [].forEach.call(document.querySelectorAll('#curr-picker-overlay [data-ip]'), function (el) { el.setAttribute('placeholder', tr(el.getAttribute('data-ip'))); });
+    [].forEach.call(document.querySelectorAll('#scr-curr [data-ia], #curr-picker-overlay [data-ia]'), function (el) { el.setAttribute('aria-label', tr(el.getAttribute('data-ia'))); });
+    var a = $('curr-amt'), b = $('curr-amt-to');
+    if (a) a.setAttribute('aria-label', tr('amount'));
+    if (b) b.setAttribute('aria-label', tr('amountTo'));
+    var chip = $('ccy-side-chip'); if (chip) chip.textContent = tr(P.side);
+    updateTrigger('from', S.from, false);
+    updateTrigger('to', S.to, false);
+    resetHint();
+    renderStatus();
+    renderRates(false);
+    var pr = $('ccy-chart-pair'); if (pr) pr.textContent = flagOf(S.from) + ' ' + S.from + '  →  ' + flagOf(S.to) + ' ' + S.to;
+    chartTexts();
+    if (P.open) { buildChips(); renderList(false); }
+}
+
+/* ═══ Init (retries briefly: in-app the screen can reach the live DOM a moment after the script ran) ═══ */
+var initTries = 0, inited = false;
+function init() {
+    if (inited) return;
+    if (!$('scr-curr')) { if (initTries++ < 80) setTimeout(init, 100); return; }
+    inited = true;
+    loadSaved();
+    applyTexts();
+    convert(null, false);
+    bindPicker();
+    chartInit();
+    refreshRates(false);
+
+    /* language changes while this screen is not shown: the App calls every registered translator */
+    window.__mcExtraTranslators = window.__mcExtraTranslators || [];
+    window.__mcExtraTranslators.push(applyTexts);
+    /* …and when the screen becomes visible again, catch up if the language differs */
+    try {
+        var scr = $('scr-curr');
+        new MutationObserver(function () { if (scr.classList.contains('active') && S.lang !== lang()) applyTexts(); }).observe(scr, { attributes: true, attributeFilter: ['class'] });
+    } catch (e) {}
+}
+
+/* ═══ Exports: the markup's inline handlers (and the old public names) ═══ */
+window.convertCurrency      = function (src) { convert(src === 'to' ? 'to' : null, false); };
+window.swapCurrencies       = swap;
+window.openCurrPicker       = openPicker;
+window.closeCurrPicker      = closePicker;
+window.filterCurrPicker     = filterPicker;
+window.selectCurrPickerItem = function (code) { selectCode(code, document.querySelector('#curr-picker-list .ccy-row-item[data-code="' + code + '"]')); };
+window.ccyClearSearch       = clearSearch;
+window.ccyCopy              = copyAmount;
+window.ccyRefreshRates      = function () { refreshRates(true); };
+window.ccyChartRetry        = chartRetry;
+window.fmtCurrencyAmount    = fmtAmount;
+window.fmtCurrencyRate      = fmtRate;
+window.fetchLiveRates       = fetchRates;
+
+/* Escape closes the picker even if focus has wandered outside it */
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && P.open) closePicker(true); });
+
+init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODULE 12 — Fun Facts Panel</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+html{background:#0f172a;min-height:100%;}
+body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#1a1f3a 100%);min-height:100dvh;min-height:100vh;color:white;overflow-x:hidden;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.09) 0%,transparent 70%);top:-80px;left:-80px;}
+body::after{width:360px;height:360px;background:radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%);bottom:40px;right:-60px;}
+/* preview label */
+.preview-label{position:fixed;top:30px;left:50%;transform:translateX(-50%);background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.3);color:#818cf8;padding:8px 20px;border-radius:20px;font-size:0.85rem;font-weight:600;letter-spacing:1px;z-index:10;}
+/* ── Fun Facts Panel CSS ── */
+.fun-facts-panel{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);max-width:560px;width:91%;z-index:50;filter:drop-shadow(0 12px 32px rgba(99,102,241,0.28)) drop-shadow(0 4px 12px rgba(0,0,0,0.5));animation:bubbleIn 0.65s cubic-bezier(0.34,1.56,0.64,1) both;will-change:transform;}
+@keyframes bubbleIn{from{opacity:0;transform:translateX(-50%) translateY(30px) scale(0.85);}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}}
+.fun-facts-panel:hover{filter:drop-shadow(0 20px 50px rgba(99,102,241,0.5)) drop-shadow(0 8px 24px rgba(168,85,247,0.3)) !important;transform:translateX(-50%) translateY(-4px) scale(1.015) !important;transition:filter 0.3s ease,transform 0.35s cubic-bezier(0.34,1.56,0.64,1) !important;}
+.fun-facts-outer{position:relative;border-radius:26px;padding:2px;background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899,#f59e0b,#10b981,#06b6d4);background-size:400% 400%;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);}
+.fun-facts-inner{background:linear-gradient(150deg,rgba(10,12,40,0.97) 0%,rgba(18,10,50,0.97) 50%,rgba(10,20,45,0.97) 100%) !important;border-radius:24px;padding:14px 16px 13px;position:relative;overflow:hidden;}
+.fun-facts-inner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(99,102,241,0.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(168,85,247,0.07) 0%,transparent 55%);pointer-events:none;}
+.fun-facts-tail{display:block;margin:0 auto;width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:12px solid #a855f7;filter:drop-shadow(0 4px 6px rgba(168,85,247,0.4));position:relative;z-index:1;}
+.fun-facts-sparkles{position:absolute;top:10px;right:14px;display:flex;gap:4px;opacity:0.5;}
+.sparkle-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor;}
+.sparkle-dot:nth-child(1){background:#818cf8;}.sparkle-dot:nth-child(2){background:#c084fc;}.sparkle-dot:nth-child(3){background:#f472b6;}
+.fun-facts-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.fun-facts-badge{display:flex;align-items:center;gap:5px;background:rgba(139,92,246,0.2) !important;border:1px solid rgba(168,85,247,0.4) !important;border-radius:20px;padding:3px 10px 3px 6px;box-shadow:0 0 12px rgba(168,85,247,0.2);}
+.fun-facts-badge-icon{font-size:0.82rem;animation:wiggle 3s ease-in-out infinite;}
+@keyframes wiggle{0%,90%,100%{transform:rotate(0deg);}92%{transform:rotate(-15deg);}96%{transform:rotate(12deg);}}
+.fun-facts-title{color:#c4b5fd;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:1.8px;}
+.fun-facts-category{font-size:0.68rem;color:#475569;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
+.fun-facts-text{color:#dde5f0;font-size:0.91rem;line-height:1.6;min-height:2.8em;transition:opacity 0.3s ease;}
+.fun-facts-text.fade-out{opacity:0;}.fun-facts-text.fade-in{opacity:1;}
+.fun-facts-progress{margin-top:10px;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;}
+.fun-facts-progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#6366f1,#a855f7,#ec4899,#f59e0b);border-radius:2px;animation:progressFill 30s linear forwards;}
+@keyframes progressFill{from{width:0%;}to{width:100%;}}
+.fun-facts-panel.wobble{animation:panelWobble 0.6s cubic-bezier(0.36,0.07,0.19,0.97) both !important;}
+@keyframes panelWobble{0%,100%{transform:translateX(-50%) rotate(0deg);}15%{transform:translateX(-50%) rotate(-1.5deg) scale(1.02);}30%{transform:translateX(-50%) rotate(1deg) scale(1.015);}45%{transform:translateX(-50%) rotate(-0.7deg);}60%{transform:translateX(-50%) rotate(0.4deg);}}
+@media(max-width:480px){.fun-facts-panel{width:94%;}.fun-facts-text{font-size:0.85rem;}}
+/* ── Docked variant: static, in-flow placement inside a module screen
+   (used by the App orchestrator on modules that mount the panel via
+   a .fun-facts-slot instead of leaving it as a fixed viewport overlay).
+   MODULE-12 itself, opened standalone, is unaffected — nothing here
+   changes unless the .docked class is added at runtime. ── */
+.fun-facts-panel.docked{position:static;bottom:auto;left:auto;transform:none;margin:28px auto 6px;animation:bubbleInDocked 0.65s cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes bubbleInDocked{from{opacity:0;transform:translateY(24px) scale(0.94);}to{opacity:1;transform:translateY(0) scale(1);}}
+.fun-facts-panel.docked:hover{transform:translateY(-3px) scale(1.012) !important;}
+.fun-facts-panel.docked.wobble{animation:panelWobbleDocked 0.6s cubic-bezier(0.36,0.07,0.19,0.97) both !important;}
+@keyframes panelWobbleDocked{0%,100%{transform:rotate(0deg);}15%{transform:rotate(-1.2deg) scale(1.015);}30%{transform:rotate(0.8deg) scale(1.01);}45%{transform:rotate(-0.5deg);}60%{transform:rotate(0.3deg);}}
+</style>
+</head>
+<body>
+<div class="preview-label">MODULE 12 — Fun Facts Panel Preview</div>
+
+<div class="fun-facts-panel">
+    <div class="fun-facts-outer">
+        <div class="fun-facts-inner">
+            <div class="fun-facts-sparkles">
+                <div class="sparkle-dot"></div>
+                <div class="sparkle-dot"></div>
+                <div class="sparkle-dot"></div>
+            </div>
+            <div class="fun-facts-header">
+                <div class="fun-facts-badge">
+                    <span class="fun-facts-badge-icon">💡</span>
+                    <span class="fun-facts-title">FUN FACT</span>
+                </div>
+                <span class="fun-facts-category" id="fun-fact-category">⚛️ physics</span>
+            </div>
+            <div class="fun-facts-text" id="fun-fact-text">Loading...</div>
+            <div class="fun-facts-progress">
+                <div class="fun-facts-progress-bar" id="fun-fact-progress"></div>
+            </div>
+        </div>
+    </div>
+    <span class="fun-facts-tail"></span>
+</div>
+
+<script>
+const catEmoji={math:'🔢',physics:'⚛️',science:'🔬',astronomy:'🌌',astrophysics:'🕳️',computer:'💻'};
+const funFactCatNames={
+    el:{math:'μαθηματικά',physics:'φυσική',science:'επιστήμη',astronomy:'αστρονομία',astrophysics:'αστροφυσική',computer:'υπολογιστές'},
+    es:{math:'matemáticas',physics:'física',science:'ciencia',astronomy:'astronomía',astrophysics:'astrofísica',computer:'informática'}
+};
+const funFactsData={
+    physics:[
+        {el:"αν αφαιρούσατε όλο τον κενό χώρο από τα άτομα του ανθρώπινου σώματος, ολόκληρη η ανθρώπινη φυλή θα χωρούσε σε ένα κύβο ζάχαρης",en:"if you removed all the empty space from atoms in the human body, the entire human race would fit in a sugar cube",es:"si eliminaras todo el espacio vacío de los átomos del cuerpo humano, toda la humanidad cabría en un terrón de azúcar"},
+        {el:"το φως από τον ήλιο χρειάζεται περίπου 8 λεπτά για να φτάσει στη Γη",en:"light from the sun takes about 8 minutes to reach Earth",es:"la luz del Sol tarda unos 8 minutos en llegar a la Tierra"},
+        {el:"στο απόλυτο μηδέν (-273.15°C), τα άτομα σταματούν σχεδόν εντελώς να κινούνται",en:"at absolute zero (-273.15°C), atoms stop moving almost completely",es:"en el cero absoluto (-273,15 °C), los átomos dejan de moverse casi por completo"},
+        {el:"η κβαντική εμπλοκή επιτρέπει στα σωματίδια να συνδέονται ανεξάρτητα από την απόσταση",en:"quantum entanglement allows particles to be connected regardless of distance",es:"el entrelazamiento cuántico permite que las partículas estén conectadas sin importar la distancia"},
+        {el:"η ενέργεια που θα απελευθερωνόταν από την πλήρη μετατροπή ενός γραμμαρίου ύλης σε ενέργεια (E=mc²) είναι περίπου όση η βόμβα της Χιροσίμα",en:"the energy released by fully converting a single gram of matter into energy (E=mc²) is roughly equivalent to the Hiroshima bomb",es:"la energía liberada al convertir por completo un solo gramo de materia en energía (E=mc²) equivale aproximadamente a la de la bomba de Hiroshima"}
+    ],
+    math:[
+        {el:"υπάρχουν περισσότερα πιθανά παιχνίδια σκακιού από ατόμα στο παρατηρήσιμο σύμπαν",en:"there are more possible games of chess than atoms in the observable universe",es:"hay más partidas de ajedrez posibles que átomos en el universo observable"},
+        {el:"σε ένα δωμάτιο με 23 άτομα, υπάρχει 50% πιθανότητα δύο από αυτά να έχουν τα ίδια γενέθλια",en:"in a room of 23 people, there is a 50% chance that two share a birthday",es:"en una sala con 23 personas, hay un 50 % de probabilidad de que dos de ellas cumplan años el mismo día"},
+        {el:"οι Ρωμαίοι δεν είχαν ποτέ σύμβολο για το μηδέν — το πλησιέστερο ήταν η λέξη «nulla»",en:"the Romans never had a symbol for zero — the closest they came was the word 'nulla'",es:"los romanos nunca tuvieron un símbolo para el cero — lo más cercano fue la palabra «nulla»"}
+    ],
+    science:[
+        {el:"το DNA σε ένα μόνο ανθρώπινο κύτταρο, αν ξετυλιχθεί, θα εκτεινόταν σε περίπου 2 μέτρα",en:"DNA in a single human cell, if uncoiled, would stretch about 2 meters",es:"el ADN de una sola célula humana, si se desenrollara, se extendería unos 2 metros"},
+        {el:"ο ανθρώπινος εγκέφαλος παράγει περίπου 23 watt ισχύος",en:"the human brain generates about 23 watts of power",es:"el cerebro humano genera aproximadamente 23 vatios de potencia"},
+        {el:"τα tardigrades μπορούν να επιβιώσουν στο κενό του διαστήματος",en:"tardigrades can survive in the vacuum of space",es:"los tardígrados pueden sobrevivir en el vacío del espacio"}
+    ],
+    astronomy:[
+        {el:"υπάρχουν περισσότερα άστρα στο σύμπαν από κόκκους άμμου σε όλες τις παραλίες της Γης",en:"there are more stars in the universe than grains of sand on all Earth's beaches",es:"hay más estrellas en el universo que granos de arena en todas las playas de la Tierra"},
+        {el:"τα αποτυπώματα στη Σελήνη θα διαρκέσουν εκατομμύρια χρόνια",en:"the footprints on the Moon will last for millions of years",es:"las huellas en la Luna durarán millones de años"},
+        {el:"περίπου 1,3 εκατομμύρια Γήινες θα χωρούσαν μέσα στον Ήλιο",en:"about 1.3 million Earths could fit inside the Sun",es:"dentro del Sol cabrían aproximadamente 1,3 millones de Tierras"}
+    ],
+    astrophysics:[
+        {el:"η σκοτεινή ύλη αποτελεί το 85% της ύλης του σύμπαντος αλλά δεν ξέρουμε ακόμα τι είναι",en:"dark matter makes up 85% of the universe's matter but we still don't know what it is",es:"la materia oscura constituye el 85 % de la materia del universo, pero aún no sabemos qué es"},
+        {el:"τα βαρυτικά κύματα προβλέφθηκαν από τον Einstein το 1916 αλλά ανιχνεύθηκαν μόλις το 2015",en:"gravitational waves were predicted by Einstein in 1916 but only detected in 2015",es:"las ondas gravitacionales fueron predichas por Einstein en 1916, pero solo se detectaron en 2015"}
+    ],
+    computer:[
+        {el:"το πρώτο σφάλμα υπολογιστή ήταν ένας πραγματικός σκόρος παγιδευμένος σε υπολογιστή το 1947",en:"the first computer bug was an actual moth trapped in a computer in 1947",es:"el primer «bug» informático fue una polilla real atrapada en una computadora en 1947"},
+        {el:"το πρώτο ποντίκι υπολογιστή ήταν φτιαγμένο από ξύλο",en:"the first computer mouse was made of wood",es:"el primer ratón de computadora estaba hecho de madera"},
+        {el:"έχουν καταγραφεί πάνω από 8.000 γλώσσες προγραμματισμού, αν και μόνο λίγες δεκάδες χρησιμοποιούνται ευρέως",en:"over 8,000 programming languages have been documented, though only a few dozen are widely used",es:"se han documentado más de 8000 lenguajes de programación, aunque solo unas pocas docenas se usan ampliamente"}
+    ]
+};
+let allFacts=[],usedFacts=new Set();
+Object.keys(funFactsData).forEach(cat=>funFactsData[cat].forEach((f,i)=>allFacts.push({category:cat,el:f.el,en:f.en,es:f.es,id:`${cat}-${i}`})));
+function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+shuffleArray(allFacts);
+
+function showNextFact(){
+    const textEl=document.getElementById('fun-fact-text'),catEl=document.getElementById('fun-fact-category'),progEl=document.getElementById('fun-fact-progress');
+    if(!textEl) return;
+    /* Read current language dynamically — reflects live language switches in App mode */
+    const lang=(typeof MultiCalc!=='undefined' && MultiCalc.state && MultiCalc.state.currentLang) || 'el';
+    const prefix=(typeof T==='function') ? T('didYouKnow') :
+        (lang==='en'?'Did you know':lang==='es'?'¿Sabías que':'Ήξερες ότι');
+    let fact=null,attempts=0;
+    while(attempts<allFacts.length){const idx=Math.floor(Math.random()*allFacts.length);if(!usedFacts.has(allFacts[idx].id)){fact=allFacts[idx];usedFacts.add(fact.id);break;}attempts++;}
+    if(!fact){usedFacts.clear();fact=allFacts[Math.floor(Math.random()*allFacts.length)];usedFacts.add(fact.id);}
+    textEl.classList.add('fade-out');
+    setTimeout(()=>{
+        textEl.innerText=prefix+' '+(fact[lang]||fact.el||fact.en)+'?';
+        if(catEl)catEl.textContent=(catEmoji[fact.category]||'💡')+' '+((funFactCatNames[lang]&&funFactCatNames[lang][fact.category])||fact.category);
+        textEl.classList.remove('fade-out');
+        const panel=document.querySelector('.fun-facts-panel');
+        if(panel){panel.classList.remove('wobble');void panel.offsetWidth;panel.classList.add('wobble');setTimeout(()=>panel.classList.remove('wobble'),700);}
+        if(progEl){progEl.style.animation='none';progEl.style.width='0%';void progEl.offsetHeight;progEl.style.animation='progressFill 30s linear forwards';}
+    },310);
+}
+
+/* ── initFunFacts() — (re)starts the rotation. Safe to call multiple
+   times: clears any previous interval first. Stores the interval id
+   on MultiCalc.state (shared runtime) when available so the App's
+   navTo wrapper can start/stop it correctly on navigation; falls
+   back to a local variable in standalone mode. ── */
+let _standaloneFactInterval = null;
+function initFunFacts(){
+    if (typeof MultiCalc!=='undefined' && MultiCalc.state) {
+        if (MultiCalc.state.factInterval) clearInterval(MultiCalc.state.factInterval);
+    } else if (_standaloneFactInterval) {
+        clearInterval(_standaloneFactInterval);
+    }
+    usedFacts.clear();
+    shuffleArray(allFacts);
+    showNextFact();
+    const id = setInterval(showNextFact, 30000);
+    if (typeof MultiCalc!=='undefined' && MultiCalc.state) MultiCalc.state.factInterval = id;
+    else _standaloneFactInterval = id;
+}
+
+/* Start immediately — works both standalone (preview) and in the App
+   (the App's navTo wrapper will restart/stop this appropriately on
+   subsequent navigation, e.g. hiding+pausing on the language screen). */
+initFunFacts();
+</script>
+</body>
+</html>
